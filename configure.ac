@@ -116,9 +116,9 @@ AC_CONFIG_FILES([Makefile
 		common/libpatricia/Makefile
 		common/libcsv/Makefile
 		lib/Makefile
+		lib/datastructures/Makefile
 		tools/Makefile
 		])
 AC_OUTPUT
 
-		#lib/datastructures/Makefile
 		#lib/providers/Makefile

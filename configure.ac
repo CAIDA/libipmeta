@@ -1,41 +1,41 @@
 #
-# libipannotate
-# 
+# libipmeta
+#
 # Alistair King, CAIDA, UC San Diego
 # corsaro-info@caida.org
-# 
+#
 # Copyright (C) 2012 The Regents of the University of California.
-# 
-# This file is part of libipannotate.
-# 
-# libipannotate is free software: you can redistribute it and/or modify
+#
+# This file is part of libipmeta.
+#
+# libipmeta is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
-# libipannotate is distributed in the hope that it will be useful,
+#
+# libipmeta is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
-# along with libipannotate.  If not, see <http://www.gnu.org/licenses/>.
-# 
+# along with libipmeta.  If not, see <http://www.gnu.org/licenses/>.
+#
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipannotate], [2.0.0], [corsaro-info@caida.org])
+AC_INIT([libipmeta], [2.0.0], [corsaro-info@caida.org])
 
-LIBIPANNOTATE_MAJOR_VERSION=0
-LIBIPANNOTATE_MID_VERSION=0
-LIBIPANNOTATE_MINOR_VERSION=0
+LIBIPMETA_MAJOR_VERSION=0
+LIBIPMETA_MID_VERSION=0
+LIBIPMETA_MINOR_VERSION=0
 
-AC_DEFINE_UNQUOTED([LIBIPANNOTATE_MAJOR_VERSION],$LIBIPANNOTATE_MAJOR_VERSION,
-	[libipannotate major version])
-AC_DEFINE_UNQUOTED([LIBIPANNOTATE_MID_VERSION],$LIBIPANNOTATE_MID_VERSION,
-	[libipannotate mid version])
-AC_DEFINE_UNQUOTED([LIBIPANNOTATE_MINOR_VERSION],$LIBIPANNOTATE_MINOR_VERSION,
-	[libipannotate minor version])
+AC_DEFINE_UNQUOTED([LIBIPMETA_MAJOR_VERSION],$LIBIPMETA_MAJOR_VERSION,
+	[libipmeta major version])
+AC_DEFINE_UNQUOTED([LIBIPMETA_MID_VERSION],$LIBIPMETA_MID_VERSION,
+	[libipmeta mid version])
+AC_DEFINE_UNQUOTED([LIBIPMETA_MINOR_VERSION],$LIBIPMETA_MINOR_VERSION,
+	[libipmeta minor version])
 
 LT_INIT
 
@@ -43,7 +43,7 @@ AM_INIT_AUTOMAKE
 
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_CONFIG_SRCDIR([lib/ipannotate.c])
+AC_CONFIG_SRCDIR([lib/ipmeta.c])
 AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
@@ -105,15 +105,20 @@ AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h math.h stdlib.h string.h \
 
 AC_HEADER_ASSERT
 
-AC_SUBST([LIBIPANNOTATE_MAJOR_VERSION])
-AC_SUBST([LIBIPANNOTATE_MID_VERSION])
-AC_SUBST([LIBIPANNOTATE_MINOR_VERSION])
+AC_SUBST([LIBIPMETA_MAJOR_VERSION])
+AC_SUBST([LIBIPMETA_MID_VERSION])
+AC_SUBST([LIBIPMETA_MINOR_VERSION])
 
 AC_HEADER_ASSERT
 
 AC_CONFIG_FILES([Makefile
+		common/Makefile
+		common/libpatricia/Makefile
+		common/libcsv/Makefile
 		lib/Makefile
 		tools/Makefile
-		common/Makefile
 		])
 AC_OUTPUT
+
+		#lib/datastructures/Makefile
+		#lib/providers/Makefile

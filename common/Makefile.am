@@ -1,25 +1,25 @@
 #
-# libipannotate
+# libipmeta
 #
 # Alistair King, CAIDA, UC San Diego
 # corsaro-info@caida.org
 #
 # Copyright (C) 2012 The Regents of the University of California.
 #
-# This file is part of libipannotate.
+# This file is part of libipmeta.
 #
-# libipannotate is free software: you can redistribute it and/or modify
+# libipmeta is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
-# libipannotate is distributed in the hope that it will be useful,
+# libipmeta is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with libipannotate.  If not, see <http://www.gnu.org/licenses/>.
+# along with libipmeta.  If not, see <http://www.gnu.org/licenses/>.
 #
 
 SUBDIRS = libpatricia libcsv
@@ -28,11 +28,11 @@ AM_CPPFLAGS = -I$(top_srcdir) \
 	-I$(top_srcdir)/common/libpatricia \
 	-I$(top_srcdir)/common/libcsv
 
-noinst_LTLIBRARIES = libipannotatecommon.la
+noinst_LTLIBRARIES = libipmetacommon.la
 
 CONDITIONAL_LIBS=
 
-libipannotatecommon_la_SOURCES = \
+libipmetacommon_la_SOURCES = \
 	utils.c \
 	utils.h \
 	ip_utils.c \
@@ -40,7 +40,7 @@ libipannotatecommon_la_SOURCES = \
 	khash.h \
 	ksort.h
 
-libipannotatecommon_la_LIBADD = \
+libipmetacommon_la_LIBADD = \
 	$(top_builddir)/common/libpatricia/libpatricia.la \
 	$(top_builddir)/common/libcsv/libcsv.la \
 	$(CONDITIONAL_LIBS)

@@ -157,8 +157,11 @@ typedef enum ipmeta_provider_id
 
   } ipmeta_provider_id_t;
 
-/** A unique identifier for each metadata ds that libipmeta
-    supports */
+/** A unique identifier for each metadata ds that libipmeta supports.
+ *
+ * @note When adding a datastructure to this list, there must also be a
+ * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
+ */
 typedef enum ipmeta_ds_id
   {
     /** Patricia Trie */
@@ -170,7 +173,7 @@ typedef enum ipmeta_ds_id
     IPMETA_DS_MAX          = IPMETA_DS_PATRICIA,
 
     /** Default Geolocation data-structure */
-    IPMETA_DS_DEFAULT = IPMETA_DS_PATRICIA,
+    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
 
   } ipmeta_ds_id_t;
 

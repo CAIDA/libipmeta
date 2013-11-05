@@ -27,13 +27,15 @@ SUBDIRS =
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common \
 	-I$(top_srcdir)/common/libpatricia \
 	-I$(top_srcdir)/common/libcsv \
-	-I$(top_srcdir)/libipmeta
+	-I$(top_srcdir)/lib
 
 noinst_LTLIBRARIES = libipmeta_providers.la
 
 include_HEADERS =
 
-libipmeta_providers_la_SOURCES =
+libipmeta_providers_la_SOURCES = \
+	ipmeta_provider_csvgeo.c \
+	ipmeta_provider_csvgeo.h
 
 libipmeta_providers_la_LIBADD =
 

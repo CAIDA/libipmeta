@@ -22,7 +22,7 @@
 # along with libipmeta.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-SUBDIRS = datastructures
+SUBDIRS = datastructures providers
 #providers
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common 	\
 	-I$(top_srcdir)/common/libpatricia		\
@@ -42,7 +42,8 @@ libipmeta_la_SOURCES = 	\
 	ipmeta_log.c
 
 libipmeta_la_LIBADD = $(top_builddir)/common/libipmetacommon.la \
-	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la
+	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la \
+	$(top_builddir)/lib/providers/libipmeta_providers.la
 
 libipmeta_la_LDFLAGS = -version-info @LIBIPMETA_MAJOR_VERSION@:@LIBIPMETA_MINOR_VERSION@:@LIBIPMETA_MID_VERSION@
 

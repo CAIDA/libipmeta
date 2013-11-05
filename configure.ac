@@ -117,8 +117,7 @@ AC_CONFIG_FILES([Makefile
 		common/libcsv/Makefile
 		lib/Makefile
 		lib/datastructures/Makefile
+		lib/providers/Makefile
 		tools/Makefile
 		])
 AC_OUTPUT
-
-		#lib/providers/Makefile

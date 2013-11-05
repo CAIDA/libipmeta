@@ -195,6 +195,12 @@ const char *ipmeta_get_provider_name(ipmeta_provider_id_t id);
  */
 const char **ipmeta_get_provider_names();
 
+/** @todo many of these functions will need to be moved into the libipmeta_int
+ * header because they will only be called by provider plugins.  At this point
+ * we will need to come up with a nice clean interface that Corsaro and tools
+ * will use.
+ */
+
 /** Allocate a metadata provider object in the packet state
  *
  * @param ipmeta        The ipmeta object to alloc the provider for

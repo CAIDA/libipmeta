@@ -34,8 +34,8 @@ noinst_LTLIBRARIES = libipmeta_providers.la
 include_HEADERS =
 
 libipmeta_providers_la_SOURCES = \
-	ipmeta_provider_csvgeo.c \
-	ipmeta_provider_csvgeo.h
+	ipmeta_provider_maxmind.c \
+	ipmeta_provider_maxmind.h
 
 libipmeta_providers_la_LIBADD =
 

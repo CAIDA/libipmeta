@@ -63,27 +63,6 @@ struct ipmeta
 
 };
 
-/** Structure which represents a metadata provider */
-struct ipmeta_provider
-{
-  /** The ID of the provider */
-  ipmeta_provider_id_t id;
-
-  /** The name of the provider */
-  const char *name;
-
-  /** A hash of id => record for all allocated records of this provider */
-  khash_t(ipmeta_rechash) *all_records;
-
-  /** The datastructure that will be used to perform IP => record lookups */
-  struct ipmeta_ds *ds;
-
-  /** The list of records which contain the results of metadata lookups using
-      this provider */
-  ipmeta_record_t *records;
-
-};
-
 /** @} */
 
 /**

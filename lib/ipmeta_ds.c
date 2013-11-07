@@ -31,6 +31,7 @@
 #include "ipmeta_ds_patricia.h"
 
 #include "ipmeta_ds.h"
+#include "ipmeta_provider.h"
 
 /** Convenience typedef for the alloc function type */
 typedef ipmeta_ds_t* (*ds_alloc_func_t)();

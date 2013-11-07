@@ -38,7 +38,9 @@ libipmetacommon_la_SOURCES = \
 	ip_utils.c \
 	ip_utils.h \
 	khash.h \
-	ksort.h
+	ksort.h \
+	parse_cmd.c \
+	parse_cmd.h
 
 libipmetacommon_la_LIBADD = \
 	$(top_builddir)/common/libpatricia/libpatricia.la \

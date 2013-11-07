@@ -56,9 +56,9 @@ struct ipmeta
 {
 
   /** Array of metadata providers
-   * @note element 0 is always NULL
+   * @note index of provider is given by (ipmeta_provider_id_t - 1)
    */
-  struct ipmeta_provider *providers[IPMETA_PROVIDER_MAX+1];
+  struct ipmeta_provider *providers[IPMETA_PROVIDER_MAX];
 
   /** Default metadata provider */
   struct ipmeta_provider *provider_default;

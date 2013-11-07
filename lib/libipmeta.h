@@ -192,25 +192,35 @@ ipmeta_t *ipmeta_init();
  */
 void ipmeta_free(ipmeta_t *ipmeta);
 
-/** Enable the given provider, or if it is already enabled, retrieve a pointer
- * to it.
+/** Enable the given provider unless it is already enabled
  *
  * @param ipmeta        The ipmeta object to enable the provider for
  * @param provider_id   The ID of the provider to be enabled
  * @param ds_id         The ID of the datastructure to use
  * @param set_default   Set this provider as default if non-zero
- * @return the provider object created/retrieved, NULL if an error occurred
+ * @return 0 if the provider was initialized, -1 if an error occurred
+ *
+ * Once ipmeta_init is called, ipmeta_enable_provider should be called once for
+ * each provider that is to be used. Enabling providers that are not necessary
+ * should not impact runtime speed, but it may use considerable amounts of
+ * memory.
+ *
+ * To obtain a pointer to a provider, use the ipmeta_get_provider_by_name or
+ * ipmeta_get_provider_by_id functions. To enumerate a list of available
+ * providers, the ipmeta_get_all_providers function can be used to get a list of
+ * all providers and then ipmeta_get_provider_name can be used on each to get
+ * their name.
  *
  * @note Default provider status overrides the requests of previous
  * plugins. Thus, the order in which users request the plugins to be run in can
  * have an effect on plugins which make use of the default provider
  * (e.g. corsaro_report).
  */
-ipmeta_provider_t *ipmeta_enable_provider(ipmeta_t *ipmeta,
-					  ipmeta_provider_t *provider,
-					  ipmeta_ds_id_t ds_id,
-					  int argc, char **argv,
-					  ipmeta_provider_default_t set_default);
+int ipmeta_enable_provider(ipmeta_t *ipmeta,
+			   ipmeta_provider_t *provider,
+			   ipmeta_ds_id_t ds_id,
+			   const char *options,
+			   ipmeta_provider_default_t set_default);
 
 /** Retrieve the provider object for the default metadata provider
  *
@@ -249,6 +259,13 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
 			       uint32_t addr);
 
+/** Check if the given provider is enabled already
+ *
+ * @param provider      The provider to check the status of
+ * @return 1 if the provider is enabled, 0 otherwise
+ */
+int ipmeta_is_provider_enabled(ipmeta_provider_t *provider);
+
 /** Get the ID for the given provider
  *
  * @param provider      The provider object to retrieve the ID from
@@ -263,14 +280,17 @@ int ipmeta_get_provider_id(ipmeta_provider_t *provider);
  */
 const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
 
-/** Get an array of provider names
+/** Get an array of available providers
  *
- * @return an array of provider names
+ * @param ipmeta        The ipmeta object to get all the providers for
+ * @return an array of provider objects
  *
  * @note the number of elements in the array will be exactly
- * IPMETA_PROVIDER_MAX+1. The [0] element will be NULL.
+ * IPMETA_PROVIDER_MAX.
+ * @note not all providers in the list may be enabled. use
+ * ipmeta_is_provider_enabled to check.
  */
-const char **ipmeta_get_provider_names();
+ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
 /** Dump the given metadata record to stdout (for debugging)
  *

@@ -31,11 +31,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "parse_cmd.h"
 #include "utils.h"
 
 #include "libipmeta_int.h"
 #include "ipmeta_ds.h"
 #include "ipmeta_provider.h"
+
+#define MAXOPTS 1024
 
 ipmeta_t *ipmeta_init()
 {
@@ -66,7 +69,7 @@ void ipmeta_free(ipmeta_t *ipmeta)
   assert(ipmeta != NULL);
 
   /* loop across all providers and free each one */
-  for(i = 1; i <= IPMETA_PROVIDER_MAX; i++)
+  for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
     {
       ipmeta_provider_free(ipmeta, ipmeta->providers[i]);
     }
@@ -75,15 +78,36 @@ void ipmeta_free(ipmeta_t *ipmeta)
   return;
 }
 
-ipmeta_provider_t *ipmeta_enable_provider(ipmeta_t *ipmeta,
-					  ipmeta_provider_t *provider,
-					  ipmeta_ds_id_t ds_id,
-					  int argc, char **argv,
-					  ipmeta_provider_default_t set_default)
+int ipmeta_enable_provider(ipmeta_t *ipmeta,
+			   ipmeta_provider_t *provider,
+			   ipmeta_ds_id_t ds_id,
+			   const char *options,
+			   ipmeta_provider_default_t set_default)
 {
+  char *local_args = NULL;
+  char *process_argv[MAXOPTS];
+  int len;
+  int process_argc = 0;
+  int rc;
+
+  /* first we need to parse the options */
+  if(options != NULL && (len = strlen(options)) > 0)
+    {
+      local_args = strndup(options, len);
+      parse_cmd(local_args, &process_argc, process_argv, MAXOPTS,
+		provider->name);
+    }
+
   /* we just need to pass this along to the provider framework */
-  return ipmeta_provider_init(ipmeta, provider, ds_id,
-			      argc, argv, set_default);
+  rc = ipmeta_provider_init(ipmeta, provider, ds_id,
+			    process_argc, process_argv, set_default);
+
+  if(local_args != NULL)
+    {
+      free(local_args);
+    }
+
+  return rc;
 }
 
 ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta)
@@ -126,6 +150,12 @@ inline ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
   return provider->lookup(provider, addr);
 }
 
+inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)
+{
+  assert(provider != NULL);
+  return provider->enabled;
+}
+
 inline int ipmeta_get_provider_id(ipmeta_provider_t *provider)
 {
   assert(provider != NULL);
@@ -140,10 +170,9 @@ inline const char *ipmeta_get_provider_name(ipmeta_provider_t *provider)
   return provider->name;
 }
 
-const char **ipmeta_get_provider_names()
+ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 {
-  assert(0);
-  return NULL;
+  return ipmeta->providers;
 }
 
 void ipmeta_dump_record(ipmeta_record_t *record)

@@ -100,7 +100,10 @@ struct ipmeta_provider
    * @return 0 if the provider is successfully initialized, -1 otherwise
    *
    * @note the most common reason for returning -1 will likely be incorrect
-   * command line arguments
+   * command line arguments.
+   *
+   * @warning the strings contained in argv will be free'd once this function
+   * returns. Ensure you make appropriate copies as needed.
    */
   int (*init)(struct ipmeta_provider *provider, int argc, char ** argv);
 
@@ -179,11 +182,11 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
  * have an effect on plugins which make use of the default provider
  * (e.g. corsaro_report).
  */
-ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
-					ipmeta_provider_t *provider,
-					ipmeta_ds_id_t ds_id,
-					int argc, char **argv,
-					ipmeta_provider_default_t set_default);
+int ipmeta_provider_init(ipmeta_t *ipmeta,
+			 ipmeta_provider_t *provider,
+			 ipmeta_ds_id_t ds_id,
+			 int argc, char **argv,
+			 ipmeta_provider_default_t set_default);
 
 /** Free the given provider object
  *

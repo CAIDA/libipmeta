@@ -121,28 +121,27 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
 	     sizeof(ipmeta_ds_t));
 
       /* poke it into ipmeta */
-      ipmeta->providers[i] = provider;
+      ipmeta->providers[i-1] = provider;
     }
 
 }
 
-ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
-					ipmeta_provider_t *provider,
-					ipmeta_ds_id_t ds_id,
-					int argc, char **argv,
-					ipmeta_provider_default_t set_default)
+int ipmeta_provider_init(ipmeta_t *ipmeta,
+			 ipmeta_provider_t *provider,
+			 ipmeta_ds_id_t ds_id,
+			 int argc, char **argv,
+			 ipmeta_provider_default_t set_default)
 {
   assert(ipmeta != NULL);
   assert(provider != NULL);
-  assert(ipmeta->providers[provider_id] != NULL);
 
-  /* if it has already been initialized, then we simply return a pointer */
+  /* if it has already been initialized, then we simply return */
   if(provider->enabled != 0)
     {
       ipmeta_log(__func__,
 		 "WARNING: provider (%s) is already initialized, "
 		 "ignoring new settings", provider->name);
-      return provider;
+      return 0;
     }
 
   /* otherwise, we need to init this plugin */
@@ -172,7 +171,7 @@ ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
 
   provider->enabled = 1;
 
-  return provider;
+  return 0;
 
  err:
   if(provider != NULL)
@@ -184,7 +183,7 @@ ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
 	}
       /* do not free the provider as we did not alloc it */
     }
-  return NULL;
+  return -1;
 }
 
 

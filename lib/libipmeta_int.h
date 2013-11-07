@@ -55,8 +55,10 @@ KHASH_MAP_INIT_INT(ipmeta_rechash, struct ipmeta_record *)
 struct ipmeta
 {
 
-  /** Array of metadata providers */
-  struct ipmeta_provider *providers[IPMETA_PROVIDER_MAX];
+  /** Array of metadata providers
+   * @note element 0 is always NULL
+   */
+  struct ipmeta_provider *providers[IPMETA_PROVIDER_MAX+1];
 
   /** Default metadata provider */
   struct ipmeta_provider *provider_default;

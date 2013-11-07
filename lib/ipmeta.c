@@ -39,15 +39,51 @@
 
 ipmeta_t *ipmeta_init()
 {
-  return NULL;
+  ipmeta_t *ipmeta;
+
+  /* allocate some memory for our state */
+  if((ipmeta = malloc_zero(sizeof(ipmeta_t))) == NULL)
+    {
+      ipmeta_log(__func__, "could not malloc ipmeta_t");
+      return NULL;
+    }
+
+  /* allocate the providers */
+  if(ipmeta_provider_alloc_all(ipmeta) != 0)
+    {
+      free(ipmeta);
+      return NULL;
+    }
+
+  return ipmeta;
+}
+
+void ipmeta_free(ipmeta_t *ipmeta)
+{
+  int i;
+
+  /* no mercy for double frees */
+  assert(ipmeta != NULL);
+
+  /* loop across all providers and free each one */
+  for(i = 1; i <= IPMETA_PROVIDER_MAX; i++)
+    {
+      ipmeta_provider_free(ipmeta, ipmeta->providers[i]);
+    }
+
+  free(ipmeta);
+  return;
 }
 
 ipmeta_provider_t *ipmeta_enable_provider(ipmeta_t *ipmeta,
-					  ipmeta_provider_id_t *provider_id,
+					  ipmeta_provider_t *provider,
 					  ipmeta_ds_id_t ds_id,
+					  int argc, char **argv,
 					  ipmeta_provider_default_t set_default)
 {
-  return NULL;
+  /* we just need to pass this along to the provider framework */
+  return ipmeta_provider_init(ipmeta, provider, ds_id,
+			      argc, argv, set_default);
 }
 
 ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta)
@@ -56,7 +92,7 @@ ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta)
   return ipmeta->provider_default;
 }
 
-ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
+inline ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
 					     ipmeta_provider_id_t id)
 {
   assert(ipmeta != NULL);
@@ -82,7 +118,7 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
   return NULL;
 }
 
-ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
+inline ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
 			       uint32_t addr)
 {
   assert(provider != NULL && provider->enabled != 0);
@@ -90,14 +126,14 @@ ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
   return provider->lookup(provider, addr);
 }
 
-int ipmeta_get_provider_id(ipmeta_provider_t *provider)
+inline int ipmeta_get_provider_id(ipmeta_provider_t *provider)
 {
   assert(provider != NULL);
 
   return provider->id;
 }
 
-const char *ipmeta_get_provider_name(ipmeta_provider_t *provider)
+inline const char *ipmeta_get_provider_name(ipmeta_provider_t *provider)
 {
   assert(provider != NULL);
 

@@ -51,7 +51,7 @@
 #define IPMETA_PROVIDER_GENERATE_PROTOS(provname)			\
   ipmeta_provider_t * ipmeta_provider_##provname##_alloc();		\
   int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds,		\
-					int argc, const char **argv);	\
+					int argc, char **argv);	\
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);	\
   ipmeta_record_t * ipmeta_provider_##provname##_lookup(		\
 					ipmeta_provider_t *provider, \
@@ -102,7 +102,7 @@ struct ipmeta_provider
    * @note the most common reason for returning -1 will likely be incorrect
    * command line arguments
    */
-  int (*init)(struct ipmeta_provider *provider, int argc, const char ** argv);
+  int (*init)(struct ipmeta_provider *provider, int argc, char ** argv);
 
   /** Shutdown and free provider-specific state for this provider
    *
@@ -159,15 +159,20 @@ struct ipmeta_provider
  *
  * @{ */
 
+/** Allocate all provider objects
+ *
+ * @param ipmeta        The ipmeta object to allocate providers for
+ * @return 0 if all providers were successfully allocated, -1 otherwise
+ */
+int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
+
 /** Initialize a provider object
  *
- * @param ipmeta        The ipmeta object to alloc the provider for
+ * @param ipmeta        The ipmeta object to initialize the provider for
  * @param provider_id   The unique ID of the metadata provider
  * @param ds_id         The type of datastructure to use
  * @param set_default   Set this provider as the default
  * @return the provider object created, NULL if an error occurred
- *
- * @todo wrap this function and expose to users somehow...
  *
  * @note Default provider status overrides the requests of previous
  * plugins. Thus, the order in which users request the plugins to be run in can
@@ -175,8 +180,9 @@ struct ipmeta_provider
  * (e.g. corsaro_report).
  */
 ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
-					ipmeta_provider_id_t provider_id,
+					ipmeta_provider_t *provider,
 					ipmeta_ds_id_t ds_id,
+					int argc, char **argv,
 					ipmeta_provider_default_t set_default);
 
 /** Free the given provider object

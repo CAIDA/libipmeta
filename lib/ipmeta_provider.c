@@ -97,27 +97,55 @@ static void free_record(ipmeta_record_t *record)
 
 /* --- Public functions below here -- */
 
-ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
-					ipmeta_provider_id_t provider_id,
-					ipmeta_ds_id_t ds_id,
-					ipmeta_provider_default_t set_default)
+int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
 {
   assert(ipmeta != NULL);
   assert(ARR_CNT(provider_alloc_functions) == IPMETA_PROVIDER_MAX + 1);
-  assert(provider_id <= IPMETA_PROVIDER_MAX);
 
-  ipmeta_provider_t *provider;
-  /* first, create the struct */
-  if((provider = malloc_zero(sizeof(ipmeta_provider_t))) == NULL)
+  int i;
+
+  /* loop across all providers and alloc each one */
+  for(i = 1; i <= IPMETA_PROVIDER_MAX; i++)
     {
-      ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
-      return NULL;
+      ipmeta_provider_t *provider;
+      /* first, create the struct */
+      if((provider = malloc_zero(sizeof(ipmeta_provider_t))) == NULL)
+	{
+	  ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
+	  return NULL;
+	}
+
+      /* get the core provider details (id, name) from the provider plugin */
+      memcpy(provider,
+	     provider_alloc_functions[provider_id](),
+	     sizeof(ipmeta_ds_t));
+
+      /* poke it into ipmeta */
+      ipmeta->providers[i] = provider;
     }
 
-  /* get the core provider details (id, name) from the provider plugin */
-  memcpy(provider,
-	 provider_alloc_functions[provider_id](),
-	 sizeof(ipmeta_ds_t));
+}
+
+ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
+					ipmeta_provider_t *provider,
+					ipmeta_ds_id_t ds_id,
+					int argc, char **argv,
+					ipmeta_provider_default_t set_default)
+{
+  assert(ipmeta != NULL);
+  assert(provider != NULL);
+  assert(ipmeta->providers[provider_id] != NULL);
+
+  /* if it has already been initialized, then we simply return a pointer */
+  if(provider->enabled != 0)
+    {
+      ipmeta_log(__func__,
+		 "WARNING: provider (%s) is already initialized, "
+		 "ignoring new settings", provider->name);
+      return provider;
+    }
+
+  /* otherwise, we need to init this plugin */
 
   /* initialize the record hash */
   provider->all_records = kh_init(ipmeta_rechash);
@@ -129,13 +157,20 @@ ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
       goto err;
     }
 
-  /* poke it into ipmeta */
-  ipmeta->providers[provider_id - 1] = provider;
-
   if(set_default == IPMETA_PROVIDER_DEFAULT_YES)
     {
       ipmeta->provider_default = provider;
     }
+
+  /* now that we have set up the datastructure stuff, ask the provider to
+     initialize. this will normally mean that it reads in some database and
+     populates the datatructures */
+  if(provider->init(provider, argc, argv) != 0)
+    {
+      goto err;
+    }
+
+  provider->enabled = 1;
 
   return provider;
 
@@ -147,7 +182,7 @@ ipmeta_provider_t *ipmeta_provider_init(ipmeta_t *ipmeta,
 	  provider->ds->free(provider->ds);
 	  provider->ds = NULL;
 	}
-      free(provider);
+      /* do not free the provider as we did not alloc it */
     }
   return NULL;
 }

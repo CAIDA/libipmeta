@@ -47,7 +47,7 @@ ipmeta_provider_t *ipmeta_provider_maxmind_alloc()
 }
 
 int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
-				 int argc, const char ** argv)
+				 int argc, char ** argv)
 {
   return 0;
 }

@@ -186,6 +186,12 @@ typedef enum ipmeta_ds_id
  */
 ipmeta_t *ipmeta_init();
 
+/** Free a libipmeta instance
+ *
+ * @param               The ipmeta instance to free
+ */
+void ipmeta_free(ipmeta_t *ipmeta);
+
 /** Enable the given provider, or if it is already enabled, retrieve a pointer
  * to it.
  *
@@ -201,8 +207,9 @@ ipmeta_t *ipmeta_init();
  * (e.g. corsaro_report).
  */
 ipmeta_provider_t *ipmeta_enable_provider(ipmeta_t *ipmeta,
-					  ipmeta_provider_id_t *provider_id,
+					  ipmeta_provider_t *provider,
 					  ipmeta_ds_id_t ds_id,
+					  int argc, char **argv,
 					  ipmeta_provider_default_t set_default);
 
 /** Retrieve the provider object for the default metadata provider

@@ -31,9 +31,22 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <wandio.h>
+
 #include "libipmeta.h"
+#include "utils.h"
+
+/** The length of the static line buffer */
+#define BUFFER_LEN 1024
 
 ipmeta_t *ipmeta = NULL;
+ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
+int enabled_providers_cnt = 0;
 
 static void usage(const char *name)
 {
@@ -61,6 +74,25 @@ static void usage(const char *name)
     }
 }
 
+static int lookup(char *addr_str)
+{
+  uint32_t addr;
+  int i;
+
+  /* convert the string to a integer */
+  addr = inet_addr(addr_str);
+
+  /* look it up using each provider */
+  for(i = 0; i < enabled_providers_cnt; i++)
+    {
+      fprintf(stdout, "%s: ", addr_str);
+
+      ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
+    }
+
+  return 0;
+}
+
 int main(int argc, char **argv)
 {
   int rc = -1;
@@ -72,6 +104,9 @@ int main(int argc, char **argv)
   int lastopt;
 
   char *ip_file = NULL;
+  io_t *file = NULL;
+  char buffer[BUFFER_LEN];
+
   char *providers[IPMETA_PROVIDER_MAX];
   int providers_cnt = 0;
   char *provider_arg_ptr = NULL;
@@ -185,7 +220,46 @@ int main(int argc, char **argv)
 	  usage(argv[0]);
 	  goto quit;
 	}
+
+      enabled_providers[enabled_providers_cnt++] = provider;
     }
+
+  /* try reading the file first */
+  if(ip_file != NULL)
+    {
+      /* open the file */
+      if((file = wandio_create(ip_file)) == NULL)
+	{
+	  fprintf(stderr, "ERROR: Could not open IP file (%s)\n", ip_file);
+	  usage(argv[0]);
+	  goto quit;
+	}
+
+      while(wandio_fgets(file, &buffer, BUFFER_LEN) > 0)
+	{
+	  /* hack off the newline */
+	  chomp(buffer);
+
+	  if(strnlen(buffer, BUFFER_LEN) == 0)
+	    {
+	      continue;
+	    }
+
+	  /* treat # as comment line */
+	  if(buffer[0] == '#')
+	    {
+	      continue;
+	    }
+
+	  if(lookup(buffer) != 0)
+	    {
+	      goto quit;
+	    }
+	}
+
+    }
+
+  rc=0;
 
  quit:
   for(i=0;i<providers_cnt;i++)

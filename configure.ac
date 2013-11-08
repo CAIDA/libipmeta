@@ -24,7 +24,7 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipmeta], [2.0.0], [corsaro-info@caida.org])
+AC_INIT([libipmeta], [0.0.0], [corsaro-info@caida.org])
 
 LIBIPMETA_MAJOR_VERSION=0
 LIBIPMETA_MID_VERSION=0

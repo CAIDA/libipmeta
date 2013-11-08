@@ -39,7 +39,9 @@ libipmeta_la_SOURCES = 	\
 	libipmeta_int.h		\
 	ipmeta_ds.c		\
 	ipmeta_ds.h		\
-	ipmeta_log.c
+	ipmeta_log.c		\
+	ipmeta_provider.c	\
+	ipmeta_provider.h
 
 libipmeta_la_LIBADD = $(top_builddir)/common/libipmetacommon.la \
 	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la \

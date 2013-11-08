@@ -112,18 +112,19 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
       if((provider = malloc_zero(sizeof(ipmeta_provider_t))) == NULL)
 	{
 	  ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
-	  return NULL;
+	  return -1;
 	}
 
       /* get the core provider details (id, name) from the provider plugin */
       memcpy(provider,
-	     provider_alloc_functions[provider_id](),
+	     provider_alloc_functions[i](),
 	     sizeof(ipmeta_ds_t));
 
       /* poke it into ipmeta */
       ipmeta->providers[i-1] = provider;
     }
 
+  return 0;
 }
 
 int ipmeta_provider_init(ipmeta_t *ipmeta,

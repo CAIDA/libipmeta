@@ -44,6 +44,8 @@ ipmeta_t *ipmeta_init()
 {
   ipmeta_t *ipmeta;
 
+  ipmeta_log(__func__, "initializing libipmeta");
+
   /* allocate some memory for our state */
   if((ipmeta = malloc_zero(sizeof(ipmeta_t))) == NULL)
     {
@@ -89,6 +91,8 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta,
   int len;
   int process_argc = 0;
   int rc;
+
+  ipmeta_log(__func__, "enabling provider (%s)", provider->name);
 
   /* first we need to parse the options */
   if(options != NULL && (len = strlen(options)) > 0)

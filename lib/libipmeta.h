@@ -126,7 +126,9 @@ typedef struct ipmeta_record
  *
  * @{ */
 
-/** Should this provider be set to be the default metadata provider */
+/** Should this provider be set to be the default metadata provider
+ * @todo make use of this
+ */
 typedef enum ipmeta_provider_default
   {
     /** This provider should *not* be the default geolocation result */

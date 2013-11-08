@@ -40,6 +40,8 @@
 #include <time.h>
 #endif
 
+#include <wandio.h>
+
 /** @file
  *
  * @brief Header file for common utility functions
@@ -118,5 +120,14 @@ int timeval_subtract (struct timeval *result,
 * e.g. those returned by fgets (or similar)
 */
 void chomp(char *line);
+
+/** Read a line from the given wandio file pointer
+ *
+ * @param file          The wandio file to read from
+ * @param buffer        The buffer to read into
+ * @param len           The maximum number of bytes to read
+ * @return the number of bytes actually read
+ */
+off_t wandio_fgets(io_t *file, void *buffer, off_t len);
 
 #endif /* __UTILS_H */

@@ -1047,6 +1047,12 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
 	  state->blocks_file = NULL;
 	}
 
+      if(state->country_continent != NULL)
+	{
+	  kh_destroy(u16u16, state->country_continent);
+	  state->country_continent = NULL;
+	}
+
       ipmeta_provider_free_state(provider);
     }
   return;

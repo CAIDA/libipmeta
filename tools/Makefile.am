@@ -22,18 +22,18 @@
 # along with libipmeta.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common -I$(top_srcdir)/libipmeta \
+AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common -I$(top_srcdir)/lib \
 	-I$(top_srcdir)/libipmeta/datastructures \
 	-I$(top_srcdir)/libipmeta/providers
 
 dist_bin_SCRIPTS =
 
-bin_PROGRAMS =
+bin_PROGRAMS = ipmeta-lookup
 
-#cors2ascii_SOURCES = \
-#	cors2ascii.c
-#cors2ascii_LDADD = -llibipmeta
-#cors2ascii_LDFLAGS = -L$(top_builddir)/liblibipmeta
+ipmeta_lookup_SOURCES = \
+	ipmeta-lookup.c
+ipmeta_lookup_LDADD = -lipmeta
+ipmeta_lookup_LDFLAGS = -L$(top_builddir)/lib
 
 ACLOCAL_AMFLAGS = -I m4
 

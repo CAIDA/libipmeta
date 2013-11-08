@@ -22,6 +22,7 @@ TAGS
 # Compiled programs
 *.tar.gz
 ChangeLog
+tools/ipmeta-lookup
 
 # Autotools files
 # http://www.gnu.org/software/automake

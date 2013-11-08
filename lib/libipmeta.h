@@ -27,6 +27,8 @@
 #ifndef __LIBIPMETA_H
 #define __LIBIPMETA_H
 
+#include <stdint.h>
+
 /** @file
  *
  * @brief Header file that exposes the public interface of libipmeta.

@@ -194,30 +194,36 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
   assert(ipmeta != NULL);
   assert(provider != NULL);
 
-  /* ok, lets check if we were the default */
-  if(ipmeta->provider_default == provider)
+  /* only free everything if we were enabled */
+  if(provider->enabled != 0)
     {
-      ipmeta->provider_default = NULL;
-    }
+      /* ok, lets check if we were the default */
+      if(ipmeta->provider_default == provider)
+	{
+	  ipmeta->provider_default = NULL;
+	}
 
-  /* remove the pointer from ipmeta */
-  ipmeta->providers[provider->id - 1] = NULL;
+      /* ask the provider to free it's own state */
+      provider->free(provider);
 
-  /* free the ds */
-  if(provider->ds != NULL)
-    {
-      /* @todo consider adding a ipmeta_ds_free wrapper? */
-      provider->ds->free(provider->ds);
-      provider->ds = NULL;
-    }
+      /* remove the pointer from ipmeta */
+      ipmeta->providers[provider->id - 1] = NULL;
 
-  /* free the records hash */
-  if(provider->all_records != NULL)
-    {
-      /* this is where the records are free'd */
-      kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
-      kh_destroy(ipmeta_rechash, provider->all_records);
-      provider->all_records = NULL;
+      /* free the ds */
+      if(provider->ds != NULL)
+	{
+	  provider->ds->free(provider->ds);
+	  provider->ds = NULL;
+	}
+
+      /* free the records hash */
+      if(provider->all_records != NULL)
+	{
+	  /* this is where the records are free'd */
+	  kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
+	  kh_destroy(ipmeta_rechash, provider->all_records);
+	  provider->all_records = NULL;
+	}
     }
 
   /* finally, free the actual provider structure */

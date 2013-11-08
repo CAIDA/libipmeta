@@ -225,6 +225,23 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
   return;
 }
 
+void ipmeta_provider_register_state(ipmeta_provider_t *provider,
+				    void *state)
+{
+  assert(provider != NULL);
+  assert(state != NULL);
+
+  provider->state = state;
+}
+
+void ipmeta_provider_free_state(ipmeta_provider_t *provider)
+{
+  assert(provider != NULL);
+
+  free(provider->state);
+  provider->state = NULL;
+}
+
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
 					     uint32_t id)
 {
@@ -315,7 +332,8 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
   return provider->ds->add_prefix(provider->ds, addr, mask, record);
 }
 
-ipmeta_record_t *ipmeta_provider_lookup_record(ipmeta_provider_t *provider,
+inline ipmeta_record_t *ipmeta_provider_lookup_record(
+					       ipmeta_provider_t *provider,
 					       uint32_t addr)
 {
   assert(provider != NULL);

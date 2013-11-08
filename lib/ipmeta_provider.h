@@ -209,6 +209,20 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
  *
  * @{ */
 
+/** Register the state for a provider
+ *
+ * @param provider      The provider to register state for
+ * @param state         A pointer to the state object to register
+ */
+void ipmeta_provider_register_state(ipmeta_provider_t *provider,
+				    void *state);
+
+/** Free the state for a provider
+ *
+ * @param provider    The provider to free state for
+ */
+void ipmeta_provider_free_state(ipmeta_provider_t *provider);
+
 /** Allocate an empty metadata record for the given id
  *
  * @param provider      The metadata provider to associate the record with

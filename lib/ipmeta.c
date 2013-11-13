@@ -40,6 +40,8 @@
 
 #define MAXOPTS 1024
 
+#define SEPARATOR "|"
+
 ipmeta_t *ipmeta_init()
 {
   ipmeta_t *ipmeta;
@@ -182,15 +184,35 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 void ipmeta_dump_record(ipmeta_record_t *record)
 {
   int i;
+
   if(record == NULL)
     {
       return;
     }
 
   fprintf(stdout,
-	  "id: %"PRIu32", cc: %s, cont: %d, reg: %s, city: %s, post: %s, "
-	  "lat: %f, long: %f, met: %"PRIu32", area: %"PRIu32", "
-	  "speed: %s, asn: ",
+	  "%"PRIu32
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR
+	  "%f"
+	  SEPARATOR
+	  "%f"
+	  SEPARATOR
+	  "%"PRIu32
+	  SEPARATOR
+	  "%"PRIu32
+	  SEPARATOR
+	  "%s"
+	  SEPARATOR,
 	  record->id,
 	  record->country_code,
 	  record->continent_code,
@@ -211,4 +233,33 @@ void ipmeta_dump_record(ipmeta_record_t *record)
 	    fprintf(stdout, "_");
 	}
       fprintf(stdout, "\n");
+}
+
+void ipmeta_dump_record_header()
+{
+  fprintf(stdout,
+	  "id"
+	  SEPARATOR
+	  "country-code"
+	  SEPARATOR
+	  "continent-code"
+	  SEPARATOR
+	  "region"
+	  SEPARATOR
+	  "city"
+	  SEPARATOR
+	  "post-code"
+	  SEPARATOR
+	  "latitude"
+	  SEPARATOR
+	  "longitude"
+	  SEPARATOR
+	  "metro-code"
+	  SEPARATOR
+	  "area-code"
+	  SEPARATOR
+	  "connection-speed"
+	  SEPARATOR
+	  "asn"
+	  "\n");
 }

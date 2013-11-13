@@ -296,10 +296,19 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
-/** Dump the given metadata record to stdout (for debugging)
+/** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
+ *
+ * Each field in the record is written to stdout in pipe-delimited format.
  */
 void ipmeta_dump_record(ipmeta_record_t *record);
+
+/** Dump names of the fields in a record structure
+ *
+ * Each record field name is written to stdout in pipe-delimited format, and in
+ * the same order as the contents are written out when using ipmeta_dump_record.
+ */
+void ipmeta_dump_record_header();
 
 #endif /* __LIBIPMETA_H */

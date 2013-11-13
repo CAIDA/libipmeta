@@ -401,6 +401,8 @@ static void parse_maxmind_location_row(int c, void *data)
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   ipmeta_record_t *record;
 
+  uint16_t tmp_continent;
+
   khiter_t khiter;
 
   /* skip the first two lines */
@@ -433,8 +435,9 @@ static void parse_maxmind_location_row(int c, void *data)
       return;
     }
 
-  state->tmp_record.continent_code =
-    kh_value(state->country_continent, khiter);
+  tmp_continent = kh_value(state->country_continent, khiter);
+  state->tmp_record.continent_code[0] = (tmp_continent & 0xFF00) >> 8;
+  state->tmp_record.continent_code[1] = (tmp_continent & 0x00FF);
 
   /*
   ipmeta_log(__func__, NULL, "looking up %s (%x) got %x",

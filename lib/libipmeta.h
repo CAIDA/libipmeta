@@ -73,8 +73,8 @@ typedef struct ipmeta_record
   /** 2 character string which holds the ISO2 country code */
   char country_code[3];
 
-  /** Continent Code */
-  int continent_code;
+  /** 2 character string which holds the continent code */
+  char continent_code[3];
 
   /** 2 character string which represents the region the city is in */
   char region[3];

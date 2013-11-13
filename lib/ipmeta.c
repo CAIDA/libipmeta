@@ -223,7 +223,7 @@ void ipmeta_dump_record(ipmeta_record_t *record)
 	  record->longitude,
 	  record->metro_code,
 	  record->area_code,
-	  record->conn_speed
+	  (record->conn_speed == NULL ? "" : record->conn_speed)
 	  );
 
       for(i=0; i<record->asn_cnt; i++)

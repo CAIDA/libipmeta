@@ -85,7 +85,7 @@ static int lookup(char *addr_str)
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
     {
-      fprintf(stdout, "%s: ", addr_str);
+      fprintf(stdout, "%s|", addr_str);
 
       ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
     }
@@ -223,6 +223,11 @@ int main(int argc, char **argv)
 
       enabled_providers[enabled_providers_cnt++] = provider;
     }
+
+  /* dump out the record header first */
+  /** @todo make this optional */
+  fprintf(stdout, "ip|");
+  ipmeta_dump_record_header();
 
   /* try reading the file first */
   if(ip_file != NULL)

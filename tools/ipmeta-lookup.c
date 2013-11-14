@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,38 +45,13 @@
 /** The length of the static line buffer */
 #define BUFFER_LEN 1024
 
+#define DEFAULT_COMPRESS_LEVEL 6
+
 ipmeta_t *ipmeta = NULL;
 ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
 
-static void usage(const char *name)
-{
-  assert(ipmeta != NULL);
-  ipmeta_provider_t **providers = NULL;
-  int i;
-
-  fprintf(stderr,
-	  "usage: %s [-h] -p provider [-p provider] [-f iplist]|[ip1 ip2...ipN]\n"
-	  "       -f <iplist>   perform lookups on IP addresses listed in "
-	  "the given file\n"
-	  "       -h            write out a header row with field names\n"
-	  "       -p <provider> enable the given provider,\n"
-	  "                     -p can be used multiple times\n"
-	  "                     available providers:\n",
-	  name);
-  /* get the available plugins from ipmeta */
-  providers = ipmeta_get_all_providers(ipmeta);
-
-  for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
-    {
-      assert(providers[i] != NULL);
-      assert(ipmeta_get_provider_name(providers[i]));
-      fprintf(stderr, "                      - %s\n",
-	      ipmeta_get_provider_name(providers[i]));
-    }
-}
-
-static int lookup(char *addr_str)
+static int lookup(char *addr_str, iow_t *outfile)
 {
   uint32_t addr;
   int i;
@@ -86,17 +62,62 @@ static int lookup(char *addr_str)
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
     {
-      if(enabled_providers_cnt > 1)
+      if(outfile == NULL)
 	{
-	  fprintf(stdout, "%s|",
-		  ipmeta_get_provider_name(enabled_providers[i]));
-	}
-      fprintf(stdout, "%s|", addr_str);
+	  if(enabled_providers_cnt > 1)
+	    {
+	      fprintf(stdout, "%s|",
+		      ipmeta_get_provider_name(enabled_providers[i]));
+	    }
+	  fprintf(stdout, "%s|", addr_str);
 
-      ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
+	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
+	}
+      else
+	{
+	  if(enabled_providers_cnt > 1)
+	    {
+	      wandio_printf(outfile, "%s|",
+			    ipmeta_get_provider_name(enabled_providers[i]));
+	    }
+	  wandio_printf(outfile, "%s|", addr_str);
+
+	  ipmeta_write_record(outfile,
+			      ipmeta_lookup(enabled_providers[i], addr));
+	}
     }
 
   return 0;
+}
+
+static void usage(const char *name)
+{
+  assert(ipmeta != NULL);
+  ipmeta_provider_t **providers = NULL;
+  int i;
+
+  fprintf(stderr,
+	  "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f iplist]|[ip1 ip2...ipN]\n"
+	  "       -c <level>    the compression level to use (default: %d)"
+	  "       -f <iplist>   perform lookups on IP addresses listed in "
+	  "the given file\n"
+	  "       -h            write out a header row with field names\n"
+	  "       -o <outfile>  write results to the given file\n"
+	  "       -p <provider> enable the given provider,\n"
+	  "                     -p can be used multiple times\n"
+	  "                     available providers:\n",
+	  name,
+	  DEFAULT_COMPRESS_LEVEL);
+  /* get the available plugins from ipmeta */
+  providers = ipmeta_get_all_providers(ipmeta);
+
+  for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
+    {
+      assert(providers[i] != NULL);
+      assert(ipmeta_get_provider_name(providers[i]));
+      fprintf(stderr, "                      - %s\n",
+	      ipmeta_get_provider_name(providers[i]));
+    }
 }
 
 int main(int argc, char **argv)
@@ -120,6 +141,10 @@ int main(int argc, char **argv)
 
   int headers_enabled = 0;
 
+  int compress_level = DEFAULT_COMPRESS_LEVEL;
+  char *outfile_name = NULL;
+  iow_t *outfile = NULL;
+
   /* this must be called before usage is called */
   if((ipmeta = ipmeta_init()) == NULL)
     {
@@ -128,7 +153,7 @@ int main(int argc, char **argv)
     }
 
   while(prevoptind = optind,
-	(opt = getopt(argc, argv, ":f:p:hv?")) >= 0)
+	(opt = getopt(argc, argv, ":c:f:o:p:hv?")) >= 0)
     {
       if (optind == prevoptind + 2 && *optarg == '-' ) {
         opt = ':';
@@ -136,12 +161,20 @@ int main(int argc, char **argv)
       }
       switch(opt)
 	{
+	case 'c':
+	  compress_level = atoi(optarg);
+	  break;
+
 	case 'f':
 	  ip_file = strdup(optarg);
 	  break;
 
 	case 'h':
 	  headers_enabled = 1;
+	  break;
+
+	case 'o':
+	  outfile_name = strdup(optarg);
 	  break;
 
 	case 'p':
@@ -198,6 +231,20 @@ int main(int argc, char **argv)
       goto quit;
     }
 
+  /* if we have been given a file to write to, open this now */
+  if(outfile_name != NULL)
+    {
+      if((outfile = wandio_wcreate(outfile_name,
+				   wandio_detect_compression_type(outfile_name),
+				   compress_level,
+				   O_CREAT)) == NULL)
+	{
+	  fprintf(stderr, "ERROR: Could not open %s for writing\n",
+		  outfile_name);
+	  goto quit;
+	}
+    }
+
   for(i=0;i<providers_cnt;i++)
     {
       /* the string at providers[i] will contain the name of the plugin,
@@ -241,10 +288,27 @@ int main(int argc, char **argv)
     {
       if(enabled_providers_cnt > 1)
 	{
-	  fprintf(stdout, "provider|");
+	  if(outfile != NULL)
+	    {
+	      wandio_printf(outfile, "provider|");
+	    }
+	  else
+	    {
+	      fprintf(stdout, "provider|");
+	    }
 	}
-      fprintf(stdout, "ip|");
-      ipmeta_dump_record_header();
+
+      if(outfile != NULL)
+	{
+	  wandio_printf(outfile, "ip|");
+	  ipmeta_write_record_header(outfile);
+	}
+      else
+	{
+	  fprintf(stdout, "ip|");
+	  ipmeta_dump_record_header();
+	}
+
     }
 
   /* try reading the file first */
@@ -274,18 +338,17 @@ int main(int argc, char **argv)
 	      continue;
 	    }
 
-	  if(lookup(buffer) != 0)
+	  if(lookup(buffer, outfile) != 0)
 	    {
 	      goto quit;
 	    }
 	}
-
     }
 
   /* now try looking up addresses given on the command line */
   for(i=lastopt; i<argc; i++)
     {
-      if(lookup(argv[i]) != 0)
+      if(lookup(argv[i], outfile) != 0)
 	{
 	  goto quit;
 	}
@@ -307,10 +370,26 @@ int main(int argc, char **argv)
       free(ip_file);
     }
 
+  if(outfile_name != NULL)
+    {
+      free(outfile_name);
+    }
+
   if(ipmeta != NULL)
     {
       ipmeta_free(ipmeta);
     }
+
+  if(file != NULL)
+    {
+      wandio_destroy(file);
+    }
+
+  if(outfile != NULL)
+    {
+      wandio_wdestroy(outfile);
+    }
+
   /* default rc is -1 */
   return rc;
 }

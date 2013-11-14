@@ -55,9 +55,10 @@ static void usage(const char *name)
   int i;
 
   fprintf(stderr,
-	  "usage: %s -p provider [-p provider] [-f iplist]|[ip1 ip2...ipN]\n"
+	  "usage: %s [-h] -p provider [-p provider] [-f iplist]|[ip1 ip2...ipN]\n"
 	  "       -f <iplist>   perform lookups on IP addresses listed in "
 	  "the given file\n"
+	  "       -h            write out a header row with field names\n"
 	  "       -p <provider> enable the given provider,\n"
 	  "                     -p can be used multiple times\n"
 	  "                     available providers:\n",
@@ -117,6 +118,8 @@ int main(int argc, char **argv)
   char *provider_arg_ptr = NULL;
   ipmeta_provider_t *provider = NULL;
 
+  int headers_enabled = 0;
+
   /* this must be called before usage is called */
   if((ipmeta = ipmeta_init()) == NULL)
     {
@@ -125,7 +128,7 @@ int main(int argc, char **argv)
     }
 
   while(prevoptind = optind,
-	(opt = getopt(argc, argv, ":f:p:v?")) >= 0)
+	(opt = getopt(argc, argv, ":f:p:hv?")) >= 0)
     {
       if (optind == prevoptind + 2 && *optarg == '-' ) {
         opt = ':';
@@ -135,6 +138,10 @@ int main(int argc, char **argv)
 	{
 	case 'f':
 	  ip_file = strdup(optarg);
+	  break;
+
+	case 'h':
+	  headers_enabled = 1;
 	  break;
 
 	case 'p':
@@ -230,13 +237,15 @@ int main(int argc, char **argv)
     }
 
   /* dump out the record header first */
-  /** @todo make this optional */
-  if(enabled_providers_cnt > 1)
+  if(headers_enabled != 0)
     {
-      fprintf(stdout, "provider|");
+      if(enabled_providers_cnt > 1)
+	{
+	  fprintf(stdout, "provider|");
+	}
+      fprintf(stdout, "ip|");
+      ipmeta_dump_record_header();
     }
-  fprintf(stdout, "ip|");
-  ipmeta_dump_record_header();
 
   /* try reading the file first */
   if(ip_file != NULL)

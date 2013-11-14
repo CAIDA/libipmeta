@@ -181,85 +181,135 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
+#define PRINT_EMPTY_RECORD(function, file)	\
+  do {						\
+    function(file,				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     SEPARATOR				\
+	     "\n");				\
+      } while(0)
+
+#define PRINT_RECORD(function, file, record)	\
+  do {						\
+    function(file,				\
+	     "%"PRIu32				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR				\
+	     "%f"				\
+	     SEPARATOR				\
+	     "%f"				\
+	     SEPARATOR				\
+	     "%"PRIu32				\
+	     SEPARATOR				\
+	     "%"PRIu32				\
+	     SEPARATOR				\
+	     "%s"				\
+	     SEPARATOR,				\
+	     record->id,			\
+	     record->country_code,		\
+	     record->continent_code,		\
+	     record->region,			\
+	     record->city,			\
+	     record->post_code,			\
+	     record->latitude,			\
+	     record->longitude,			\
+	     record->metro_code,					\
+	     record->area_code,						\
+	     (record->conn_speed == NULL ? "" : record->conn_speed)	\
+	     );								\
+      for(i=0; i<record->asn_cnt; i++)					\
+	{								\
+	  function(file, "%d", record->asn[i]);				\
+	  if(i<record->asn_cnt-1)					\
+	    function(file, "_");					\
+	}								\
+    function(file, "\n");						\
+  } while(0)
+
 void ipmeta_dump_record(ipmeta_record_t *record)
 {
   int i;
 
   if(record == NULL)
     {
-      return;
+      /* dump an empty record */
+      PRINT_EMPTY_RECORD(fprintf, stdout);
     }
-
-  fprintf(stdout,
-	  "%"PRIu32
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR
-	  "%f"
-	  SEPARATOR
-	  "%f"
-	  SEPARATOR
-	  "%"PRIu32
-	  SEPARATOR
-	  "%"PRIu32
-	  SEPARATOR
-	  "%s"
-	  SEPARATOR,
-	  record->id,
-	  record->country_code,
-	  record->continent_code,
-	  record->region,
-	  record->city,
-	  record->post_code,
-	  record->latitude,
-	  record->longitude,
-	  record->metro_code,
-	  record->area_code,
-	  (record->conn_speed == NULL ? "" : record->conn_speed)
-	  );
-
-      for(i=0; i<record->asn_cnt; i++)
-	{
-	  fprintf(stdout, "%d", record->asn[i]);
-	  if(i<record->asn_cnt-1)
-	    fprintf(stdout, "_");
-	}
-      fprintf(stdout, "\n");
+  else
+    {
+      PRINT_RECORD(fprintf, stdout, record);
+    }
+  return;
 }
+
+#define PRINT_RECORD_HEADER(function, file)	\
+  do {						\
+  function(file,				\
+	   "id"					\
+	   SEPARATOR				\
+	   "country-code"			\
+	   SEPARATOR				\
+	   "continent-code"			\
+	   SEPARATOR				\
+	   "region"				\
+	   SEPARATOR				\
+	   "city"				\
+	   SEPARATOR				\
+	   "post-code"				\
+	   SEPARATOR				\
+	   "latitude"				\
+	   SEPARATOR				\
+	   "longitude"				\
+	   SEPARATOR				\
+	   "metro-code"				\
+	   SEPARATOR				\
+	   "area-code"				\
+	   SEPARATOR				\
+	   "connection-speed"			\
+	   SEPARATOR				\
+	   "asn"				\
+	   "\n");				\
+    } while(0)
 
 void ipmeta_dump_record_header()
 {
-  fprintf(stdout,
-	  "id"
-	  SEPARATOR
-	  "country-code"
-	  SEPARATOR
-	  "continent-code"
-	  SEPARATOR
-	  "region"
-	  SEPARATOR
-	  "city"
-	  SEPARATOR
-	  "post-code"
-	  SEPARATOR
-	  "latitude"
-	  SEPARATOR
-	  "longitude"
-	  SEPARATOR
-	  "metro-code"
-	  SEPARATOR
-	  "area-code"
-	  SEPARATOR
-	  "connection-speed"
-	  SEPARATOR
-	  "asn"
-	  "\n");
+  PRINT_RECORD_HEADER(fprintf, stdout);
+}
+
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record)
+{
+  int i;
+
+  if(record == NULL)
+    {
+      PRINT_EMPTY_RECORD(wandio_printf, file);
+    }
+  else
+    {
+      PRINT_RECORD(wandio_printf, file, record);
+    }
+  return;
+}
+
+void ipmeta_write_record_header(iow_t *file)
+{
+  PRINT_RECORD_HEADER(wandio_printf, file);
 }

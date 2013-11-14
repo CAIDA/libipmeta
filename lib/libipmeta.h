@@ -28,6 +28,7 @@
 #define __LIBIPMETA_H
 
 #include <stdint.h>
+#include <wandio.h>
 
 /** @file
  *
@@ -310,5 +311,24 @@ void ipmeta_dump_record(ipmeta_record_t *record);
  * the same order as the contents are written out when using ipmeta_dump_record.
  */
 void ipmeta_dump_record_header();
+
+/** Write the given metadata record to the given wandio file
+ *
+ * @param file          The wandio file to write to
+ * @param record        The record to dump
+ *
+ * Each field in the record is written to the given file in pipe-delimited
+ * format.
+ */
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record);
+
+/** Write names of the fields in a record structure to the given wandio file
+ *
+ * @param file          The wandio file to write to
+ *
+ * Each record field name is written in pipe-delimited format, and in the same
+ * order as the contents are written out when using ipmeta_write_record.
+ */
+void ipmeta_write_record_header(iow_t *file);
 
 #endif /* __LIBIPMETA_H */

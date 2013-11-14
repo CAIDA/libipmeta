@@ -274,6 +274,13 @@ int main(int argc, char **argv)
     }
 
   /* now try looking up addresses given on the command line */
+  for(i=lastopt; i<argc; i++)
+    {
+      if(lookup(argv[i]) != 0)
+	{
+	  goto quit;
+	}
+    }
 
   rc=0;
 

@@ -130,4 +130,35 @@ void chomp(char *line);
  */
 off_t wandio_fgets(io_t *file, void *buffer, off_t len);
 
+/** Attempt to detect desired compression for an output file based on file name
+ *
+ * @param filename      The filename to test for a compression extension
+ * @return a wandio compression type suitable for use with wandio_wcreate
+ */
+int wandio_detect_compression_type(const char *filename);
+
+/** Print a string to a wandio file
+ *
+ * @param file          The file to write to
+ * @param format        The format string to write
+ * @param args          The arguments to the format string
+ * @return The amount of data written, or -1 if an error occurs
+ *
+ * The arguments for this function are the same as those for vprintf(3). See the
+ * vprintf(3) manpage for more details.
+ */
+off_t wandio_vprintf(iow_t *file, const char *format, va_list args);
+
+/** Print a string to a wandio
+ *
+ * @param file          The file to write to
+ * @param format        The format string to write
+ * @param ...           The arguments to the format string
+ * @return The amount of data written, or -1 if an error occurs
+ *
+ * The arguments for this function are the same as those for printf(3). See the
+ * printf(3) manpage for more details.
+ */
+off_t wandio_printf(iow_t *file, const char *format, ...);
+
 #endif /* __UTILS_H */

@@ -34,6 +34,7 @@
 #include <arpa/inet.h>
 #include <assert.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -157,4 +158,70 @@ off_t wandio_fgets(io_t *file, void *buffer, off_t len)
 
   ((char*)buffer)[i] = '\0';
   return i;
+}
+
+#define WANDIO_ZLIB_SUFFIX ".gz"
+#define WANDIO_BZ2_SUFFIX ".bz2"
+
+int wandio_detect_compression_type(const char *filename)
+{
+  const char *ptr = filename;
+
+  int len = strlen(filename);
+
+  if(len >= strlen(WANDIO_ZLIB_SUFFIX))
+    {
+      /* check for a .gz extension */
+      ptr += (len - strlen(WANDIO_ZLIB_SUFFIX));
+      if(strcmp(ptr, WANDIO_ZLIB_SUFFIX) == 0)
+	{
+	  return WANDIO_COMPRESS_ZLIB;
+	}
+
+      ptr = filename;
+    }
+
+  if(len >= strlen(WANDIO_BZ2_SUFFIX))
+    {
+      /* check for a .bz2 extension */
+      ptr += (len - strlen(WANDIO_BZ2_SUFFIX));
+      if(strcmp(ptr, WANDIO_BZ2_SUFFIX) == 0)
+	{
+	  return WANDIO_COMPRESS_BZ2;
+	}
+    }
+
+  /* this is a suffix we don't know. don't compress */
+  return WANDIO_COMPRESS_NONE;
+}
+
+static size_t wiovprintf(iow_t *io, const char *fmt, va_list args)
+{
+  char *buf;
+  size_t len;
+  int ret;
+
+  if ((ret = vasprintf(&buf, fmt, args)) < 0)
+    return ret;
+  len = strlen(buf);
+  len = len == (unsigned)len ? (size_t)wandio_wwrite(io, buf,
+						     (unsigned)len) : 0;
+  free(buf);
+  return len;
+}
+
+off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
+{
+  assert(file != NULL);
+
+  return wiovprintf(file, format, args);
+}
+
+off_t wandio_printf(iow_t *file, const char *format, ...)
+{
+  va_list ap;
+
+  va_start(ap, format);
+  return wandio_vprintf(file, format, ap);
+  va_end(ap);
 }

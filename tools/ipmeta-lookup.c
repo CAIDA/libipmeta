@@ -85,6 +85,11 @@ static int lookup(char *addr_str)
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
     {
+      if(enabled_providers_cnt > 1)
+	{
+	  fprintf(stdout, "%s|",
+		  ipmeta_get_provider_name(enabled_providers[i]));
+	}
       fprintf(stdout, "%s|", addr_str);
 
       ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
@@ -119,7 +124,7 @@ int main(int argc, char **argv)
       goto quit;
     }
 
-  while(prevoptind = optind, 
+  while(prevoptind = optind,
 	(opt = getopt(argc, argv, ":f:p:v?")) >= 0)
     {
       if (optind == prevoptind + 2 && *optarg == '-' ) {
@@ -226,6 +231,10 @@ int main(int argc, char **argv)
 
   /* dump out the record header first */
   /** @todo make this optional */
+  if(enabled_providers_cnt > 1)
+    {
+      fprintf(stdout, "provider|");
+    }
   fprintf(stdout, "ip|");
   ipmeta_dump_record_header();
 
@@ -263,6 +272,8 @@ int main(int argc, char **argv)
 	}
 
     }
+
+  /* now try looking up addresses given on the command line */
 
   rc=0;
 

@@ -941,7 +941,7 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
   io_t *file = NULL;
 
   int country_cnt;
-  int continent_cnt;
+  /*int continent_cnt;*/
   const char **countries;
   const char **continents;
   uint16_t cntry_code = 0;
@@ -971,8 +971,8 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
   /* populate the country2continent hash */
   state->country_continent = kh_init(u16u16);
   country_cnt = get_iso2_list(&countries);
-  continent_cnt = get_country_continent_list(&continents);
-  assert(country_cnt == continent_cnt);
+  get_country_continent_list(&continents);
+  /*assert(country_cnt == continent_cnt);*/
   for(i=0; i< country_cnt; i++)
     {
       cntry_code = (countries[i][0]<<8) | countries[i][1];

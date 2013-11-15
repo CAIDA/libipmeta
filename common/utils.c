@@ -206,7 +206,7 @@ inline off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
   size_t len;
   int ret;
 
-  if ((ret = vasprintf(&buf, fmt, args)) < 0)
+  if ((ret = vasprintf(&buf, format, args)) < 0)
     return ret;
   len = strlen(buf);
   len = len == (unsigned)len ? (size_t)wandio_wwrite(file, buf,

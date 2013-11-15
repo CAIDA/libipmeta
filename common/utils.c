@@ -199,8 +199,9 @@ int wandio_detect_compression_type(const char *filename)
   return WANDIO_COMPRESS_NONE;
 }
 
-static size_t wiovprintf(iow_t *io, const char *fmt, va_list args)
+inline off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
 {
+  assert(file != NULL);
   char *buf;
   size_t len;
   int ret;
@@ -208,17 +209,10 @@ static size_t wiovprintf(iow_t *io, const char *fmt, va_list args)
   if ((ret = vasprintf(&buf, fmt, args)) < 0)
     return ret;
   len = strlen(buf);
-  len = len == (unsigned)len ? (size_t)wandio_wwrite(io, buf,
+  len = len == (unsigned)len ? (size_t)wandio_wwrite(file, buf,
 						     (unsigned)len) : 0;
   free(buf);
   return len;
-}
-
-inline off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
-{
-  assert(file != NULL);
-
-  return wiovprintf(file, format, args);
 }
 
 inline off_t wandio_printf(iow_t *file, const char *format, ...)

@@ -49,6 +49,7 @@
 
 ipmeta_t *ipmeta = NULL;
 ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
+char *provider_prefixes[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
 
 static int lookup(char *addr_str, iow_t *outfile)
@@ -69,9 +70,10 @@ static int lookup(char *addr_str, iow_t *outfile)
 	      fprintf(stdout, "%s|",
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
-	  fprintf(stdout, "%s|", addr_str);
+	  /*fprintf(stdout, "%s|", addr_str);*/
 
-	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr));
+	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr),
+			     addr_str);
 	}
       else
 	{
@@ -80,10 +82,11 @@ static int lookup(char *addr_str, iow_t *outfile)
 	      wandio_printf(outfile, "%s|",
 			    ipmeta_get_provider_name(enabled_providers[i]));
 	    }
-	  wandio_printf(outfile, "%s|", addr_str);
+	  /*wandio_printf(outfile, "%s|", addr_str);*/
 
 	  ipmeta_write_record(outfile,
-			      ipmeta_lookup(enabled_providers[i], addr));
+			      ipmeta_lookup(enabled_providers[i], addr),
+			      addr_str);
 	}
     }
 

@@ -210,14 +210,14 @@ static size_t wiovprintf(iow_t *io, const char *fmt, va_list args)
   return len;
 }
 
-off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
+inline off_t wandio_vprintf(iow_t *file, const char *format, va_list args)
 {
   assert(file != NULL);
 
   return wiovprintf(file, format, args);
 }
 
-off_t wandio_printf(iow_t *file, const char *format, ...)
+inline off_t wandio_printf(iow_t *file, const char *format, ...)
 {
   va_list ap;
 

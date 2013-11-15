@@ -198,53 +198,61 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     "\n");				\
       } while(0)
 
-#define PRINT_RECORD(function, file, record)	\
-  do {						\
-    function(file,				\
-	     "%"PRIu32				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR				\
-	     "%f"				\
-	     SEPARATOR				\
-	     "%f"				\
-	     SEPARATOR				\
-	     "%"PRIu32				\
-	     SEPARATOR				\
-	     "%"PRIu32				\
-	     SEPARATOR				\
-	     "%s"				\
-	     SEPARATOR,				\
-	     record->id,			\
-	     record->country_code,		\
-	     record->continent_code,		\
-	     record->region,			\
-	     record->city,			\
-	     record->post_code,			\
-	     record->latitude,			\
-	     record->longitude,			\
+#define PRINT_RECORD(function, file, record, addr)			\
+  do {									\
+    function(file,							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%"PRIu32							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%f"							\
+	     SEPARATOR							\
+	     "%f"							\
+	     SEPARATOR							\
+	     "%"PRIu32							\
+	     SEPARATOR							\
+	     "%"PRIu32							\
+	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
+	     "%s",							\
+	     addr,							\
+	     record->id,						\
+	     record->country_code,					\
+	     record->continent_code,					\
+	     record->region,						\
+	     record->city,						\
+	     record->post_code,						\
+	     record->latitude,						\
+	     record->longitude,						\
 	     record->metro_code,					\
 	     record->area_code,						\
-	     (record->conn_speed == NULL ? "" : record->conn_speed)	\
+	     (record->conn_speed == NULL ? "" : record->conn_speed),	\
+	     (record->asn_cnt > 0 ? "" : "\n")				\
 	     );								\
+  if(record->asn_cnt > 0)						\
+    {									\
       for(i=0; i<record->asn_cnt; i++)					\
 	{								\
 	  function(file, "%d", record->asn[i]);				\
 	  if(i<record->asn_cnt-1)					\
 	    function(file, "_");					\
 	}								\
-    function(file, "\n");						\
+      function(file, "\n");						\
+    }									\
   } while(0)
 
-void ipmeta_dump_record(ipmeta_record_t *record)
+void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
 {
   int i;
 
@@ -255,7 +263,7 @@ void ipmeta_dump_record(ipmeta_record_t *record)
     }
   else
     {
-      PRINT_RECORD(fprintf, stdout, record);
+      PRINT_RECORD(fprintf, stdout, record, addr);
     }
   return;
 }
@@ -263,6 +271,8 @@ void ipmeta_dump_record(ipmeta_record_t *record)
 #define PRINT_RECORD_HEADER(function, file)	\
   do {						\
   function(file,				\
+	   "ip"					\
+	   SEPARATOR				\
 	   "id"					\
 	   SEPARATOR				\
 	   "country-code"			\
@@ -294,7 +304,7 @@ void ipmeta_dump_record_header()
   PRINT_RECORD_HEADER(fprintf, stdout);
 }
 
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record)
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr)
 {
   int i;
 
@@ -304,7 +314,7 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record)
     }
   else
     {
-      PRINT_RECORD(wandio_printf, file, record);
+      PRINT_RECORD(wandio_printf, file, record, addr);
     }
   return;
 }

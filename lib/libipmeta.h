@@ -300,10 +300,11 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
+ * @param addr          The address this record was looked up for
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
-void ipmeta_dump_record(ipmeta_record_t *record);
+void ipmeta_dump_record(ipmeta_record_t *record, char *addr);
 
 /** Dump names of the fields in a record structure
  *
@@ -316,11 +317,12 @@ void ipmeta_dump_record_header();
  *
  * @param file          The wandio file to write to
  * @param record        The record to dump
+ * @param addr          The address this record was looked up for
  *
  * Each field in the record is written to the given file in pipe-delimited
- * format.
+ * format (prefixed with the address given)
  */
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record);
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr);
 
 /** Write names of the fields in a record structure to the given wandio file
  *

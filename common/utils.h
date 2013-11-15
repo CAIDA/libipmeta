@@ -32,6 +32,7 @@
 #define __UTILS_H
 
 #include <inttypes.h>
+#include <stdarg.h>
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>

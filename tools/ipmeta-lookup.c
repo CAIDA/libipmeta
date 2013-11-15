@@ -152,6 +152,9 @@ int main(int argc, char **argv)
       goto quit;
     }
 
+  /* initialize the providers array to NULL first */
+  memset(providers, 0, sizeof(char*)*IPMETA_PROVIDER_MAX);
+
   while(prevoptind = optind,
 	(opt = getopt(argc, argv, ":c:f:o:p:hv?")) >= 0)
     {

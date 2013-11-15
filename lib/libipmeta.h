@@ -333,4 +333,18 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr);
  */
 void ipmeta_write_record_header(iow_t *file);
 
+/**
+ * @name Logging functions
+ *
+ * Collection of convenience functions that allow libipmeta to log events
+ * For now we just log to stderr, but this should be extended in future.
+ *
+ * @todo find (or write) good C logging library (that can also log to syslog)
+ *
+ * @{ */
+
+void ipmeta_log(const char *func, const char *format, ...);
+
+/** @} */
+
 #endif /* __LIBIPMETA_H */

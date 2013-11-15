@@ -127,9 +127,10 @@ void chomp(char *line);
  * @param file          The wandio file to read from
  * @param buffer        The buffer to read into
  * @param len           The maximum number of bytes to read
+ * @param chomp         Should the newline be removed
  * @return the number of bytes actually read
  */
-off_t wandio_fgets(io_t *file, void *buffer, off_t len);
+off_t wandio_fgets(io_t *file, void *buffer, off_t len, int chomp);
 
 /** Attempt to detect desired compression for an output file based on file name
  *

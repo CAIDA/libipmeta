@@ -304,7 +304,8 @@ void ipmeta_dump_record_header()
   PRINT_RECORD_HEADER(fprintf, stdout);
 }
 
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr)
+inline void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
+				char *addr)
 {
   int i;
 

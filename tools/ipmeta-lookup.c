@@ -52,7 +52,7 @@ ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 char *provider_prefixes[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
 
-static int lookup(char *addr_str, iow_t *outfile)
+static void lookup(char *addr_str, iow_t *outfile)
 {
   uint32_t addr;
   int i;
@@ -70,7 +70,6 @@ static int lookup(char *addr_str, iow_t *outfile)
 	      fprintf(stdout, "%s|",
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
-	  /*fprintf(stdout, "%s|", addr_str);*/
 
 	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr),
 			     addr_str);
@@ -82,7 +81,6 @@ static int lookup(char *addr_str, iow_t *outfile)
 	      wandio_printf(outfile, "%s|",
 			    ipmeta_get_provider_name(enabled_providers[i]));
 	    }
-	  /*wandio_printf(outfile, "%s|", addr_str);*/
 
 	  ipmeta_write_record(outfile,
 			      ipmeta_lookup(enabled_providers[i], addr),
@@ -90,7 +88,7 @@ static int lookup(char *addr_str, iow_t *outfile)
 	}
     }
 
-  return 0;
+  return;
 }
 
 static void usage(const char *name)
@@ -328,36 +326,22 @@ int main(int argc, char **argv)
 	  goto quit;
 	}
 
-      while(wandio_fgets(file, &buffer, BUFFER_LEN) > 0)
+      while(wandio_fgets(file, &buffer, BUFFER_LEN, 1) > 0)
 	{
-	  /* hack off the newline */
-	  chomp(buffer);
-
-	  if(strnlen(buffer, BUFFER_LEN) == 0)
+	  /* treat # as comment line, and ignore empty lines */
+	  if(buffer[0] == '#' || buffer[0] == '\0')
 	    {
 	      continue;
 	    }
 
-	  /* treat # as comment line */
-	  if(buffer[0] == '#')
-	    {
-	      continue;
-	    }
-
-	  if(lookup(buffer, outfile) != 0)
-	    {
-	      goto quit;
-	    }
+	  lookup(buffer, outfile);
 	}
     }
 
   /* now try looking up addresses given on the command line */
   for(i=lastopt; i<argc; i++)
     {
-      if(lookup(argv[i], outfile) != 0)
-	{
-	  goto quit;
-	}
+      lookup(argv[i], outfile);
     }
 
   rc=0;

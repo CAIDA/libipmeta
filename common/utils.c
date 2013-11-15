@@ -121,7 +121,7 @@ void chomp(char *line)
     }
 }
 
-off_t wandio_fgets(io_t *file, void *buffer, off_t len)
+off_t wandio_fgets(io_t *file, void *buffer, off_t len, int chomp)
 {
   assert(file != NULL);
 
@@ -151,6 +151,10 @@ off_t wandio_fgets(io_t *file, void *buffer, off_t len)
 	  ((char*)buffer)[i] = cbuf;
 	  if(cbuf == '\n')
 	    {
+	      if(chomp != 0)
+		{
+		  ((char*)buffer)[i] = '\0';
+		}
 	      done = 1;
 	    }
 	}

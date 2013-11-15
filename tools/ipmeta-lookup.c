@@ -287,6 +287,8 @@ int main(int argc, char **argv)
       enabled_providers[enabled_providers_cnt++] = provider;
     }
 
+  ipmeta_log(__func__, "dumping record headers");
+
   /* dump out the record header first */
   if(headers_enabled != 0)
     {
@@ -315,6 +317,8 @@ int main(int argc, char **argv)
 
     }
 
+  ipmeta_log(__func__, "processing ip file");
+
   /* try reading the file first */
   if(ip_file != NULL)
     {
@@ -338,11 +342,15 @@ int main(int argc, char **argv)
 	}
     }
 
+  ipmeta_log(__func__, "processing ips on command line");
+
   /* now try looking up addresses given on the command line */
   for(i=lastopt; i<argc; i++)
     {
       lookup(argv[i], outfile);
     }
+
+  ipmeta_log(__func__, "done");
 
   rc=0;
 

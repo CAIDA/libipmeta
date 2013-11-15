@@ -181,22 +181,25 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
-#define PRINT_EMPTY_RECORD(function, file)	\
-  do {						\
-    function(file,				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     SEPARATOR				\
-	     "\n");				\
-      } while(0)
+#define PRINT_EMPTY_RECORD(function, file, addr)	\
+  do {							\
+    function(file,					\
+	     "%s"					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
+	     "\n",					\
+	     addr);					\
+  } while(0)
 
 #define PRINT_RECORD(function, file, record, addr)			\
   do {									\
@@ -259,7 +262,7 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
   if(record == NULL)
     {
       /* dump an empty record */
-      PRINT_EMPTY_RECORD(fprintf, stdout);
+      PRINT_EMPTY_RECORD(fprintf, stdout, addr);
     }
   else
     {
@@ -311,7 +314,7 @@ inline void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
 
   if(record == NULL)
     {
-      PRINT_EMPTY_RECORD(wandio_printf, file);
+      PRINT_EMPTY_RECORD(wandio_printf, file, addr);
     }
   else
     {

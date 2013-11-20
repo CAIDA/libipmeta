@@ -99,7 +99,7 @@ static void usage(const char *name)
 
   fprintf(stderr,
 	  "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f iplist]|[ip1 ip2...ipN]\n"
-	  "       -c <level>    the compression level to use (default: %d)"
+	  "       -c <level>    the compression level to use (default: %d)\n"
 	  "       -f <iplist>   perform lookups on IP addresses listed in "
 	  "the given file\n"
 	  "       -h            write out a header row with field names\n"

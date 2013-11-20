@@ -234,8 +234,8 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     record->country_code,					\
 	     record->continent_code,					\
 	     record->region,						\
-	     record->city,						\
-	     record->post_code,						\
+	     (record->city == NULL ? "" : record->city),		\
+	     (record->post_code == NULL ? "" : record->post_code),	\
 	     record->latitude,						\
 	     record->longitude,						\
 	     record->metro_code,					\
@@ -251,7 +251,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	  if(i<record->asn_cnt-1)					\
 	    function(file, "_");					\
 	}								\
-      function(file, "\n");						\
+      function(file, "|%"PRIu32"\n", record->asn_ip_cnt);		\
     }									\
   } while(0)
 
@@ -299,6 +299,8 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
 	   "connection-speed"			\
 	   SEPARATOR				\
 	   "asn"				\
+	   SEPARATOR				\
+	   "asn-ip-cnt"				\
 	   "\n");				\
     } while(0)
 

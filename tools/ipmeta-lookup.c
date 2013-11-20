@@ -306,12 +306,10 @@ int main(int argc, char **argv)
 
       if(outfile != NULL)
 	{
-	  wandio_printf(outfile, "ip|");
 	  ipmeta_write_record_header(outfile);
 	}
       else
 	{
-	  fprintf(stdout, "ip|");
 	  ipmeta_dump_record_header();
 	}
 

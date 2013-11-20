@@ -51,6 +51,9 @@
 #include "ipmeta_provider_netacq.h"
 #endif
 
+/* pfx2as */
+#include "ipmeta_provider_pfx2as.h"
+
 /** Convenience typedef for the provider alloc function type */
 typedef ipmeta_provider_t* (*provider_alloc_func_t)();
 
@@ -63,6 +66,7 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   NULL,
   ipmeta_provider_maxmind_alloc,
   ipmeta_provider_netacq_edge_alloc,
+  ipmeta_provider_pfx2as_alloc,
 };
 
 static void free_record(ipmeta_record_t *record)

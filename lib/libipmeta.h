@@ -153,13 +153,13 @@ typedef enum ipmeta_provider_id
     /** Geolocation data from Net Acuity Edge */
     IPMETA_PROVIDER_NETACQ_EDGE  =  2,
 
-#if 0
+    /** @todo add a netacq-legacy provider */
+
     /** ASN data from CAIDA pfx2as */
     IPMETA_PROVIDER_PFX2AS       = 3,
-#endif
 
     /** Highest numbered metadata provider ID */
-    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_NETACQ_EDGE,
+    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_PFX2AS,
 
   } ipmeta_provider_id_t;
 

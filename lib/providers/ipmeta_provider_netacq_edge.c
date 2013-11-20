@@ -52,9 +52,6 @@
 
 #define BUFFER_LEN 1024
 
-KHASH_INIT(u16u16, uint16_t, uint16_t, 1,
-	   kh_int_hash_func, kh_int_hash_equal)
-
 /** The basic fields that every instance of this provider have in common */
 static ipmeta_provider_t ipmeta_provider_netacq_edge = {
   IPMETA_PROVIDER_NETACQ_EDGE,

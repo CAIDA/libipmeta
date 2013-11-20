@@ -150,16 +150,16 @@ typedef enum ipmeta_provider_id
     /** Geolocation data from Maxmind (Geo or GeoLite) */
     IPMETA_PROVIDER_MAXMIND      =  1,
 
-#if 0
     /** Geolocation data from Net Acuity Edge */
     IPMETA_PROVIDER_NETACQ_EDGE  =  2,
 
+#if 0
     /** ASN data from CAIDA pfx2as */
     IPMETA_PROVIDER_PFX2AS       = 3,
 #endif
 
     /** Highest numbered metadata provider ID */
-    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_MAXMIND,
+    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_NETACQ_EDGE,
 
   } ipmeta_provider_id_t;
 

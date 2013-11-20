@@ -43,10 +43,10 @@
 /* maxmind csv */
 #include "ipmeta_provider_maxmind.h"
 
-#if 0
 /* netacq edge */
 #include "ipmeta_provider_netacq_edge.h"
 
+#if 0
 /* netacq legacy */
 #include "ipmeta_provider_netacq.h"
 #endif
@@ -62,6 +62,7 @@ typedef ipmeta_provider_t* (*provider_alloc_func_t)();
 static const provider_alloc_func_t provider_alloc_functions[] = {
   NULL,
   ipmeta_provider_maxmind_alloc,
+  ipmeta_provider_netacq_edge_alloc,
 };
 
 static void free_record(ipmeta_record_t *record)

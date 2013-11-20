@@ -28,6 +28,7 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -271,7 +272,8 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
-      memcpy(tmp->country_code, tok, 2);
+      tmp->country_code[0] = toupper(tok[0]);
+      tmp->country_code[1] = toupper(tok[1]);
       break;
 
       /** @todo fix our region support */
@@ -343,7 +345,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	      state->parser.status = CSV_EUSER;
 	      return;
 	    }
-	  memcpy(tmp->continent_code, continent_strings[tmp_continent], 3);
+	  memcpy(tmp->continent_code, continent_strings[tmp_continent], 2);
 	}
       break;
 

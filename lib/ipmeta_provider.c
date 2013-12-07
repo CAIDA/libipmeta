@@ -123,7 +123,7 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
       /* get the core provider details (id, name) from the provider plugin */
       memcpy(provider,
 	     provider_alloc_functions[i](),
-	     sizeof(ipmeta_ds_t));
+	     sizeof(ipmeta_provider_t));
 
       /* poke it into ipmeta */
       ipmeta->providers[i-1] = provider;

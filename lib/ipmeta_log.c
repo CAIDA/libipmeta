@@ -68,7 +68,7 @@ static char *timestamp_str(char *buf, const size_t len)
   return buf;
 }
 
-void generic_log(const char *func, const char *format, va_list ap)
+static void generic_log(const char *func, const char *format, va_list ap)
 {
   char     message[512];
   char     ts[16];

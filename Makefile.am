@@ -24,9 +24,9 @@
 
 SUBDIRS = common lib tools
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common \
-	-I$(top_srcdir)/libipmeta \
-	-I$(top_srcdir)/libipmeta/datastructures \
-	-I$(top_srcdir)/libipmeta/providers
+	-I$(top_srcdir)/lib \
+	-I$(top_srcdir)/lib/datastructures \
+	-I$(top_srcdir)/lib/providers
 
 EXTRA_DIST = 
 

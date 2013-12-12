@@ -200,8 +200,9 @@ void ipmeta_free(ipmeta_t *ipmeta);
 /** Enable the given provider unless it is already enabled
  *
  * @param ipmeta        The ipmeta object to enable the provider for
- * @param provider_id   The ID of the provider to be enabled
+ * @param provider      Pointer to the provider to be enabled
  * @param ds_id         The ID of the datastructure to use
+ * @param options       Options string to pass to the provider
  * @param set_default   Set this provider as default if non-zero
  * @return 0 if the provider was initialized, -1 if an error occurred
  *

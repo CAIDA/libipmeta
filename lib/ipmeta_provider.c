@@ -167,6 +167,10 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
       ipmeta->provider_default = provider;
     }
 
+  /* we set this before we call init so that if init fails we know to try and
+     free up state */
+  provider->enabled = 1;
+
   /* now that we have set up the datastructure stuff, ask the provider to
      initialize. this will normally mean that it reads in some database and
      populates the datatructures */
@@ -174,8 +178,6 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
     {
       goto err;
     }
-
-  provider->enabled = 1;
 
   return 0;
 

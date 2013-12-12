@@ -284,6 +284,7 @@ int main(int argc, char **argv)
 	  goto quit;
 	}
 
+      free(providers[i]);
       enabled_providers[enabled_providers_cnt++] = provider;
     }
 

@@ -334,6 +334,20 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr);
  */
 void ipmeta_write_record_header(iow_t *file);
 
+/** Get an array of all the metadata records registered with the given
+ *  provider
+ *
+ * @param provider      The metadata provider to retrieve the records from
+ * @param[out] records  Returns an array of metadata records
+ * @return the number of records in the array, -1 if an error occurs
+ *
+ * @note This function allocates and populates the array dynamically, so do not
+ * call repeatedly. Also, it is the caller's responsibility to free the array.
+ * DO NOT free the records contained in the array.
+ */
+int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
+				    ipmeta_record_t ***records);
+
 /**
  * @name Logging functions
  *

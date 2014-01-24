@@ -248,20 +248,6 @@ ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
 ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
 					    uint32_t id);
 
-/** Get an array of all the metadata records registered with the given
- *  provider
- *
- * @param provider      The metadata provider to retrieve the records from
- * @param[out] records  Returns an array of metadata records
- * @return the number of records in the array, -1 if an error occurs
- *
- * @note This function allocates and populates the array dynamically, so do not
- * call repeatedly. Also, it is the caller's responsibility to free the array.
- * DO NOT free the records contained in the array.
- */
-int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
-				    ipmeta_record_t ***records);
-
 
 /** Register a new prefix to record mapping for the given provider
  *

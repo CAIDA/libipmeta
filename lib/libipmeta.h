@@ -362,4 +362,29 @@ void ipmeta_log(const char *func, const char *format, ...);
 
 /** @} */
 
+/**
+ * @name Provider-specific convenience functions
+ * @{ */
+
+
+/** Convenience function to retrieve a list of ISO 2 character country codes
+ *
+ * @param countries[out]   The provided pointer is updated to point to an
+ *                         array of 2 character country code strings
+ * @return the number of elements in the array
+ */
+int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
+
+/** Convenience function to retrieve a list of 2 character continent codes in
+ * the same ordering as the countries returned by
+ * ipmeta_provider_maxmind_get_iso2_list
+ *
+ * @param continents[out]   The provided pointer is updated to point to an
+ *                          array of 2 character continent code strings
+ * @return the number of elements in the array
+ */
+int ipmeta_provider_maxmind_get_country_continent_list(const char ***continents);
+
+/** @} */
+
 #endif /* __LIBIPMETA_H */

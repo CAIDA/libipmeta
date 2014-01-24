@@ -744,7 +744,7 @@ static const char *country_code_iso2[] = {
   "TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE",
   "VG","VI","VN","VU","WF","WS","YE","YT","RS","ZA",
   "ZM","ME","ZW","A1","A2","O1","AX","GG","IM","JE",
-  "BL","MF", "BQ", "SS", "O1",
+  "BL","MF", "BQ", "SS",
   /* Alistair adds AN because Maxmind does not include it, but uses it */
   "AN",
 };
@@ -777,7 +777,7 @@ static const char *country_code_iso3[] = {
   "TZA","UKR","UGA","UMI","USA","URY","UZB","VAT","VCT","VEN",
   "VGB","VIR","VNM","VUT","WLF","WSM","YEM","MYT","SRB","ZAF",
   "ZMB","MNE","ZWE","A1","A2","O1","ALA","GGY","IMN","JEY",
-  "BLM","MAF", "BES", "SSD", "O1",
+  "BLM","MAF", "BES", "SSD",
   /* see above about AN */
   "ANT",
 };
@@ -834,7 +834,7 @@ static const char *country_name[] = {
   "Yemen","Mayotte","Serbia","South Africa","Zambia","Montenegro","Zimbabwe",
   "Anonymous Proxy","Satellite Provider","Other","Aland Islands","Guernsey",
   "Isle of Man","Jersey","Saint Barthelemy","Saint Martin",
-  "Bonaire, Saint Eustatius and Saba", "South Sudan", "Other",
+  "Bonaire, Saint Eustatius and Saba", "South Sudan",
   /* again, see above about AN */
   "Netherlands Antilles",
 };
@@ -866,7 +866,7 @@ static const char *country_continent[] = {
   "AF","EU","AF","OC","NA","SA","AS","EU","NA","SA",
   "NA","NA","AS","OC","OC","OC","AS","AF","EU","AF",
   "AF","EU","AF","--","--","--","EU","EU","EU","EU",
-  "NA","NA","NA","AF","--",
+  "NA","NA","NA","AF",
   /* see above about AN */
   "NA",
 };
@@ -883,14 +883,8 @@ static const char *get_iso2(int country_id)
 }
 #endif
 
-static int get_iso2_list(const char ***countries)
-{
-  *countries = country_code_iso2;
-  return COUNTRY_CNT;
-}
-
 #if 0
-static const char *get_maxmind_iso3(int country_id)
+static const char *get_iso3(int country_id)
 {
   assert(country_id < COUNTRY_CNT);
   return country_code_iso3[country_id];
@@ -920,12 +914,6 @@ static const char *get_continent(int country_id)
   return country_continent[country_id];
 }
 #endif
-
-static int get_country_continent_list(const char ***continents)
-{
-  *continents = country_continent;
-  return COUNTRY_CNT;
-}
 
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
@@ -970,8 +958,8 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
 
   /* populate the country2continent hash */
   state->country_continent = kh_init(u16u16);
-  country_cnt = get_iso2_list(&countries);
-  get_country_continent_list(&continents);
+  country_cnt = ipmeta_provider_maxmind_get_iso2_list(&countries);
+  ipmeta_provider_maxmind_get_country_continent_list(&continents);
   /*assert(country_cnt == continent_cnt);*/
   for(i=0; i< country_cnt; i++)
     {
@@ -1067,4 +1055,18 @@ inline ipmeta_record_t *ipmeta_provider_maxmind_lookup(
 {
   /* just call the lookup helper func in provider manager */
   return ipmeta_provider_lookup_record(provider, addr);
+}
+
+/* ========== HELPER FUNCTIONS ========== */
+
+int ipmeta_provider_maxmind_get_iso2_list(const char ***countries)
+{
+  *countries = country_code_iso2;
+  return COUNTRY_CNT;
+}
+
+int ipmeta_provider_maxmind_get_country_continent_list(const char ***continents)
+{
+  *continents = country_continent;
+  return COUNTRY_CNT;
 }

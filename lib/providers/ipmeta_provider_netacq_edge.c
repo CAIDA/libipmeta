@@ -64,6 +64,11 @@ typedef struct ipmeta_provider_netacq_edge_state {
   /* info extracted from args */
   char *locations_file;
   char *blocks_file;
+  char *region_file;
+
+  /* array of region decode info */
+  ipmeta_provider_netacq_edge_region_t **regions;
+  int regions_cnt;
 
   /* State for CSV parser */
   struct csv_parser parser;
@@ -73,6 +78,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
   uint32_t block_id;
   ip_prefix_t block_lower;
   ip_prefix_t block_upper;
+  ipmeta_provider_netacq_edge_region_t tmp_region;
 
 } ipmeta_provider_netacq_edge_state_t;
 
@@ -116,7 +122,7 @@ typedef enum locations_cols {
   /** Country Code */
   LOCATION_COL_CNTRYCODE = 10,   /* not used */
   /** Region Code */
-  LOCATION_COL_RCODE     = 11,  /* not used */
+  LOCATION_COL_RCODE     = 11,
   /** City Code */
   LOCATION_COL_CITYCODE  = 12,  /* not used */
   /** Continent Code */
@@ -155,6 +161,21 @@ typedef enum blocks_cols {
   BLOCKS_COL_COUNT  = 3
 } blocks_cols_t;
 
+/** The columns in the netacq region decode CSV file */
+typedef enum region_cols {
+  /** Country */
+  REGIONS_COL_COUNTRY     = 0,
+  /** Region */
+  REGIONS_COL_REGION      = 1,
+  /** Description */
+  REGIONS_COL_DESC        = 2,
+  /** Region Code */
+  REGIONS_COL_CODE        = 3,
+
+  /** Total number of columns in region file */
+  REGIONS_COL_COUNT       = 4
+} region_cols_t;
+
 /** The number of header rows in the netacq_edge CSV files */
 #define HEADER_ROW_CNT 1
 
@@ -164,7 +185,8 @@ static void usage(ipmeta_provider_t *provider)
   fprintf(stderr,
 	  "provider usage: %s -l locations -b blocks\n"
 	  "       -b            blocks file (must be used with -l)\n"
-	  "       -l            locations file (must be used with -b)\n",
+	  "       -l            locations file (must be used with -b)\n"
+	  "       -r            region decode file\n",
 	  provider->name);
 }
 
@@ -190,7 +212,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, "b:l:?")) >= 0)
+  while((opt = getopt(argc, argv, "b:l:r:?")) >= 0)
     {
       switch(opt)
 	{
@@ -200,6 +222,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
 	case 'l':
 	  state->locations_file = strdup(optarg);
+	  break;
+
+	case 'r':
+	  state->region_file = strdup(optarg);
 	  break;
 
 	case '?':
@@ -326,7 +352,18 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     case LOCATION_COL_AREACODES:
     case LOCATION_COL_CC3:
     case LOCATION_COL_CNTRYCODE:
+      break;
+
     case LOCATION_COL_RCODE:
+      tmp->region_code = strtol(tok, &end, 10);
+      if (end == tok || *end != '\0' || errno == ERANGE)
+	{
+	  ipmeta_log(__func__, "Invalid Region Code (%s)", tok);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+      break;
+
     case LOCATION_COL_CITYCODE:
       break;
 
@@ -658,7 +695,216 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
 	      provider) != 0)
     {
       ipmeta_log(__func__,
-		  "Error parsing Netacq_Edge Location file");
+		  "Error parsing Netacq_Edge Blocks file");
+      ipmeta_log(__func__,
+		  "CSV Error: %s",
+		  csv_strerror(csv_error(&(state->parser))));
+      return -1;
+    }
+
+  csv_free(&(state->parser));
+
+  return 0;
+}
+
+
+/** Parse a regions cell */
+static void parse_regions_cell(void *s, size_t i, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t*)data;
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  char *tok = (char*)s;
+  char *end;
+
+  int j;
+  int len;
+
+  /* skip the first lines */
+  if(state->current_line < HEADER_ROW_CNT)
+    {
+      return;
+    }
+
+  switch(state->current_column)
+    {
+    case REGIONS_COL_COUNTRY:
+      /* country */
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Invalid ISO Country Code (%s)", tok);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Region Column (%d:%d)",
+	     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+      len = strnlen(tok, 3);
+      for(j=0; j < len; j++)
+	{
+	  state->tmp_region.country_iso[j] = toupper(tok[j]);
+	}
+      state->tmp_region.country_iso[len] = '\0';
+
+      break;
+
+    case REGIONS_COL_REGION:
+      /* region */
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Invalid ISO Region Code (%s)", tok);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Region Column (%d:%d)",
+	     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+     len = strnlen(tok, 3);
+      for(j=0; j < len; j++)
+	{
+	  state->tmp_region.region_iso[j] = toupper(tok[j]);
+	}
+      state->tmp_region.region_iso[len] = '\0';
+      break;
+
+    case REGIONS_COL_DESC:
+      /* description */
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Invalid Description Code (%s)", tok);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Region Column (%d:%d)",
+	     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+      state->tmp_region.name = strndup(tok, strlen(tok));
+      break;
+
+    case REGIONS_COL_CODE:
+      state->tmp_region.code = strtol(tok, &end, 10);
+      if (end == tok || *end != '\0' || errno == ERANGE)
+	{
+	  ipmeta_log(__func__, "Invalid Code Value (%s)", tok);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Region Column (%d:%d)",
+	     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+      break;
+
+    default:
+      ipmeta_log(__func__, "Invalid Regions Column (%d:%d)",
+		  state->current_line, state->current_column);
+      state->parser.status = CSV_EUSER;
+      break;
+    }
+
+  /* move on to the next column */
+  state->current_column++;
+}
+
+static void parse_regions_row(int c, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t*)data;
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+
+  ipmeta_provider_netacq_edge_region_t *region = NULL;
+
+  if(state->current_line < HEADER_ROW_CNT)
+    {
+      state->current_line++;
+      return;
+    }
+
+  /* done processing the line */
+
+  /* make sure we parsed exactly as many columns as we anticipated */
+  if(state->current_column != REGIONS_COL_COUNT)
+    {
+      ipmeta_log(__func__,
+		  "ERROR: Expecting %d columns in the regions file, "
+		  "but actually got %d",
+		  REGIONS_COL_COUNT, state->current_column);
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+
+  /* copy the tmp region structure into a new struct */
+  if((region = malloc(sizeof(ipmeta_provider_netacq_edge_region_t))) == NULL)
+    {
+      ipmeta_log(__func__,
+		 "ERROR: Could not allocate memory for region");
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+  memcpy(region, &(state->tmp_region),
+	 sizeof(ipmeta_provider_netacq_edge_region_t));
+
+  /* make room in the region array for this region */
+  if((state->regions =
+      realloc(state->regions, sizeof(ipmeta_provider_netacq_edge_region_t*)
+	      * (state->regions_cnt+1))) == NULL)
+    {
+      ipmeta_log(__func__,
+		 "ERROR: Could not allocate memory for region array");
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+  /* now poke it in */
+  state->regions[state->regions_cnt++] = region;
+
+  /* increment the current line */
+  state->current_line++;
+  /* reset the current column */
+  state->current_column = 0;
+  /* reset the tmp region info */
+  memset(&(state->tmp_region), 0,
+	 sizeof(ipmeta_provider_netacq_edge_region_t));
+}
+
+/** Read a region decode file  */
+static int read_regions(ipmeta_provider_t *provider, io_t *file)
+{
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  char buffer[BUFFER_LEN];
+  int read = 0;
+
+  /* reset the state variables before we start */
+  state->current_column = 0;
+  state->current_line = 0;
+  memset(&(state->tmp_region), 0,
+	 sizeof(ipmeta_provider_netacq_edge_region_t));
+
+  /* options for the csv parser */
+  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
+    CSV_APPEND_NULL | CSV_EMPTY_IS_NULL;
+
+  csv_init(&(state->parser), options);
+
+  while((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0)
+    {
+      if(csv_parse(&(state->parser), buffer, read,
+		   parse_regions_cell,
+		   parse_regions_row,
+		   provider) != read)
+	{
+	  ipmeta_log(__func__,
+		      "Error parsing regions file");
+	  ipmeta_log(__func__,
+		      "CSV Error: %s",
+		      csv_strerror(csv_error(&(state->parser))));
+	  return -1;
+	}
+    }
+
+  if(csv_fini(&(state->parser),
+	      parse_regions_cell,
+	      parse_regions_row,
+	      provider) != 0)
+    {
+      ipmeta_log(__func__,
+		  "Error parsing Netacq_Edge Region file");
       ipmeta_log(__func__,
 		  "CSV Error: %s",
 		  csv_strerror(csv_error(&(state->parser))));
@@ -738,6 +984,27 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   /* close the blocks file */
   wandio_destroy(file);
 
+  /* if provided, open the region decode file and populate the lookup arrays */
+  if(state->region_file != NULL)
+    {
+      if((file = wandio_create(state->region_file)) == NULL)
+	{
+	  ipmeta_log(__func__, "failed to open region decode file '%s'",
+		     state->region_file);
+	  return -1;
+	}
+
+      /* populate the arrays! */
+      if(read_regions(provider, file) != 0)
+	{
+	  ipmeta_log(__func__, "failed to parse region decode file");
+	  goto err;
+	}
+
+      /* close it... */
+      wandio_destroy(file);
+    }
+
   /* ready to rock n roll */
 
   return 0;
@@ -754,6 +1021,8 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
 void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  int i;
+
   if(state != NULL)
     {
       if(state->locations_file != NULL)
@@ -768,6 +1037,24 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 	  state->blocks_file = NULL;
 	}
 
+      if(state->region_file != NULL)
+	{
+	  free(state->region_file);
+	  state->region_file = NULL;
+	}
+
+      if(state->regions != NULL)
+	{
+	  for(i = 0; i < state->regions_cnt; i++)
+	    {
+	      free(state->regions[i]);
+	      state->regions[i] = NULL;
+	    }
+	  free(state->regions);
+	  state->regions = NULL;
+	  state->regions_cnt = 0;
+	}
+
       ipmeta_provider_free_state(provider);
     }
   return;
@@ -779,4 +1066,13 @@ inline ipmeta_record_t *ipmeta_provider_netacq_edge_lookup(
 {
   /* just call the lookup helper func in provider manager */
   return ipmeta_provider_lookup_record(provider, addr);
+}
+
+int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
+		       ipmeta_provider_netacq_edge_region_t ***regions)
+{
+  assert(provider != NULL && provider->enabled != 0);
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  *regions = state->regions;
+  return state->regions_cnt;
 }

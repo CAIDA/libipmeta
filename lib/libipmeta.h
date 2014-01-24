@@ -101,6 +101,11 @@ typedef struct ipmeta_record
   /** Area code */
   uint32_t area_code;
 
+  /** Region code
+   * @note this code is internal to each provider. A lookup table must be used
+   */
+  uint16_t region_code;
+
   /** Connection Speed/Type */
   char *conn_speed;
 
@@ -384,6 +389,36 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  * @return the number of elements in the array
  */
 int ipmeta_provider_maxmind_get_country_continent_list(const char ***continents);
+
+/** Information about a single Net Acuity region */
+typedef struct ipmeta_provider_netacq_edge_region
+{
+  /** A unique code for this region */
+  uint32_t code;
+
+  /** ISO 3166 3 letter country code */
+  char country_iso[4];
+
+  /** ISO 3166 region code */
+  char region_iso[4];
+
+  /* Region Name/Description */
+  char *name;
+
+} ipmeta_provider_netacq_edge_region_t;
+
+/** Retrieve a list of Net Acuity region objects
+ *
+ * @param provider      The provider to retrieve the regions from
+ * @param regions[out]  The provided pointer is updated to point to an array
+ *                      of region objects
+ * @return the number of regions in the array
+ *
+ * @note This function will return NULL unless regions info has been loaded by
+ * using the -r option.
+ */
+int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
+		       ipmeta_provider_netacq_edge_region_t ***regions);
 
 /** @} */
 

@@ -94,7 +94,8 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta,
   int process_argc = 0;
   int rc;
 
-  ipmeta_log(__func__, "enabling provider (%s)", provider->name);
+  ipmeta_log(__func__, "enabling provider (%s)%s", provider->name,
+	     set_default == IPMETA_PROVIDER_DEFAULT_YES ? " (default)" : "");
 
   /* first we need to parse the options */
   if(options != NULL && (len = strlen(options)) > 0)

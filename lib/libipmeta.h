@@ -407,6 +407,32 @@ typedef struct ipmeta_provider_netacq_edge_region
 
 } ipmeta_provider_netacq_edge_region_t;
 
+/** Information about a single Net Acuity country */
+typedef struct ipmeta_provider_netacq_edge_country
+{
+  /** A unique code for this country */
+  uint32_t code;
+
+  /** ISO 3166 2 letter country code */
+  char iso2[3];
+
+  /** ISO 3166 3 letter country code */
+  char iso3[4];
+
+  /** Country Name */
+  char *name;
+
+  /** Binary field indicating if Net Acuity has region info */
+  uint8_t regions;
+
+  /** Numeric code for the continent */
+  uint8_t continent_code;
+
+  /** 2 Char Continent Abbreviation */
+  char continent[3];
+
+} ipmeta_provider_netacq_edge_country_t;
+
 /** Retrieve a list of Net Acuity region objects
  *
  * @param provider      The provider to retrieve the regions from
@@ -419,6 +445,19 @@ typedef struct ipmeta_provider_netacq_edge_region
  */
 int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
 		       ipmeta_provider_netacq_edge_region_t ***regions);
+
+/** Retrieve a list of Net Acuity country objects
+ *
+ * @param provider        The provider to retrieve the countries from
+ * @param countries[out]  The provided pointer is updated to point to an array
+ *                        of country objects
+ * @return the number of countries in the array
+ *
+ * @note This function will return NULL unless countries info has been loaded by
+ * using the -c option.
+ */
+int ipmeta_provider_netacq_edge_get_countries(ipmeta_provider_t *provider,
+		        ipmeta_provider_netacq_edge_country_t ***countries);
 
 /** @} */
 

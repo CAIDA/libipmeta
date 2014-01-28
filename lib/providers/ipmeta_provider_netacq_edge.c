@@ -1349,6 +1349,11 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 	{
 	  for(i = 0; i < state->regions_cnt; i++)
 	    {
+	      if(state->regions[i]->name != NULL)
+		{
+		  free(state->regions[i]->name);
+		  state->regions[i]->name = NULL;
+		}
 	      free(state->regions[i]);
 	      state->regions[i] = NULL;
 	    }
@@ -1367,6 +1372,11 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 	{
 	  for(i = 0; i < state->countries_cnt; i++)
 	    {
+	      if(state->countries[i]->name != NULL)
+		{
+		  free(state->countries[i]->name);
+		  state->countries[i]->name = NULL;
+		}
 	      free(state->countries[i]);
 	      state->countries[i] = NULL;
 	    }

@@ -24,10 +24,15 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipmeta], [0.0.0], [corsaro-info@caida.org])
+AC_INIT([libipmeta], [0.1.0], [corsaro-info@caida.org])
+
+# The following define the version numbers for the libtool-created library
+# (libipmeta), and not for the overall package. The package version (above)
+# should use semantic versioning, for more info on the library versioning, see
+# https://www.sourceware.org/autobook/autobook/autobook_91.html
 
 LIBIPMETA_MAJOR_VERSION=0
-LIBIPMETA_MID_VERSION=0
+LIBIPMETA_MID_VERSION=1
 LIBIPMETA_MINOR_VERSION=0
 
 AC_DEFINE_UNQUOTED([LIBIPMETA_MAJOR_VERSION],$LIBIPMETA_MAJOR_VERSION,

@@ -89,6 +89,12 @@ static void free_record(ipmeta_record_t *record)
       record->post_code = NULL;
     }
 
+  if(record->conn_speed != NULL)
+    {
+      free(record->conn_speed);
+      record->conn_speed = NULL;
+    }
+
   if(record->asn != NULL)
     {
       free(record->asn);

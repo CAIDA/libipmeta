@@ -41,6 +41,7 @@
 #include "ip_utils.h"
 #include "khash.h"
 #include "utils.h"
+#include "wandio_utils.h"
 
 #include "ipmeta_provider_pfx2as.h"
 

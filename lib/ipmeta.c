@@ -33,6 +33,7 @@
 
 #include "parse_cmd.h"
 #include "utils.h"
+#include "wandio_utils.h"
 
 #include "libipmeta_int.h"
 #include "ipmeta_ds.h"

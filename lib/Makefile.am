@@ -43,7 +43,7 @@ libipmeta_la_SOURCES = 	\
 	ipmeta_provider.c	\
 	ipmeta_provider.h
 
-libipmeta_la_LIBADD = $(top_builddir)/common/libipmetacommon.la \
+libipmeta_la_LIBADD = $(top_builddir)/common/libcccommon.la \
 	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la \
 	$(top_builddir)/lib/providers/libipmeta_providers.la
 

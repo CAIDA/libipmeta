@@ -41,6 +41,7 @@
 
 #include "libipmeta.h"
 #include "utils.h"
+#include "wandio_utils.h"
 
 /** The length of the static line buffer */
 #define BUFFER_LEN 1024

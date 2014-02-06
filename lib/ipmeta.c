@@ -199,6 +199,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR					\
 	     SEPARATOR					\
 	     SEPARATOR					\
+	     SEPARATOR					\
 	     "\n",					\
 	     addr);					\
   } while(0)
@@ -228,6 +229,8 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR							\
 	     "%"PRIu32							\
 	     SEPARATOR							\
+	     "%"PRIu16							\
+	     SEPARATOR							\
 	     "%s"							\
 	     SEPARATOR							\
 	     "%s",							\
@@ -242,8 +245,9 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     record->longitude,						\
 	     record->metro_code,					\
 	     record->area_code,						\
+	     record->region_code,					\
 	     (record->conn_speed == NULL ? "" : record->conn_speed),	\
-	     (record->asn_cnt > 0 ? "" : "\n")				\
+	     (record->asn_cnt > 0 ? "" : "|\n")				\
 	     );								\
   if(record->asn_cnt > 0)						\
     {									\
@@ -297,6 +301,8 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
 	   "metro-code"				\
 	   SEPARATOR				\
 	   "area-code"				\
+	   SEPARATOR				\
+	   "region-code"			\
 	   SEPARATOR				\
 	   "connection-speed"			\
 	   SEPARATOR				\

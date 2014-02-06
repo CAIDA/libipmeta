@@ -59,9 +59,14 @@ typedef struct ipmeta_ds ipmeta_ds_t;
  *
  * @{ */
 
-/** Structure which contains an IP meta-data record */
-/** @todo use some sort of key-value record so that we don't have to extend
-    this structure whenever a new provider is added */
+/** Structure which contains an IP meta-data record
+ *
+ * @todo use some sort of key-value record so that we don't have to extend this
+ * structure whenever a new provider is added.
+ *
+ * @note you must update the ipmeta_dump_record and ipmeta_write_record (and
+ * related _header functions) functions when making changes to this structure.
+ */
 typedef struct ipmeta_record
 {
   /** A unique ID for this record (used to join the Blocks and Locations Files)

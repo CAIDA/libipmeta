@@ -91,9 +91,8 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   ipmeta_provider_pfx2as_state_t *state = STATE(provider);
   int opt;
 
-  assert(argc > 0 && argv != NULL);
-
-  if(argc == 1)
+  /* no args */
+  if(argc == 0)
     {
       usage(provider);
       return -1;

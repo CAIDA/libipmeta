@@ -150,9 +150,8 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   char *directory = NULL;
   char *ptr = NULL;
 
-  assert(argc > 0 && argv != NULL);
-
-  if(argc == 1)
+  /* no args */
+  if(argc == 0)
     {
       usage(provider);
       return -1;

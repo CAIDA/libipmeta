@@ -788,6 +788,13 @@ static void parse_regions_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
+
+      /* special check for "no region" */
+      if(strncmp(tok, "no region", 9) == 0)
+	{
+	  tok = "---";
+	}
+
      len = strnlen(tok, 3);
       for(j=0; j < len; j++)
 	{

@@ -138,6 +138,24 @@ static int parse_asn(char *asn_str, uint32_t **asn_arr)
   char *tok = NULL;
   char *period = NULL;
 
+  /* WARNING:
+
+     As of 2014-04-09 AK added the following code to convert AS sets into MOAS
+     format. This is because we previously did not handle AS sets at all, and
+     there are no current uses of MOAS nor AS sets. This may/will need to be
+     revisited in the future
+  */
+  /* s/,/_/g; */
+  tok = asn_str;
+  while(*tok != '\0')
+    {
+      if(*tok == ',')
+	{
+	  *tok = '_';
+	}
+      tok++;
+    }
+
   while((tok = strsep(&asn_str, "_")) != NULL)
     {
       /* realloc the asn array to buy us one more */

@@ -33,6 +33,8 @@ noinst_LTLIBRARIES = libipmeta_datastructures.la
 include_HEADERS =
 
 libipmeta_datastructures_la_SOURCES = 	\
+	ipmeta_ds_bigarray.c	\
+	ipmeta_ds_bigarray.h	\
 	ipmeta_ds_patricia.c 	\
 	ipmeta_ds_patricia.h
 

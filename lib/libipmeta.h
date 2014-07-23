@@ -186,12 +186,13 @@ typedef enum ipmeta_provider_id
 typedef enum ipmeta_ds_id
   {
     /** Patricia Trie */
-    IPMETA_DS_PATRICIA      =  1,
+    IPMETA_DS_PATRICIA      = 1,
 
-    /** @todo add Huge Array implementation */
+    /** Big-Array */
+    IPMETA_DS_BIGARRAY      = 2,
 
     /** Highest numbered ds ID */
-    IPMETA_DS_MAX          = IPMETA_DS_PATRICIA,
+    IPMETA_DS_MAX          = IPMETA_DS_BIGARRAY,
 
     /** Default Geolocation data-structure */
     IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,

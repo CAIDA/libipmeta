@@ -29,6 +29,7 @@
 
 #include "utils.h"
 #include "ipmeta_ds_patricia.h"
+#include "ipmeta_ds_bigarray.h"
 
 #include "ipmeta_ds.h"
 #include "ipmeta_provider.h"
@@ -44,6 +45,7 @@ typedef ipmeta_ds_t* (*ds_alloc_func_t)();
 static const ds_alloc_func_t ds_alloc_functions[] = {
   NULL,
   ipmeta_ds_patricia_alloc,
+  ipmeta_ds_bigarray_alloc,
 };
 
 int ipmeta_ds_init(ipmeta_provider_t *provider, ipmeta_ds_id_t ds_id)

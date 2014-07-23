@@ -84,7 +84,7 @@ else
 fi
 
 # Checks for typedefs, structures, and compiler characteristics.
-AC_C_INLINE
+#AC_C_INLINE # 2014-07-23 AK removes because it causes problems with clang3.4
 AC_TYPE_SIZE_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT32_T

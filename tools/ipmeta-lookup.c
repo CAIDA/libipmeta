@@ -134,6 +134,7 @@ int main(int argc, char **argv)
 
   char *ip_file = NULL;
   io_t *file = NULL;
+  char *p = NULL;
   char buffer[BUFFER_LEN];
 
   char *providers[IPMETA_PROVIDER_MAX];
@@ -335,6 +336,12 @@ int main(int argc, char **argv)
 	  if(buffer[0] == '#' || buffer[0] == '\0')
 	    {
 	      continue;
+	    }
+
+	  /* convenience to allow flowtuple files to be fed directly in */
+	  if((p = strchr(buffer, '|')) != NULL)
+	    {
+	      *p = '\0';
 	    }
 
 	  lookup(buffer, outfile);

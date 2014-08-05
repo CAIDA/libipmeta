@@ -77,6 +77,12 @@ static void free_record(ipmeta_record_t *record)
     }
 
   /* free the strings */
+  if(record->region != NULL)
+    {
+      free(record->region);
+      record->region = NULL;
+    }
+
   if(record->city != NULL)
     {
       free(record->city);

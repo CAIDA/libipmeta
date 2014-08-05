@@ -110,7 +110,7 @@ typedef enum locations_cols {
   /** 2 Char Country Code */
   LOCATION_COL_CC        = 1,
   /** Region String */
-  LOCATION_COL_REGION    = 2,   /* not used */
+  LOCATION_COL_REGION    = 2,
   /** City String */
   LOCATION_COL_CITY      = 3,
   /** Postal Code */
@@ -320,9 +320,9 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       if(tok == NULL || strlen(tok) != 2)
 	{
 	  ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
-      ipmeta_log(__func__,
-		  "Invalid Net Acuity Edge Location Column (%d:%d)",
-	     state->current_line, state->current_column);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Edge Location Column (%d:%d)",
+		     state->current_line, state->current_column);
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
@@ -330,8 +330,22 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       tmp->country_code[1] = toupper(tok[1]);
       break;
 
-      /** @todo fix our region support */
     case LOCATION_COL_REGION:
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Invalid Region Code (%s)", tok);
+	  ipmeta_log(__func__,
+		     "Invalid Net Acuity Edge Location Column (%d:%d)",
+		     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
+      if((tmp->region = strdup(tok)) == NULL)
+	{
+	  ipmeta_log(__func__, "Region code copy failed (%s)", tok);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
       break;
 
     case LOCATION_COL_CITY:

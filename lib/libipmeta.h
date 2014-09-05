@@ -125,6 +125,9 @@ typedef struct ipmeta_record
 
   /** Corresponding GeoJSON polygon ID (according to -p input file) */
   char *polygon_id;
+  
+  /** Corresponding GeoJSON polygon name (according to -p input file) */
+  char *polygon_name;
 
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
@@ -449,6 +452,9 @@ typedef struct ipmeta_provider_netacq_edge_polygon
 
   /* GeoJSON polygon ID (adm1_code for Natural Earth) */
   char polygon_id[10];
+  
+  /* The name for this geographical area */
+  char *name;
 
 } ipmeta_provider_netacq_edge_polygon_t;
 

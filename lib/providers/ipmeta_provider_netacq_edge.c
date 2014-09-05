@@ -215,15 +215,17 @@ typedef enum loc_polygons_cols {
   LOC_POLYGONS_COL_NETACQ_LOC_ID    = 0,
   /** netacq ISO2 cc */
   LOC_POLYGONS_COL_ISO2_CC          = 1,
-  /** natural earth polygon ID (adm1_code) */
-  LOC_POLYGONS_COL_NE_POLYGON_ID    = 2,
+  /** polygon ID (adm1_code) */
+  LOC_POLYGONS_COL_POLYGON_ID    = 2,
+  /** name of this geographical polygon */
+  LOC_POLYGONS_COL_NAME 	    = 3,
   /** netacq resolution level (continent>>zip code) */
-  LOC_POLYGONS_COL_RES_LEVEL        = 3,
+  LOC_POLYGONS_COL_RES_LEVEL        = 4,
   /** netacq region code ID */
-  LOC_POLYGONS_COL_NETACQ_REGION_ID = 4,
+  LOC_POLYGONS_COL_NETACQ_REGION_ID = 5,
 
   /** Total number of columns in region file */
-  LOC_POLYGONS_COL_COUNT            = 5
+  LOC_POLYGONS_COL_COUNT            = 6
 } ne_region_cols_t;
 
 /** The number of header rows in the netacq_edge CSV files */
@@ -528,6 +530,7 @@ static void parse_netacq_edge_location_row(int c, void *data)
 				&& strlen(state->polygons[record->id]->polygon_id)) 
     {
       record->polygon_id = strdup(state->polygons[record->id]->polygon_id);
+      record->polygon_name = strdup(state->polygons[record->id]->name);
     }
 
   /* done processing the line */
@@ -1282,9 +1285,13 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
             return;
           }
         break;
-      case LOC_POLYGONS_COL_NE_POLYGON_ID:
+      case LOC_POLYGONS_COL_POLYGON_ID:
         /* GeoJSON polygon ID */
         strcpy(state->tmp_polygon.polygon_id, (tok==NULL?"":tok));
+        break;
+      case LOC_POLYGONS_COL_NAME:
+        /* GeoJSON polygon ID */
+        state->tmp_polygon.name = strdup(tok==NULL?"":tok);
         break;
       default:
         /* Just ignore non-relevant cols */

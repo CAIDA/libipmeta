@@ -233,6 +233,8 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR							\
 	     "%s"							\
 	     SEPARATOR							\
+	     "%s"							\
+	     SEPARATOR							\
 	     "%s",							\
 	     addr,							\
 	     record->id,						\
@@ -247,6 +249,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     record->area_code,						\
 	     record->region_code,					\
 	     (record->conn_speed == NULL ? "" : record->conn_speed),	\
+	     (record->polygon_id == NULL ? "" : record->polygon_id),		\
 	     (record->asn_cnt > 0 ? "" : "|\n")				\
 	     );								\
   if(record->asn_cnt > 0)						\

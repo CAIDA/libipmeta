@@ -123,6 +123,9 @@ typedef struct ipmeta_record
   /** Number of IP addresses that this ASN (or ASN group) 'owns' */
   uint32_t asn_ip_cnt;
 
+  /** Corresponding GeoJSON polygon ID (according to -p input file) */
+  char *polygon_id;
+
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
   /** The next record in the list */
@@ -437,6 +440,17 @@ typedef struct ipmeta_provider_netacq_edge_country
   char continent[3];
 
 } ipmeta_provider_netacq_edge_country_t;
+
+/** GeoJSON polygon ID of a netacuity location */
+typedef struct ipmeta_provider_netacq_edge_polygon
+{
+  /** A unique code for this location */
+  uint32_t na_loc_code;
+
+  /* GeoJSON polygon ID (adm1_code for Natural Earth) */
+  char polygon_id[10];
+
+} ipmeta_provider_netacq_edge_polygon_t;
 
 /** Retrieve a list of Net Acuity region objects
  *

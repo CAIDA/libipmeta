@@ -66,6 +66,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
   char *blocks_file;
   char *region_file;
   char *country_file;
+  char *polygons_file;
 
   /* array of region decode info */
   ipmeta_provider_netacq_edge_region_t **regions;
@@ -74,6 +75,10 @@ typedef struct ipmeta_provider_netacq_edge_state {
   /* array of country decode info */
   ipmeta_provider_netacq_edge_country_t **countries;
   int countries_cnt;
+
+  /* array of natural earth polygon IDs */
+  ipmeta_provider_netacq_edge_polygon_t **polygons;
+  int polygons_cnt;
 
   /* State for CSV parser */
   struct csv_parser parser;
@@ -85,6 +90,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
   ip_prefix_t block_upper;
   ipmeta_provider_netacq_edge_region_t tmp_region;
   ipmeta_provider_netacq_edge_country_t tmp_country;
+  ipmeta_provider_netacq_edge_polygon_t tmp_polygon;
 
 } ipmeta_provider_netacq_edge_state_t;
 
@@ -203,6 +209,23 @@ typedef enum country_cols {
   COUNTRY_COL_COUNT       = 7
 } country_cols_t;
 
+/** The columns in the GeoJSON polygon ID <> netacq locations CSV file */
+typedef enum loc_polygons_cols {
+  /** netacq loc ID */
+  LOC_POLYGONS_COL_NETACQ_LOC_ID    = 0,
+  /** netacq ISO2 cc */
+  LOC_POLYGONS_COL_ISO2_CC          = 1,
+  /** natural earth polygon ID (adm1_code) */
+  LOC_POLYGONS_COL_NE_POLYGON_ID    = 2,
+  /** netacq resolution level (continent>>zip code) */
+  LOC_POLYGONS_COL_RES_LEVEL        = 3,
+  /** netacq region code ID */
+  LOC_POLYGONS_COL_NETACQ_REGION_ID = 4,
+
+  /** Total number of columns in region file */
+  LOC_POLYGONS_COL_COUNT            = 5
+} ne_region_cols_t;
+
 /** The number of header rows in the netacq_edge CSV files */
 #define HEADER_ROW_CNT 1
 
@@ -214,7 +237,8 @@ static void usage(ipmeta_provider_t *provider)
 	  "       -b            blocks file (must be used with -l)\n"
 	  "       -c            country decode file\n"
 	  "       -l            locations file (must be used with -b)\n"
-	  "       -r            region decode file\n",
+	  "       -r            region decode file\n"
+	  "       -p            location to polygons file",
 	  provider->name);
 }
 
@@ -239,7 +263,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, "b:c:l:r:?")) >= 0)
+  while((opt = getopt(argc, argv, "b:c:l:r:p:?")) >= 0)
     {
       switch(opt)
 	{
@@ -257,6 +281,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
 	case 'r':
 	  state->region_file = strdup(optarg);
+	  break;
+
+	case 'p':
+    	  state->polygons_file = strdup(optarg);
 	  break;
 
 	case '?':
@@ -493,6 +521,14 @@ static void parse_netacq_edge_location_row(int c, void *data)
     }
 
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
+
+  /* tag with GeoJSON polygon ID, if existing */
+  if ((record->id < state->polygons_cnt) 
+				&& state->polygons[record->id] 
+				&& strlen(state->polygons[record->id]->polygon_id)) 
+    {
+      record->polygon_id = strdup(state->polygons[record->id]->polygon_id);
+    }
 
   /* done processing the line */
 
@@ -1217,6 +1253,166 @@ static int read_countries(ipmeta_provider_t *provider, io_t *file)
   return 0;
 }
 
+/* Parse a location<>polygons table cell */
+static void parse_polygons_cell(void *s, size_t i, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t*)data;
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  char *tok = (char*)s;
+  char *end;
+
+  int j;
+  int len;
+
+  /* skip the first lines */
+  if(state->current_line < HEADER_ROW_CNT)
+    {
+      return;
+    }
+
+  switch(state->current_column)
+    {
+      case LOC_POLYGONS_COL_NETACQ_LOC_ID:
+        /* Netacuity location ID */
+        state->tmp_polygon.na_loc_code = strtol(tok, &end, 10);
+        if (end == tok || *end != '\0' || errno == ERANGE)
+          {
+            ipmeta_log(__func__, "Invalid location ID Value (%s)", tok);
+            state->parser.status = CSV_EUSER;
+            return;
+          }
+        break;
+      case LOC_POLYGONS_COL_NE_POLYGON_ID:
+        /* GeoJSON polygon ID */
+        strcpy(state->tmp_polygon.polygon_id, (tok==NULL?"":tok));
+        break;
+      default:
+        /* Just ignore non-relevant cols */
+        break;
+    }
+
+  /* move on to the next column */
+  state->current_column++;
+}
+
+/** Handle an end-of-row event for the locations<>polygons table*/
+static void parse_polygons_row(int c, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t*)data;
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+
+  ipmeta_provider_netacq_edge_polygon_t *polygon = NULL;
+
+  /* skip the first two lines */
+  if(state->current_line < HEADER_ROW_CNT)
+    {
+      state->current_line++;
+      return;
+    }
+
+  /* done processing the line */
+
+  /* make sure we parsed exactly as many columns as we anticipated */
+  if(state->current_column != LOC_POLYGONS_COL_COUNT)
+    {
+      ipmeta_log(__func__,
+      "ERROR: Expecting %d columns in the locations to polygons file, "
+      "but actually got %d",
+      LOC_POLYGONS_COL_COUNT, state->current_column);
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+
+  /* copy the tmp polygon struct into a new one */
+  if ((polygon = malloc(sizeof(ipmeta_provider_netacq_edge_polygon_t))) == NULL)
+    {
+      ipmeta_log(__func__,
+     "ERROR: Could not allocate memory for a polygon ID");
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+  memcpy(polygon, &(state->tmp_polygon),
+    sizeof(ipmeta_provider_netacq_edge_polygon_t));
+
+  /* make room in the polygons array for this polygon */
+  /* array index must correspond to location ID, and accomodate for gaps in list */
+  if((state->polygons =
+      realloc(state->polygons, sizeof(ipmeta_provider_netacq_edge_polygon_t*)
+        * (state->tmp_polygon.na_loc_code+1))) == NULL)
+    {
+      ipmeta_log(__func__,
+     "ERROR: Could not allocate memory for polygons array");
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+  state->polygons_cnt = state->tmp_polygon.na_loc_code+1;
+
+  /* now poke it in */
+  state->polygons[state->polygons_cnt-1] = polygon;
+
+  /* increment the current line */
+  state->current_line++;
+  /* reset the current column */
+  state->current_column = 0;
+  /* reset the tmp region info */
+  memset(&(state->tmp_polygon), 0,
+   sizeof(ipmeta_provider_netacq_edge_polygon_t));
+}
+
+/** Read a netacq location<>GeoJSON polygon id lookup file */
+static int read_polygons(ipmeta_provider_t *provider, io_t *file)
+{
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  char buffer[BUFFER_LEN];
+  int read = 0;
+
+  /* reset the state variables before we start */
+  state->current_column = 0;
+  state->current_line = 0;
+  memset(&(state->tmp_polygon), 0,
+        sizeof(ipmeta_provider_netacq_edge_polygon_t));
+
+  /* options for the csv parser */
+  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
+    CSV_APPEND_NULL | CSV_EMPTY_IS_NULL;
+
+  csv_init(&(state->parser), options);
+
+  while((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0)
+    {
+      if(csv_parse(&(state->parser), buffer, read,
+		parse_polygons_cell,
+		parse_polygons_row,
+		provider) != read)
+	{
+	  ipmeta_log(__func__,
+		"Error parsing locations to polygons file", provider->name);
+	  ipmeta_log(__func__,
+		"CSV Error: %s",
+		csv_strerror(csv_error(&(state->parser))));
+	  return -1;
+	}
+    }
+
+  if(csv_fini(&(state->parser),
+        parse_polygons_cell,
+        parse_polygons_row,
+        provider) != 0)
+    {
+      ipmeta_log(__func__,
+          "Error parsing locations to polygons file", provider->name);
+      ipmeta_log(__func__,
+          "CSV Error: %s",
+          csv_strerror(csv_error(&(state->parser))));
+      return -1;
+    }
+
+  csv_free(&(state->parser));
+
+  return 0;
+}
+
+
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
 ipmeta_provider_t *ipmeta_provider_netacq_edge_alloc()
@@ -1283,6 +1479,28 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
       if(read_countries(provider, file) != 0)
 	{
 	  ipmeta_log(__func__, "failed to parse country decode file");
+	  goto err;
+	}
+
+      /* close it... */
+      wandio_destroy(file);
+    }
+
+
+  /* if provided, open the locations<>polygons file and populate the lookup arrays */
+  if(state->polygons_file != NULL)
+    {
+      if((file = wandio_create(state->polygons_file)) == NULL)
+	{
+	  ipmeta_log(__func__, "failed to open locations to polygons file '%s'",
+		state->polygons_file);
+	  return -1;
+	}
+
+      /* populate the arrays! */
+      if(read_polygons(provider, file) != 0)
+	{
+	  ipmeta_log(__func__, "failed to parse locations to polygons file");
 	  goto err;
 	}
 
@@ -1405,9 +1623,27 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 	  state->countries_cnt = 0;
 	}
 
+      if(state->polygons_file != NULL)
+	{
+	  free(state->polygons_file);
+	  state->polygons_file = NULL;
+	}
+
+      if(state->polygons != NULL)
+	{
+	  for(i = 0; i < state->polygons_cnt; i++)
+	    {
+	      free(state->polygons[i]);
+	      state->polygons[i] = NULL;
+	    }
+	  free(state->polygons);
+	  state->polygons = NULL;
+	  state->polygons_cnt = 0;
+	}
+
       ipmeta_provider_free_state(provider);
     }
-  return;
+  return; 
 }
 
 inline ipmeta_record_t *ipmeta_provider_netacq_edge_lookup(

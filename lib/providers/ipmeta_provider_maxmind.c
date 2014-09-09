@@ -309,14 +309,11 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
 
     case LOCATION_COL_REGION:
       /* region string */
-      if(tok == NULL || strlen(tok) == 0)
+      if(tok != NULL && (tmp->region = strdup(tok)) == NULL)
 	{
-	  tmp->region[0] = '\0';
-	}
-      else
-	{
-	  tmp->region[2] = '\0';
-	  memcpy(tmp->region, tok, 2);
+	  ipmeta_log(__func__, "Region code copy failed (%s)", tok);
+	  state->parser.status = CSV_EUSER;
+	  return;
 	}
       break;
 

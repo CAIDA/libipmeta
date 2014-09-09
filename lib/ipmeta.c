@@ -233,9 +233,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR							\
 	     "%s"							\
 	     SEPARATOR							\
-		 "%s"							\
-		 SEPARATOR							\
-	     "%s"							\
+	     "%"PRIu32							\
 	     SEPARATOR							\
 	     "%s",							\
 	     addr,							\
@@ -251,20 +249,19 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     record->area_code,						\
 	     record->region_code,					\
 	     (record->conn_speed == NULL ? "" : record->conn_speed),	\
-	     (record->polygon_id == NULL ? "" : record->polygon_id),		\
-	     (record->polygon_name == NULL ? "" : record->polygon_name),		\
+	     (record->polygon_id),					\
 	     (record->asn_cnt > 0 ? "" : "|\n")				\
 	     );								\
-  if(record->asn_cnt > 0)						\
-    {									\
-      for(i=0; i<record->asn_cnt; i++)					\
-	{								\
-	  function(file, "%d", record->asn[i]);				\
-	  if(i<record->asn_cnt-1)					\
-	    function(file, "_");					\
-	}								\
-      function(file, "|%"PRIu32"\n", record->asn_ip_cnt);		\
-    }									\
+    if(record->asn_cnt > 0)						\
+      {									\
+	for(i=0; i<record->asn_cnt; i++)				\
+	  {								\
+	    function(file, "%d", record->asn[i]);			\
+	    if(i<record->asn_cnt-1)					\
+	      function(file, "_");					\
+	  }								\
+	function(file, "|%"PRIu32"\n", record->asn_ip_cnt);		\
+      }									\
   } while(0)
 
 void ipmeta_dump_record(ipmeta_record_t *record, char *addr)

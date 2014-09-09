@@ -107,12 +107,6 @@ static void free_record(ipmeta_record_t *record)
       record->asn = NULL;
       record->asn_cnt = 0;
     }
-    
-  if (record->polygon_name != NULL)
-    {
-      free(record->polygon_name);
-      record->polygon_name = NULL;
-    } 
 
   free(record);
   return;

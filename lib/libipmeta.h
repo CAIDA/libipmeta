@@ -123,11 +123,10 @@ typedef struct ipmeta_record
   /** Number of IP addresses that this ASN (or ASN group) 'owns' */
   uint32_t asn_ip_cnt;
 
-  /** Corresponding GeoJSON polygon ID (according to -p input file) */
-  char polygon_id[12];
-  
-  /** Corresponding GeoJSON polygon name (according to -p input file) */
-  char *polygon_name;
+  /** Polygon ID
+   * @todo consider how we will handle multiple polygons
+   */
+  uint32_t polygon_id;
 
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
@@ -444,6 +443,20 @@ typedef struct ipmeta_provider_netacq_edge_country
 
 } ipmeta_provider_netacq_edge_country_t;
 
+/** Information about a single Polygon */
+typedef struct ipmeta_provider_netacq_edge_polygon
+{
+  /** A unique code for this polygon */
+  uint32_t id;
+
+  /** Human-readable name of this polygon */
+  char *name;
+
+  /** Fully-qualified id of this polygon */
+  char *fqid;
+
+} ipmeta_provider_netacq_edge_polygon_t;
+
 /** Retrieve a list of Net Acuity region objects
  *
  * @param provider      The provider to retrieve the regions from
@@ -469,6 +482,19 @@ int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
  */
 int ipmeta_provider_netacq_edge_get_countries(ipmeta_provider_t *provider,
 		        ipmeta_provider_netacq_edge_country_t ***countries);
+
+/** Retrieve a list of Polygon objects
+ *
+ * @param provider       The provider to retrieve the polygons from
+ * @param[out] polygons  The provided pointer is updated to point to an array
+ *                        of polygon objects
+ * @return the number of polygons in the array
+ *
+ * @note This function will return NULL unless polygon info has been loaded by
+ * using the -p option.
+ */
+int ipmeta_provider_netacq_edge_get_polygons(ipmeta_provider_t *provider,
+		        ipmeta_provider_netacq_edge_polygon_t ***polygons);
 
 /** @} */
 

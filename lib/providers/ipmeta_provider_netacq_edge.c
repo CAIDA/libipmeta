@@ -383,8 +383,17 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
-      tmp->country_code[0] = toupper(tok[0]);
-      tmp->country_code[1] = toupper(tok[1]);
+      /* ugly hax to s/uk/GB/ in country names */
+      if(tok[0] == 'u' && tok[1] == 'k')
+	{
+	  tmp->country_code[0] = 'G';
+	  tmp->country_code[1] = 'B';
+	}
+      else
+	{
+	  tmp->country_code[0] = toupper(tok[0]);
+	  tmp->country_code[1] = toupper(tok[1]);
+	}
       break;
 
     case LOCATION_COL_REGION:
@@ -1041,7 +1050,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   char *end;
 
   int j;
-  int len;
+  int len = 0;
 
   /* skip the first lines */
   if(state->current_line < HEADER_ROW_CNT)
@@ -1081,10 +1090,20 @@ static void parse_country_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
-      len = strnlen(tok, 2);
-      for(j=0; j < len; j++)
+      /* ugly hax to s/uk/GB/ in country names */
+      if(tok[0] == 'u' && tok[1] == 'k')
 	{
-	  state->tmp_country.iso2[j] = toupper(tok[j]);
+	  len = 2;
+	  state->tmp_country.iso2[0] = 'G';
+	  state->tmp_country.iso2[1] = 'B';
+	}
+      else
+	{
+	  len = strnlen(tok, 2);
+	  for(j=0; j < len; j++)
+	    {
+	      state->tmp_country.iso2[j] = toupper(tok[j]);
+	    }
 	}
       state->tmp_country.iso2[len] = '\0';
       break;

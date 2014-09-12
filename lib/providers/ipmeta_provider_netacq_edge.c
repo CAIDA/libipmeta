@@ -230,10 +230,10 @@ typedef enum country_cols {
 typedef enum polygon_cols {
   /** id */
   POLYGON_COL_ID    = 0,
-  /** Name */
-  POLYGON_COL_NAME  = 1,
   /** FQ-ID */
-  POLYGON_COL_FQID  = 2,
+  POLYGON_COL_FQID  = 1,
+  /** Name */
+  POLYGON_COL_NAME  = 2,
 
   /** Total number of columns in polygon decode file */
   POLYGON_COL_COUNT            = 3

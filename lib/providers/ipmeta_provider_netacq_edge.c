@@ -1346,7 +1346,6 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
       /* Polygon id */
       state->tmp_polygon.id = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE ||
-	  state->tmp_polygon.id == 0 ||
 	  state->tmp_polygon.id > UINT16_MAX)
 	{
 	  ipmeta_log(__func__, "Invalid Polygon ID Value (%s)", tok);

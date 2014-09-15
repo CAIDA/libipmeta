@@ -26,6 +26,7 @@
 #include "config.h"
 
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include "utils.h"
 
@@ -44,9 +45,14 @@ static ipmeta_ds_t ipmeta_ds_bigarray = {
   NULL
 };
 
+KHASH_INIT(u32u32, uint32_t, uint32_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
 typedef struct ipmeta_ds_bigarray_state
 {
-  /** Mapping from a uint16 number to a record.
+  /** Temporary hash to map from record id to lookup id */
+  khash_t(u32u32) *record_lookup;
+
+  /** Mapping from a uint32 lookup id to a record.
    * @note, 0 is a reserved ID (indicates empty)
    */
   ipmeta_record_t **lookup_table;
@@ -55,7 +61,7 @@ typedef struct ipmeta_ds_bigarray_state
   int lookup_table_cnt;
 
   /** Mapping from IP address to uint32 lookup id (see lookup table) */
-  uint32_t array[UINT32_MAX+1];
+  uint32_t array[UINT32_MAX];
 } ipmeta_ds_bigarray_state_t;
 
 ipmeta_ds_t *ipmeta_ds_bigarray_alloc()
@@ -84,6 +90,8 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
     }
   STATE(ds)->lookup_table_cnt = 1;
 
+  STATE(ds)->record_lookup = kh_init(u32u32);
+
   return 0;
 }
 
@@ -101,6 +109,13 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 	  free(STATE(ds)->lookup_table);
 	  STATE(ds)->lookup_table = NULL;
 	}
+
+      if(STATE(ds)->record_lookup != NULL)
+	{
+	  kh_destroy(u32u32, STATE(ds)->record_lookup);
+	  STATE(ds)->record_lookup = NULL;
+	}
+
       free(STATE(ds));
       ds->state = NULL;
     }
@@ -117,37 +132,57 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
   assert(ds != NULL && STATE(ds) != NULL);
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
 
-  uint32_t first_addr = addr & (0xFFFFFFFF << mask);
+  uint32_t first_addr = ntohl(addr) & (~0UL << (32-mask));
   uint32_t i;
+  uint32_t lookup_id;
+  khiter_t khiter;
+  int khret;
 
-  /* check if we have run out of space */
-  if(state->lookup_table_cnt == UINT32_MAX)
+  /* check if this record is already in the record_lookup hash */
+  if((khiter = kh_get(u32u32, state->record_lookup, record->id)) ==
+     kh_end(state->record_lookup))
     {
-      ipmeta_log(__func__,
-		 "The Big Array datastructure only supports 2^32 prefixes");
-      return -1;
-    }
+      /* allocate the next id in the actual lookup table */
 
-  /* realloc the lookup table for this record */
-  if((state->lookup_table =
-      realloc(state->lookup_table,
-	      sizeof(ipmeta_record_t*) * (state->lookup_table_cnt+1))) == NULL)
+      /* check if we have run out of space */
+      if(state->lookup_table_cnt == UINT32_MAX-1)
+	{
+	  ipmeta_log(__func__,
+		     "The Big Array datastructure only supports 2^32 records");
+	  return -1;
+	}
+
+      /* realloc the lookup table for this record */
+      if((state->lookup_table =
+	  realloc(state->lookup_table,
+		  sizeof(ipmeta_record_t*) * (state->lookup_table_cnt+1))
+	  ) == NULL)
+	{
+	  return -1;
+	}
+
+      lookup_id = state->lookup_table_cnt;
+      /* move on to the next lookup id */
+      state->lookup_table_cnt++;
+
+      /* store this record in the lookup table */
+      state->lookup_table[lookup_id] = record;
+
+      /* associate this record id with this lookup id */
+      khiter = kh_put(u32u32, state->record_lookup, record->id, &khret);
+      kh_value(state->record_lookup, khiter) = lookup_id;
+    }
+  else
     {
-      return -1;
+      lookup_id = kh_value(state->record_lookup, khiter);
     }
-
-  /* store this record in the lookup table */
-  state->lookup_table[state->lookup_table_cnt] = record;
 
   /* iterate over all ips in this prefix and point them to this index in the
      table */
   for(i=first_addr; i < (first_addr + (1 << (32 - mask))); i++)
     {
-      state->array[i] = state->lookup_table_cnt;
+      state->array[i] = lookup_id;
     }
-
-  /* move on to the next lookup id */
-  state->lookup_table_cnt++;
 
   return 0;
 }
@@ -157,5 +192,5 @@ ipmeta_record_t *ipmeta_ds_bigarray_lookup_record(ipmeta_ds_t *ds,
 {
   assert(ds != NULL && ds->state != NULL);
 
-  return STATE(ds)->lookup_table[STATE(ds)->array[addr]];
+  return STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]];
 }

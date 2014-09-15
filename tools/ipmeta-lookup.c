@@ -276,7 +276,7 @@ int main(int argc, char **argv)
 	}
 
       if(ipmeta_enable_provider(ipmeta, provider,
-				IPMETA_DS_BIGARRAY,
+				IPMETA_DS_PATRICIA,
 				provider_arg_ptr,
 				IPMETA_PROVIDER_DEFAULT_NO) != 0)
 	{

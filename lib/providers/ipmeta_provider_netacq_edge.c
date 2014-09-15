@@ -1513,6 +1513,13 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
     {
     case NA_TO_POLYGON_COL_NETACQ_LOC_ID:
       /* Netacq id */
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Missing Net Acuity ID Value (%d:%d)",
+		     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
       state->tmp_na_to_polygon.na_loc_id = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE)
 	{
@@ -1522,7 +1529,14 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
 	}
       break;
     case NA_TO_POLYGON_COL_POLYGON_ID:
-      /* Netacq id */
+      /* polygon id */
+      if(tok == NULL)
+	{
+	  ipmeta_log(__func__, "Missing Polygon ID Value (%d:%d)",
+		     state->current_line, state->current_column);
+	  state->parser.status = CSV_EUSER;
+	  return;
+	}
       state->tmp_na_to_polygon.polygon_id = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE ||
 	  state->tmp_na_to_polygon.polygon_id > UINT16_MAX)

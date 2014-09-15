@@ -74,3 +74,48 @@ int ipmeta_ds_init(ipmeta_provider_t *provider, ipmeta_ds_id_t ds_id)
 
   return 0;
 }
+
+int ipmeta_ds_init_by_name(ipmeta_provider_t *provider, const char *name)
+{
+  int i;
+  ipmeta_ds_t *tmp_ds;
+
+  /* call each of the ds alloc functions and look for a name that matches the
+     one we were given, then call the regular ds_init function for that ds */
+
+  for(i=1; i<ARR_CNT(ds_alloc_functions); i++)
+    {
+      tmp_ds = ds_alloc_functions[i]();
+      assert(tmp_ds != NULL);
+
+      if(strcmp(tmp_ds->name, name) == 0)
+	{
+	  return ipmeta_ds_init(provider, i);
+	}
+    }
+
+  /* no matching datastructure */
+  return -1;
+}
+
+const char **ipmeta_ds_get_all()
+{
+  const char **names;
+  int i;
+  ipmeta_ds_t *tmp_ds;
+
+  if((names = malloc(sizeof(char*) * (IPMETA_DS_MAX-1))) == NULL)
+    {
+      return NULL;
+    }
+
+  for(i=1; i<ARR_CNT(ds_alloc_functions); i++)
+    {
+      tmp_ds = ds_alloc_functions[i]();
+      assert(tmp_ds != NULL);
+
+      names[i-1] = tmp_ds->name;
+    }
+
+  return names;
+}

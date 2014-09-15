@@ -42,6 +42,7 @@
 #include "khash.h"
 #include "utils.h"
 
+#include "ipmeta_ds.h"
 #include "ipmeta_provider_maxmind.h"
 
 #define PROVIDER_NAME "maxmind"
@@ -69,6 +70,9 @@ static ipmeta_provider_t ipmeta_provider_maxmind = {
 
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_maxmind_state {
+  /* datastructure name */
+  char *ds_name;
+
   /* info extracted from args */
   char *locations_file;
   char *blocks_file;
@@ -131,12 +135,27 @@ typedef enum blocks_cols {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
+  int i;
+  const char **names = ipmeta_ds_get_all();
+  assert(names != NULL);
+
   fprintf(stderr,
 	  "provider usage: %s (-l locations -b blocks)|(-d directory)\n"
 	  "       -d            directory containing blocks and location files\n"
-	  "       -b            blocks file (must be used with -l)\n"
-	  "       -l            locations file (must be used with -b)\n",
+	  "       -D            datastructure to use. may be one of:\n",
 	  provider->name);
+
+  for(i=0; i<IPMETA_DS_MAX; i++)
+    {
+      fprintf(stderr,
+	      "                      - %s%s\n",
+	      names[i],
+	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
+    }
+
+  fprintf(stderr,
+	  "       -b            blocks file (must be used with -l)\n"
+	  "       -l            locations file (must be used with -b)\n");
 }
 
 
@@ -162,7 +181,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, "b:d:l:?")) >= 0)
+  while((opt = getopt(argc, argv, "b:d:D:l:?")) >= 0)
     {
       switch(opt)
 	{
@@ -173,6 +192,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 	case 'd':
 	  /* no need to dup right now because we will do it later */
 	  directory = optarg;
+	  break;
+
+	case 'D':
+	  state->ds_name = strdup(optarg);
 	  break;
 
 	case 'l':
@@ -948,6 +971,26 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
   if(parse_args(provider, argc, argv) != 0)
     {
       return -1;
+    }
+
+  /* initialize the datastructure */
+  if(state->ds_name == NULL)
+    {
+      if(ipmeta_ds_init(provider, IPMETA_DS_DEFAULT) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  goto err;
+	}
+    }
+  else
+    {
+      if(ipmeta_ds_init_by_name(provider, state->ds_name) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  fprintf(stderr, "ERROR: Check datastructure name (%s)\n",
+		  state->ds_name);
+	  goto err;
+	}
     }
 
   assert(state->locations_file != NULL && state->blocks_file != NULL);

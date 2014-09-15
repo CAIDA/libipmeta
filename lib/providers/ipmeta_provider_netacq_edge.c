@@ -43,6 +43,7 @@
 #include "khash.h"
 #include "utils.h"
 
+#include "ipmeta_ds.h"
 #include "ipmeta_provider_netacq_edge.h"
 
 #define PROVIDER_NAME "netacq-edge"
@@ -72,6 +73,9 @@ typedef struct na_to_polygon
 
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_netacq_edge_state {
+  /* datastructure name */
+  char *ds_name;
+
   /* info extracted from args */
   char *locations_file;
   char *blocks_file;
@@ -256,15 +260,33 @@ typedef enum na_to_polygon_cols {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
+  int i;
+  const char **names = ipmeta_ds_get_all();
+  assert(names != NULL);
+
   fprintf(stderr,
 	  "provider usage: %s -l locations -b blocks\n"
 	  "       -b            blocks file (must be used with -l)\n"
 	  "       -c            country decode file\n"
+	  "       -D            datastructure to use. may be one of:\n",
+	  provider->name);
+
+
+  for(i=0; i<IPMETA_DS_MAX; i++)
+    {
+      fprintf(stderr,
+	      "                      - %s%s\n",
+	      names[i],
+	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
+    }
+
+  fprintf(stderr,
 	  "       -l            locations file (must be used with -b)\n"
 	  "       -r            region decode file\n"
 	  "       -p            polygon decode file\n"
-	  "       -P            netacq2polygon mapping file\n",
-	  provider->name);
+	  "       -P            netacq2polygon mapping file\n");
+
+  free(names);
 }
 
 
@@ -288,7 +310,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, "b:c:l:r:p:P:?")) >= 0)
+  while((opt = getopt(argc, argv, "b:c:D:l:r:p:P:?")) >= 0)
     {
       switch(opt)
 	{
@@ -298,6 +320,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
 	case 'c':
 	  state->country_file = strdup(optarg);
+	  break;
+
+	case 'D':
+	  state->ds_name = strdup(optarg);
 	  break;
 
 	case 'l':
@@ -326,7 +352,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   if(state->locations_file == NULL || state->blocks_file == NULL)
     {
-      fprintf(stderr, "ERROR: %s requires either '-d' or both '-b' and '-l'\n",
+      fprintf(stderr, "ERROR: %s requires both '-b' and '-l'\n",
 	      provider->name);
       usage(provider);
       return -1;
@@ -1692,6 +1718,26 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   if(parse_args(provider, argc, argv) != 0)
     {
       return -1;
+    }
+
+  /* initialize the datastructure */
+  if(state->ds_name == NULL)
+    {
+      if(ipmeta_ds_init(provider, IPMETA_DS_DEFAULT) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  goto err;
+	}
+    }
+  else
+    {
+      if(ipmeta_ds_init_by_name(provider, state->ds_name) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  fprintf(stderr, "ERROR: Check datastructure name (%s)\n",
+		  state->ds_name);
+	  goto err;
+	}
     }
 
   assert(state->locations_file != NULL && state->blocks_file != NULL);

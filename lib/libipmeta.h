@@ -178,27 +178,6 @@ typedef enum ipmeta_provider_id
 
   } ipmeta_provider_id_t;
 
-/** A unique identifier for each metadata ds that libipmeta supports.
- *
- * @note When adding a datastructure to this list, there must also be a
- * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
- */
-typedef enum ipmeta_ds_id
-  {
-    /** Patricia Trie */
-    IPMETA_DS_PATRICIA      = 1,
-
-    /** Big-Array */
-    IPMETA_DS_BIGARRAY      = 2,
-
-    /** Highest numbered ds ID */
-    IPMETA_DS_MAX          = IPMETA_DS_BIGARRAY,
-
-    /** Default Geolocation data-structure */
-    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
-
-  } ipmeta_ds_id_t;
-
 /** @} */
 
 /** Initialize a new libipmeta instance
@@ -217,7 +196,6 @@ void ipmeta_free(ipmeta_t *ipmeta);
  *
  * @param ipmeta        The ipmeta object to enable the provider for
  * @param provider      Pointer to the provider to be enabled
- * @param ds_id         The ID of the datastructure to use
  * @param options       Options string to pass to the provider
  * @param set_default   Set this provider as default if non-zero
  * @return 0 if the provider was initialized, -1 if an error occurred
@@ -240,7 +218,6 @@ void ipmeta_free(ipmeta_t *ipmeta);
  */
 int ipmeta_enable_provider(ipmeta_t *ipmeta,
 			   ipmeta_provider_t *provider,
-			   ipmeta_ds_id_t ds_id,
 			   const char *options,
 			   ipmeta_provider_default_t set_default);
 

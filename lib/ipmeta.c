@@ -85,7 +85,6 @@ void ipmeta_free(ipmeta_t *ipmeta)
 
 int ipmeta_enable_provider(ipmeta_t *ipmeta,
 			   ipmeta_provider_t *provider,
-			   ipmeta_ds_id_t ds_id,
 			   const char *options,
 			   ipmeta_provider_default_t set_default)
 {
@@ -107,7 +106,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta,
     }
 
   /* we just need to pass this along to the provider framework */
-  rc = ipmeta_provider_init(ipmeta, provider, ds_id,
+  rc = ipmeta_provider_init(ipmeta, provider,
 			    process_argc, process_argv, set_default);
 
   if(local_args != NULL)

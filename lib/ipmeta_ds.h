@@ -62,6 +62,27 @@
     ipmeta_ds_##datastructure##_add_prefix,	\
     ipmeta_ds_##datastructure##_lookup_record,
 
+/** A unique identifier for each metadata ds that libipmeta supports.
+ *
+ * @note When adding a datastructure to this list, there must also be a
+ * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
+ */
+typedef enum ipmeta_ds_id
+  {
+    /** Patricia Trie */
+    IPMETA_DS_PATRICIA      = 1,
+
+    /** Big-Array */
+    IPMETA_DS_BIGARRAY      = 2,
+
+    /** Highest numbered ds ID */
+    IPMETA_DS_MAX          = IPMETA_DS_BIGARRAY,
+
+    /** Default Geolocation data-structure */
+    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
+
+  } ipmeta_ds_id_t;
+
 /** Structure which represents a metadata datastructure */
 struct ipmeta_ds
 {
@@ -91,6 +112,29 @@ struct ipmeta_ds
 
 };
 
+/** Initialize the given datastructure and associate it with the given provider
+ *
+ * @param provider      pointer to provider instance to associate ds with
+ * @param ds_id         id of the datastructure to initialize
+ * @return 0 if initialization was successful, -1 otherwise
+ */
 int ipmeta_ds_init(struct ipmeta_provider *provider, enum ipmeta_ds_id ds_id);
+
+/** Search for a datastructure with the given name and then initialize it
+ *
+ * @param provider      pointer to provider instance to associate ds with
+ * @param name          name of the datastructure to initialize
+ * @return 0 if initialization was successful, -1 otherwise
+ */
+int ipmeta_ds_init_by_name(ipmeta_provider_t *provider, const char *name);
+
+/** Get an array of all available datastructure names
+ *
+ * @return an array of datastructure names. The array is guaranteed to have
+ * length IPMETA_DS_MAX-1
+ *
+ * @note it is the caller's responsibility to free the returned array
+ */
+const char **ipmeta_ds_get_all();
 
 #endif /* __IPMETA_DS_H */

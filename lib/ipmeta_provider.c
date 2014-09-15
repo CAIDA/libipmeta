@@ -146,7 +146,6 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
 
 int ipmeta_provider_init(ipmeta_t *ipmeta,
 			 ipmeta_provider_t *provider,
-			 ipmeta_ds_id_t ds_id,
 			 int argc, char **argv,
 			 ipmeta_provider_default_t set_default)
 {
@@ -166,13 +165,6 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
 
   /* initialize the record hash */
   provider->all_records = kh_init(ipmeta_rechash);
-
-  /* initialize the datastructure */
-  if(ipmeta_ds_init(provider, ds_id) != 0)
-    {
-      ipmeta_log(__func__, "could not initialize datastructure");
-      goto err;
-    }
 
   if(set_default == IPMETA_PROVIDER_DEFAULT_YES)
     {

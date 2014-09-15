@@ -173,7 +173,6 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
  *
  * @param ipmeta        The ipmeta object to initialize the provider for
  * @param provider_id   The unique ID of the metadata provider
- * @param ds_id         The type of datastructure to use
  * @param set_default   Set this provider as the default
  * @return the provider object created, NULL if an error occurred
  *
@@ -184,7 +183,6 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
  */
 int ipmeta_provider_init(ipmeta_t *ipmeta,
 			 ipmeta_provider_t *provider,
-			 ipmeta_ds_id_t ds_id,
 			 int argc, char **argv,
 			 ipmeta_provider_default_t set_default);
 

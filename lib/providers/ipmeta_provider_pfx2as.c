@@ -43,6 +43,7 @@
 #include "utils.h"
 #include "wandio_utils.h"
 
+#include "ipmeta_ds.h"
 #include "ipmeta_provider_pfx2as.h"
 
 #define PROVIDER_NAME "pfx2as"
@@ -64,6 +65,9 @@ static ipmeta_provider_t ipmeta_provider_pfx2as = {
 
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_pfx2as_state {
+  /* datastructure name */
+  char *ds_name;
+
   /* info extracted from args */
 
   /** The filename of the CAIDA pfx2as database to use */
@@ -76,10 +80,25 @@ typedef struct ipmeta_provider_pfx2as_state {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
+  int i;
+  const char **names = ipmeta_ds_get_all();
+  assert(names != NULL);
+
   fprintf(stderr,
 	  "provider usage: %s -f pfx2as-file\n"
-	  "       -f            pfx2as file to use for lookups\n",
+	  "       -D            datastructure to use. may be one of:\n",
 	  provider->name);
+
+  for(i=0; i<IPMETA_DS_MAX; i++)
+    {
+      fprintf(stderr,
+	      "                      - %s%s\n",
+	      names[i],
+	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
+    }
+
+  fprintf(stderr,
+	  "       -f            pfx2as file to use for lookups\n");
 }
 
 
@@ -103,10 +122,14 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, ":f:?")) >= 0)
+  while((opt = getopt(argc, argv, ":D:f:?")) >= 0)
     {
       switch(opt)
 	{
+	case 'D':
+	  state->ds_name = strdup(optarg);
+	  break;
+
 	case 'f':
 	  state->pfx2as_file = strdup(optarg);
 	  break;
@@ -121,7 +144,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   if(state->pfx2as_file == NULL)
     {
-      fprintf(stderr, "ERROR: %s requires either '-d' or both '-b' and '-l'\n",
+      fprintf(stderr, "ERROR: %s requires '-f'\n",
 	      provider->name);
       usage(provider);
       return -1;
@@ -349,13 +372,33 @@ int ipmeta_provider_pfx2as_init(ipmeta_provider_t *provider,
       return -1;
     }
 
+  /* initialize the datastructure */
+  if(state->ds_name == NULL)
+    {
+      if(ipmeta_ds_init(provider, IPMETA_DS_DEFAULT) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  goto err;
+	}
+    }
+  else
+    {
+      if(ipmeta_ds_init_by_name(provider, state->ds_name) != 0)
+	{
+	  ipmeta_log(__func__, "could not initialize datastructure");
+	  fprintf(stderr, "ERROR: Check datastructure name (%s)\n",
+		  state->ds_name);
+	  goto err;
+	}
+    }
+
   assert(state->pfx2as_file != NULL);
 
   /* open the pfx2as file */
   if((file = wandio_create(state->pfx2as_file)) == NULL)
     {
       ipmeta_log(__func__,
-		 "failed to open location file '%s'", state->pfx2as_file);
+		 "failed to open pfx2as file '%s'", state->pfx2as_file);
       return -1;
     }
 

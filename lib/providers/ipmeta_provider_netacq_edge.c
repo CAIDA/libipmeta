@@ -1559,6 +1559,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
 /** Handle an end-of-row event for the netacq2polygon table*/
 static void parse_na_to_polygon_row(int c, void *data)
 {
+  int i;
   ipmeta_provider_t *provider = (ipmeta_provider_t*)data;
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
@@ -1608,6 +1609,12 @@ static void parse_na_to_polygon_row(int c, void *data)
           state->parser.status = CSV_EUSER;
           return;
         }
+      /* zero out the newly allocated memory */
+      for(i=state->na_to_polygons_cnt; i<n2p->na_loc_id; i++)
+	{
+	  state->na_to_polygons[i] = NULL;
+	}
+
       state->na_to_polygons_cnt = n2p->na_loc_id + 1;
     }
   else if(state->na_to_polygons[n2p->na_loc_id] != NULL)

@@ -104,7 +104,7 @@ const char **ipmeta_ds_get_all()
   int i;
   ipmeta_ds_t *tmp_ds;
 
-  if((names = malloc(sizeof(char*) * (IPMETA_DS_MAX-1))) == NULL)
+  if((names = malloc(sizeof(char*) * IPMETA_DS_MAX)) == NULL)
     {
       return NULL;
     }

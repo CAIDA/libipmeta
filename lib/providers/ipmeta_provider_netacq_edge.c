@@ -1864,6 +1864,8 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   /* if provided, open the region decode file and populate the lookup arrays */
   if(state->region_file != NULL)
     {
+      ipmeta_log(__func__, "processing region file (%s)",
+                 state->region_file);
       if((file = wandio_create(state->region_file)) == NULL)
 	{
 	  ipmeta_log(__func__, "failed to open region decode file '%s'",
@@ -1885,6 +1887,8 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   /* if provided, open the country decode file and populate the lookup arrays */
   if(state->country_file != NULL)
     {
+      ipmeta_log(__func__, "processing region file (%s)",
+                 state->country_file);
       if((file = wandio_create(state->country_file)) == NULL)
 	{
 	  ipmeta_log(__func__, "failed to open country decode file '%s'",
@@ -1956,6 +1960,9 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
       wandio_destroy(file);
     }
 
+  ipmeta_log(__func__, "processing locations file (%s)",
+             state->locations_file);
+
   /* open the locations file */
   if((file = wandio_create(state->locations_file)) == NULL)
     {
@@ -1974,6 +1981,9 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   /* close the locations file */
   wandio_destroy(file);
   file = NULL;
+
+  ipmeta_log(__func__, "processing blocks file (%s)",
+             state->blocks_file);
 
   /* open the blocks file */
   if((file = wandio_create(state->blocks_file)) == NULL)

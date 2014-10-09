@@ -123,10 +123,12 @@ typedef struct ipmeta_record
   /** Number of IP addresses that this ASN (or ASN group) 'owns' */
   uint32_t asn_ip_cnt;
 
-  /** Polygon ID
-   * @todo consider how we will handle multiple polygons
-   */
-  uint32_t polygon_id;
+  /** Polygon IDs. Indexes SHOULD correspond to those in the polygon table list
+      obtained from the provider */
+  uint32_t *polygon_ids;
+
+  /** Number of IDs in the Polygon IDs array */
+  int polygon_ids_cnt;
 
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
@@ -421,10 +423,14 @@ typedef struct ipmeta_provider_netacq_edge_country
 
 } ipmeta_provider_netacq_edge_country_t;
 
+/** @todo move these defs and integrate more tightly with the top-level ipmeta
+    library rather than just being in netacq */
+
 /** Information about a single Polygon */
-typedef struct ipmeta_provider_netacq_edge_polygon
+typedef struct ipmeta_polygon
 {
-  /** A unique code for this polygon */
+  /** A unique code for this polygon
+      (0 is reserved for the "unknown polygon") */
   uint32_t id;
 
   /** Human-readable name of this polygon */
@@ -433,7 +439,29 @@ typedef struct ipmeta_provider_netacq_edge_polygon
   /** Fully-qualified id of this polygon */
   char *fqid;
 
-} ipmeta_provider_netacq_edge_polygon_t;
+  /** User-provided code for this polygon */
+  char *usercode;
+
+} ipmeta_polygon_t;
+
+/** Information about a Polygon table */
+typedef struct ipmeta_polygon_table
+{
+  /** Generated table ID
+      (corresponds to the index in the polygon_ids array in a record) */
+  uint32_t id;
+
+  /** Official ASCII id of this table */
+  char *ascii_id;
+
+  /** Array of polygons in the table
+      (polygon at 0 MUST be the unknown polygon) */
+  ipmeta_polygon_t **polygons;
+
+  /** Number of polygons in the table */
+  int polygons_cnt;
+
+} ipmeta_polygon_table_t;
 
 /** Retrieve a list of Net Acuity region objects
  *
@@ -461,18 +489,18 @@ int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
 int ipmeta_provider_netacq_edge_get_countries(ipmeta_provider_t *provider,
 		        ipmeta_provider_netacq_edge_country_t ***countries);
 
-/** Retrieve a list of Polygon objects
+/** Retrieve a list of Polygon table objects
  *
- * @param provider       The provider to retrieve the polygons from
- * @param[out] polygons  The provided pointer is updated to point to an array
- *                        of polygon objects
- * @return the number of polygons in the array
+ * @param provider       The provider to retrieve the polygon tables from
+ * @param[out] tables  The provided pointer is updated to point to an array
+ *                        of polygon table objects
+ * @return the number of polygon tables in the array
  *
  * @note This function will return NULL unless polygon info has been loaded by
  * using the -p option.
  */
-int ipmeta_provider_netacq_edge_get_polygons(ipmeta_provider_t *provider,
-		        ipmeta_provider_netacq_edge_polygon_t ***polygons);
+int ipmeta_provider_netacq_edge_get_polygon_tables(ipmeta_provider_t *provider,
+                                              ipmeta_polygon_table_t ***tables);
 
 /** @} */
 

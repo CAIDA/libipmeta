@@ -199,6 +199,8 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR					\
 	     SEPARATOR					\
 	     SEPARATOR					\
+	     SEPARATOR					\
+	     SEPARATOR					\
 	     "\n",					\
 	     addr);					\
   } while(0)
@@ -231,10 +233,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     "%"PRIu16							\
 	     SEPARATOR							\
 	     "%s"							\
-	     SEPARATOR							\
-	     "%"PRIu32							\
-	     SEPARATOR							\
-	     "%s",							\
+             SEPARATOR,                                                 \
 	     addr,							\
 	     record->id,						\
 	     record->country_code,					\
@@ -247,10 +246,15 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     record->metro_code,					\
 	     record->area_code,						\
 	     record->region_code,					\
-	     (record->conn_speed == NULL ? "" : record->conn_speed),	\
-	     (record->polygon_id),					\
-	     (record->asn_cnt > 0 ? "" : "|\n")				\
-	     );								\
+	     (record->conn_speed == NULL ? "" : record->conn_speed)     \
+             );                                                         \
+    for(i=0; i<record->polygon_ids_cnt; i++)                            \
+          {                                                             \
+            function(file, "%"PRIu32, record->polygon_ids[i]);          \
+            if(i<record->polygon_ids_cnt-1)                             \
+              function(file, ",");                                      \
+          }                                                             \
+    function(file, "|");                                                \
     if(record->asn_cnt > 0)						\
       {									\
 	for(i=0; i<record->asn_cnt; i++)				\
@@ -261,6 +265,10 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	  }								\
 	function(file, "|%"PRIu32"\n", record->asn_ip_cnt);		\
       }									\
+    else                                                                \
+      {                                                                 \
+        function(file, "|\n");                                          \
+      }                                                                 \
   } while(0)
 
 void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
@@ -308,6 +316,8 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
 	   SEPARATOR				\
 	   "connection-speed"			\
 	   SEPARATOR				\
+           "polygon-ids"                        \
+           SEPARATOR                            \
 	   "asn"				\
 	   SEPARATOR				\
 	   "asn-ip-cnt"				\

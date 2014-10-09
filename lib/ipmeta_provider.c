@@ -76,37 +76,24 @@ static void free_record(ipmeta_record_t *record)
       return;
     }
 
-  /* free the strings */
-  if(record->region != NULL)
-    {
-      free(record->region);
-      record->region = NULL;
-    }
+  free(record->region);
+  record->region = NULL;
 
-  if(record->city != NULL)
-    {
-      free(record->city);
-      record->city = NULL;
-    }
+  free(record->city);
+  record->city = NULL;
 
-  if(record->post_code != NULL)
-    {
-      free(record->post_code);
-      record->post_code = NULL;
-    }
+  free(record->post_code);
+  record->post_code = NULL;
 
-  if(record->conn_speed != NULL)
-    {
-      free(record->conn_speed);
-      record->conn_speed = NULL;
-    }
+  free(record->conn_speed);
+  record->conn_speed = NULL;
 
-  if(record->asn != NULL)
-    {
-      free(record->asn);
-      record->asn = NULL;
-      record->asn_cnt = 0;
-    }
+  free(record->polygon_ids);
+  record->polygon_ids = NULL;
+
+  free(record->asn);
+  record->asn = NULL;
+  record->asn_cnt = 0;
 
   free(record);
   return;

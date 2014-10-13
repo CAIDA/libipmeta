@@ -326,6 +326,11 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
+      if(tok[0] == '-' && tok[1] == '-')
+        {
+          tok[0] = '?';
+          tok[1] = '?';
+        }
       state->cntry_code = (tok[0]<<8) | tok[1];
       memcpy(tmp->country_code, tok, 2);
       break;
@@ -738,7 +743,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
 
 /** Array of ISO 2char country codes. Extracted from libGeoIP v1.5.0 */
 static const char *country_code_iso2[] = {
-  "--","AP","EU","AD","AE","AF","AG","AI","AL","AM","CW",
+  "??","AP","EU","AD","AE","AF","AG","AI","AL","AM","CW",
   "AO","AQ","AR","AS","AT","AU","AW","AZ","BA","BB",
   "BD","BE","BF","BG","BH","BI","BJ","BM","BN","BO",
   "BR","BS","BT","BV","BW","BY","BZ","CA","CC","CD",
@@ -771,7 +776,7 @@ static const char *country_code_iso2[] = {
 #if 0
 /** Array of ISO 3 char country codes. Extracted from libGeoIP v1.5.0 */
 static const char *country_code_iso3[] = {
-  "--","AP","EU","AND","ARE","AFG","ATG","AIA","ALB","ARM","CUW",
+  "???","AP","EU","AND","ARE","AFG","ATG","AIA","ALB","ARM","CUW",
   "AGO","ATA","ARG","ASM","AUT","AUS","ABW","AZE","BIH","BRB",
   "BGD","BEL","BFA","BGR","BHR","BDI","BEN","BMU","BRN","BOL",
   "BRA","BHS","BTN","BVT","BWA","BLR","BLZ","CAN","CCK","COD",
@@ -803,7 +808,7 @@ static const char *country_code_iso3[] = {
 
 /** Array of country names. Extracted from libGeoIP v1.4.8 */
 static const char *country_name[] = {
-  "N/A","Asia/Pacific Region","Europe","Andorra","United Arab Emirates",
+  "Unknown","Asia/Pacific Region","Europe","Andorra","United Arab Emirates",
   "Afghanistan","Antigua and Barbuda","Anguilla","Albania","Armenia",
   "Cura" "\xe7" "ao","Angola","Antarctica","Argentina","American Samoa",
   "Austria","Australia","Aruba","Azerbaijan","Bosnia and Herzegovina",
@@ -860,7 +865,7 @@ static const char *country_name[] = {
 #endif
 
 static const char *country_continent[] = {
-  "--", "AS","EU","EU","AS","AS","NA","NA","EU","AS","NA",
+  "??", "AS","EU","EU","AS","AS","NA","NA","EU","AS","NA",
   "AF","AN","SA","OC","EU","OC","NA","AS","EU","NA",
   "AS","EU","AF","EU","AS","AF","AF","NA","AS","SA",
   "SA","NA","AS","AN","AF","EU","NA","NA","AS","AF",
@@ -884,7 +889,7 @@ static const char *country_continent[] = {
   "AS","OC","AS","AF","OC","AS","EU","NA","OC","AS",
   "AF","EU","AF","OC","NA","SA","AS","EU","NA","SA",
   "NA","NA","AS","OC","OC","OC","AS","AF","EU","AF",
-  "AF","EU","AF","--","--","--","EU","EU","EU","EU",
+  "AF","EU","AF","??","??","??","EU","EU","EU","EU",
   "NA","NA","NA","AF",
   /* see above about AN */
   "NA",

@@ -112,7 +112,9 @@ typedef struct ipmeta_provider_netacq_edge_state {
   ip_prefix_t block_lower;
   ip_prefix_t block_upper;
   ipmeta_provider_netacq_edge_region_t tmp_region;
+  int tmp_region_ignore;
   ipmeta_provider_netacq_edge_country_t tmp_country;
+  int tmp_country_ignore;
   ipmeta_polygon_t tmp_polygon; /* to be inserted in the current poly table */
   na_to_polygon_t tmp_na_to_polygon;
   int tmp_na_col_to_tbl[POLYGON_FILE_CNT_MAX];
@@ -122,7 +124,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
 /** Provides a mapping from the integer continent code to the 2 character
     strings that we use in libipmeta */
 static const char *continent_strings[] = {
-  "--", /* 0 */
+  "??", /* 0 */
   "AF", /* 1 */
   "AN", /* 2 */
   "OC", /* 3 */
@@ -420,6 +422,19 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	  tmp->country_code[0] = 'G';
 	  tmp->country_code[1] = 'B';
 	}
+      /* s/ ** /??/ */
+      else if(tok[0] == '*' && tok[1] == '*')
+        {
+          tmp->country_code[0] = '?';
+          tmp->country_code[1] = '?';
+          /* continent code will be 0 */
+        }
+      /* s/?/??/ */
+      else if(tok[0] == '?')
+        {
+          tmp->country_code[1] = '?';
+          /* continent code will be 0 */
+        }
       else
 	{
 	  tmp->country_code[0] = toupper(tok[0]);
@@ -437,6 +452,14 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
+      /* s/ * /?/g */
+      for(i=0; i<strlen(tok); i++)
+        {
+          if(tok[i] == '*')
+            {
+              tok[i] = '?';
+            }
+        }
       if((tmp->region = strdup(tok)) == NULL)
 	{
 	  ipmeta_log(__func__, "Region code copy failed (%s)", tok);
@@ -903,6 +926,10 @@ static void parse_regions_cell(void *s, size_t i, void *data)
       len = strnlen(tok, 3);
       for(j=0; j < len; j++)
 	{
+          if(tok[j] == '*')
+            {
+              tok[j] = '?';
+            }
 	  state->tmp_region.country_iso[j] = toupper(tok[j]);
 	}
       state->tmp_region.country_iso[len] = '\0';
@@ -921,15 +948,25 @@ static void parse_regions_cell(void *s, size_t i, void *data)
 	  return;
 	}
 
+      /* remove the ***-? region and the ?-? regions */
+      if(tok[0] == '?')
+        {
+          state->tmp_region_ignore = 1;
+        }
+
       /* special check for "no region" */
       if(strncmp(tok, "no region", 9) == 0)
 	{
-	  tok = "---";
+	  tok = "???";
 	}
 
       len = strnlen(tok, 3);
       for(j=0; j < len; j++)
 	{
+          if(tok[j] == '*')
+            {
+              tok[j] = '?';
+            }
 	  state->tmp_region.region_iso[j] = toupper(tok[j]);
 	}
       state->tmp_region.region_iso[len] = '\0';
@@ -999,29 +1036,33 @@ static void parse_regions_row(int c, void *data)
       return;
     }
 
-  /* copy the tmp region structure into a new struct */
-  if((region = malloc(sizeof(ipmeta_provider_netacq_edge_region_t))) == NULL)
+  if(state->tmp_region_ignore == 0)
     {
-      ipmeta_log(__func__,
-		 "ERROR: Could not allocate memory for region");
-      state->parser.status = CSV_EUSER;
-      return;
-    }
-  memcpy(region, &(state->tmp_region),
-	 sizeof(ipmeta_provider_netacq_edge_region_t));
+      /* copy the tmp region structure into a new struct */
+      if((region =
+          malloc(sizeof(ipmeta_provider_netacq_edge_region_t))) == NULL)
+        {
+          ipmeta_log(__func__,
+                     "ERROR: Could not allocate memory for region");
+          state->parser.status = CSV_EUSER;
+          return;
+        }
+      memcpy(region, &(state->tmp_region),
+             sizeof(ipmeta_provider_netacq_edge_region_t));
 
-  /* make room in the region array for this region */
-  if((state->regions =
-      realloc(state->regions, sizeof(ipmeta_provider_netacq_edge_region_t*)
-	      * (state->regions_cnt+1))) == NULL)
-    {
-      ipmeta_log(__func__,
-		 "ERROR: Could not allocate memory for region array");
-      state->parser.status = CSV_EUSER;
-      return;
+      /* make room in the region array for this region */
+      if((state->regions =
+          realloc(state->regions, sizeof(ipmeta_provider_netacq_edge_region_t*)
+                  * (state->regions_cnt+1))) == NULL)
+        {
+          ipmeta_log(__func__,
+                     "ERROR: Could not allocate memory for region array");
+          state->parser.status = CSV_EUSER;
+          return;
+        }
+      /* now poke it in */
+      state->regions[state->regions_cnt++] = region;
     }
-  /* now poke it in */
-  state->regions[state->regions_cnt++] = region;
 
   /* increment the current line */
   state->current_line++;
@@ -1030,6 +1071,7 @@ static void parse_regions_row(int c, void *data)
   /* reset the tmp region info */
   memset(&(state->tmp_region), 0,
 	 sizeof(ipmeta_provider_netacq_edge_region_t));
+  state->tmp_region_ignore = 0;
 }
 
 /** Read a region decode file  */
@@ -1044,6 +1086,7 @@ static int read_regions(ipmeta_provider_t *provider, io_t *file)
   state->current_line = 0;
   memset(&(state->tmp_region), 0,
 	 sizeof(ipmeta_provider_netacq_edge_region_t));
+  state->tmp_region_ignore = 0;
 
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
@@ -1095,7 +1138,6 @@ static void parse_country_cell(void *s, size_t i, void *data)
   char *end;
 
   int j;
-  int len = 0;
 
   /* skip the first lines */
   if(state->current_line < HEADER_ROW_CNT)
@@ -1116,12 +1158,26 @@ static void parse_country_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
-      len = strnlen(tok, 3);
-      for(j=0; j < len; j++)
-	{
-	  state->tmp_country.iso3[j] = toupper(tok[j]);
-	}
-      state->tmp_country.iso3[len] = '\0';
+      if(tok[0] == '*' && tok[1] == '*' && tok[2] == '*')
+        {
+          state->tmp_country.iso3[0] = '?';
+          state->tmp_country.iso3[1] = '?';
+          state->tmp_country.iso3[2] = '?';
+        }
+      else if(tok[0] == '?')
+        {
+          /* we have manually deprecated the ? country */
+          state->tmp_country_ignore = 1;
+        }
+      else
+        {
+          assert(strnlen(tok, 3) == 3);
+          for(j=0; j < 3; j++)
+            {
+              state->tmp_country.iso3[j] = toupper(tok[j]);
+            }
+        }
+      state->tmp_country.iso3[3] = '\0';
       break;
 
     case COUNTRY_COL_ISO2:
@@ -1138,19 +1194,26 @@ static void parse_country_cell(void *s, size_t i, void *data)
       /* ugly hax to s/uk/GB/ in country names */
       if(tok[0] == 'u' && tok[1] == 'k')
 	{
-	  len = 2;
 	  state->tmp_country.iso2[0] = 'G';
 	  state->tmp_country.iso2[1] = 'B';
 	}
+      /* s/ ** / ?? / */
+      else if(tok[0] == '*' && tok[1] == '*')
+        {
+          state->tmp_country.iso2[0] = '?';
+          state->tmp_country.iso2[1] = '?';
+        }
+      /* ignore ? country (not used, replaced by ??) */
+      else if(tok[0] == '?')
+        {
+          state->tmp_country_ignore = 1;
+        }
       else
 	{
-	  len = strnlen(tok, 2);
-	  for(j=0; j < len; j++)
-	    {
-	      state->tmp_country.iso2[j] = toupper(tok[j]);
-	    }
+          state->tmp_country.iso2[0] = toupper(tok[0]);
+          state->tmp_country.iso2[1] = toupper(tok[1]);
 	}
-      state->tmp_country.iso2[len] = '\0';
+      state->tmp_country.iso2[2] = '\0';
       break;
 
     case COUNTRY_COL_NAME:
@@ -1205,6 +1268,12 @@ static void parse_country_cell(void *s, size_t i, void *data)
 	  state->parser.status = CSV_EUSER;
 	  return;
 	}
+      /* s/ ** /??/ */
+      if(tok[0] == '*' && tok[1] == '*')
+        {
+          tok[0] = '?';
+          tok[1] = '?';
+        }
       state->tmp_country.continent[0] = toupper(tok[0]);
       state->tmp_country.continent[1] = toupper(tok[1]);
       break;
@@ -1259,29 +1328,34 @@ static void parse_country_row(int c, void *data)
       return;
     }
 
-  /* copy the tmp country structure into a new struct */
-  if((country = malloc(sizeof(ipmeta_provider_netacq_edge_country_t))) == NULL)
+  if(state->tmp_country_ignore == 0)
     {
-      ipmeta_log(__func__,
-		 "ERROR: Could not allocate memory for country");
-      state->parser.status = CSV_EUSER;
-      return;
-    }
-  memcpy(country, &(state->tmp_country),
-	 sizeof(ipmeta_provider_netacq_edge_country_t));
+      /* copy the tmp country structure into a new struct */
+      if((country =
+          malloc(sizeof(ipmeta_provider_netacq_edge_country_t))) == NULL)
+        {
+          ipmeta_log(__func__,
+                     "ERROR: Could not allocate memory for country");
+          state->parser.status = CSV_EUSER;
+          return;
+        }
+      memcpy(country, &(state->tmp_country),
+             sizeof(ipmeta_provider_netacq_edge_country_t));
 
-  /* make room in the country array for this country */
-  if((state->countries =
-      realloc(state->countries, sizeof(ipmeta_provider_netacq_edge_country_t*)
-	      * (state->countries_cnt+1))) == NULL)
-    {
-      ipmeta_log(__func__,
-		 "ERROR: Could not allocate memory for country array");
-      state->parser.status = CSV_EUSER;
-      return;
+      /* make room in the country array for this country */
+      if((state->countries =
+          realloc(state->countries,
+                  sizeof(ipmeta_provider_netacq_edge_country_t*)
+                  * (state->countries_cnt+1))) == NULL)
+        {
+          ipmeta_log(__func__,
+                     "ERROR: Could not allocate memory for country array");
+          state->parser.status = CSV_EUSER;
+          return;
+        }
+      /* now poke it in */
+      state->countries[state->countries_cnt++] = country;
     }
-  /* now poke it in */
-  state->countries[state->countries_cnt++] = country;
 
   /* increment the current line */
   state->current_line++;
@@ -1290,6 +1364,7 @@ static void parse_country_row(int c, void *data)
   /* reset the tmp country info */
   memset(&(state->tmp_country), 0,
 	 sizeof(ipmeta_provider_netacq_edge_country_t));
+  state->tmp_country_ignore = 0;
 }
 
 /** Read a country decode file  */
@@ -1304,6 +1379,7 @@ static int read_countries(ipmeta_provider_t *provider, io_t *file)
   state->current_line = 0;
   memset(&(state->tmp_country), 0,
 	 sizeof(ipmeta_provider_netacq_edge_country_t));
+  state->tmp_country_ignore = 0;
 
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
@@ -1887,7 +1963,7 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
   /* if provided, open the country decode file and populate the lookup arrays */
   if(state->country_file != NULL)
     {
-      ipmeta_log(__func__, "processing region file (%s)",
+      ipmeta_log(__func__, "processing country file (%s)",
                  state->country_file);
       if((file = wandio_create(state->country_file)) == NULL)
 	{

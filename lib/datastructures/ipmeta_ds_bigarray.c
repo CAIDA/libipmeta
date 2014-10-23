@@ -188,7 +188,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 }
 
 ipmeta_record_t *ipmeta_ds_bigarray_lookup_record(ipmeta_ds_t *ds,
-						  uint32_t addr)
+						  uint32_t addr, uint8_t mask)
 {
   assert(ds != NULL && ds->state != NULL);
 

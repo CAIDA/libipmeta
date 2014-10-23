@@ -124,7 +124,7 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds,
 }
 
 ipmeta_record_t *ipmeta_ds_patricia_lookup_record(ipmeta_ds_t *ds,
-						  uint32_t addr)
+						  uint32_t addr, uint8_t mask)
 {
   assert(ds != NULL && ds->state != NULL);
   patricia_tree_t *trie = STATE(ds)->trie;

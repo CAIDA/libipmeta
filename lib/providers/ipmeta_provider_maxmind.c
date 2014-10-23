@@ -1095,10 +1095,10 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
 
 inline ipmeta_record_t *ipmeta_provider_maxmind_lookup(
 						ipmeta_provider_t *provider,
-						uint32_t addr)
+						uint32_t addr, uint8_t mask)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record(provider, addr);
+  return ipmeta_provider_lookup_record(provider, addr, mask);
 }
 
 /* ========== HELPER FUNCTIONS ========== */

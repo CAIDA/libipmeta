@@ -51,7 +51,7 @@
   int ipmeta_ds_##datastructure##_add_prefix(ipmeta_ds_t *ds, uint32_t addr, \
 				 uint8_t mask, ipmeta_record_t *record); \
   ipmeta_record_t * ipmeta_ds_##datastructure##_lookup_record(ipmeta_ds_t *ds, \
-						  uint32_t addr);
+						  uint32_t addr, uint8_t mask);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * datastructure API
@@ -105,7 +105,7 @@ struct ipmeta_ds
 
   /** Pointer to lookup record function */
   struct ipmeta_record *(*lookup_record)(struct ipmeta_ds *ds,
-				    uint32_t addr);
+				    uint32_t addr, uint8_t mask);
 
   /** Pointer to a instance-specific state object */
   void *state;

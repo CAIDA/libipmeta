@@ -339,10 +339,10 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
 
 inline ipmeta_record_t *ipmeta_provider_lookup_record(
 					       ipmeta_provider_t *provider,
-					       uint32_t addr)
+					       uint32_t addr, uint8_t mask)
 {
   assert(provider != NULL);
   assert(provider->ds != NULL);
 
-  return provider->ds->lookup_record(provider->ds, addr);
+  return provider->ds->lookup_record(provider->ds, addr, mask);
 }

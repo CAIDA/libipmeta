@@ -150,11 +150,18 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 }
 
 inline ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr)
+			       uint32_t addr, uint8_t mask)
 {
   assert(provider != NULL && provider->enabled != 0);
 
-  return provider->lookup(provider, addr);
+  return provider->lookup(provider, addr, mask);
+}
+
+inline ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
+             uint32_t addr)
+{
+  // Single IP address = /32
+  return ipmeta_lookup(provider, addr, 32);
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)
@@ -182,7 +189,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
-#define PRINT_EMPTY_RECORD(function, file, addr)	\
+#define PRINT_EMPTY_RECORD(function, file, ip_str)	\
   do {							\
     function(file,					\
 	     "%s"					\
@@ -202,10 +209,10 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR					\
 	     SEPARATOR					\
 	     "\n",					\
-	     addr);					\
+	     ip_str);					\
   } while(0)
 
-#define PRINT_RECORD(function, file, record, addr)			\
+#define PRINT_RECORD(function, file, record, ip_str)			\
   do {									\
     function(file,							\
 	     "%s"							\
@@ -234,7 +241,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR							\
 	     "%s"							\
              SEPARATOR,                                                 \
-	     addr,							\
+	     ip_str,							\
 	     record->id,						\
 	     record->country_code,					\
 	     record->continent_code,					\
@@ -271,18 +278,18 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
       }                                                                 \
   } while(0)
 
-void ipmeta_dump_record(ipmeta_record_t *record, char *addr)
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str)
 {
   int i;
 
   if(record == NULL)
     {
       /* dump an empty record */
-      PRINT_EMPTY_RECORD(fprintf, stdout, addr);
+      PRINT_EMPTY_RECORD(fprintf, stdout, ip_str);
     }
   else
     {
-      PRINT_RECORD(fprintf, stdout, record, addr);
+      PRINT_RECORD(fprintf, stdout, record, ip_str);
     }
   return;
 }
@@ -330,17 +337,17 @@ void ipmeta_dump_record_header()
 }
 
 inline void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
-				char *addr)
+				char *ip_str)
 {
   int i;
 
   if(record == NULL)
     {
-      PRINT_EMPTY_RECORD(wandio_printf, file, addr);
+      PRINT_EMPTY_RECORD(wandio_printf, file, ip_str);
     }
   else
     {
-      PRINT_RECORD(wandio_printf, file, record, addr);
+      PRINT_RECORD(wandio_printf, file, record, ip_str);
     }
   return;
 }

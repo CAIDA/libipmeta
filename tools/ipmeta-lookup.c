@@ -56,10 +56,13 @@ int enabled_providers_cnt = 0;
 static void lookup(char *addr_str, iow_t *outfile)
 {
   uint32_t addr;
+  uint8_t mask;
   int i;
 
-  /* convert the string to a integer */
-  addr = inet_addr(addr_str);
+  /* convert the prefix string to net/mask integers integer */
+  char *pref_str = strdup(addr_str);	
+  addr = inet_addr(strsep(&pref_str, "/"));
+  mask = (pref_str && strlen(pref_str))?atoi(pref_str):32;
 
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
@@ -72,7 +75,7 @@ static void lookup(char *addr_str, iow_t *outfile)
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr),
+	  ipmeta_dump_record(ipmeta_lookup(enabled_providers[i], addr, mask),
 			     addr_str);
 	}
       else
@@ -84,7 +87,7 @@ static void lookup(char *addr_str, iow_t *outfile)
 	    }
 
 	  ipmeta_write_record(outfile,
-			      ipmeta_lookup(enabled_providers[i], addr),
+			      ipmeta_lookup(enabled_providers[i], addr, mask),
 			      addr_str);
 	}
     }

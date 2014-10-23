@@ -249,7 +249,19 @@ ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
 ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 					       const char *name);
 
-/** Look up the given address using the given provider
+/** Look up the given IP prefix using the given provider
+ *
+ * @param ipmeta        The ipmeta object associated with the provider
+ * @param provider      The provider to perform the lookup with
+ * @param addr          The CIDR address part to retrieve the record for
+ *                       (network byte ordering)
+ * @param mask          The CIDR mask defining the prefix length (0>32)
+ * @return the record which best matches the address, NULL if no record is found
+ */
+ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
+			       uint32_t addr, uint8_t mask);
+
+/** Look up the given single IP address using the given provider
  *
  * @param ipmeta        The ipmeta object associated with the provider
  * @param provider      The provider to perform the lookup with
@@ -257,8 +269,8 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  *                       (network byte ordering)
  * @return the record which best matches the address, NULL if no record is found
  */
-ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr);
+ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
+             uint32_t addr);
 
 /** Check if the given provider is enabled already
  *
@@ -296,11 +308,11 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
- * @param addr          The address this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up for
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
-void ipmeta_dump_record(ipmeta_record_t *record, char *addr);
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str);
 
 /** Dump names of the fields in a record structure
  *
@@ -313,12 +325,12 @@ void ipmeta_dump_record_header();
  *
  * @param file          The wandio file to write to
  * @param record        The record to dump
- * @param addr          The address this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up for
  *
  * Each field in the record is written to the given file in pipe-delimited
- * format (prefixed with the address given)
+ * format (prefixed with the IP string given)
  */
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *addr);
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str);
 
 /** Write names of the fields in a record structure to the given wandio file
  *

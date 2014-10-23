@@ -55,7 +55,7 @@
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);	\
   ipmeta_record_t * ipmeta_provider_##provname##_lookup(		\
 					ipmeta_provider_t *provider, \
-					uint32_t addr);
+					uint32_t addr, uint8_t mask);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * provider API
@@ -119,14 +119,15 @@ struct ipmeta_provider
   /** Perform an IP metadata lookup using this provider
    *
    * @param provider    The provider object to perform the lookup with
-   * @param addr        The IPv4 address to lookup metadata for
+   * @param addr        The IPv4 network address component to lookup metadata for
+   * @param mask        The IPv4 CIDR network mask defining the prefix length (0>32)        
    *
    * For the most part providers will simply pass this call back to the provider
    * manager lookup helper function to extract the appropriate record from the
    * datastructure, but this allows providers to do some arbitrary
    * pre/post-processing.
    */
-  ipmeta_record_t *(*lookup)(struct ipmeta_provider *provider, uint32_t addr);
+  ipmeta_record_t *(*lookup)(struct ipmeta_provider *provider, uint32_t addr, uint8_t mask);
 
   /** }@ */
 
@@ -262,16 +263,17 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
 				     uint8_t mask,
 				     ipmeta_record_t *record);
 
-/** Retrieve the record that corresponds to the given IP address from the
+/** Retrieve the record that corresponds to the given prefix from the
  * associated datastructure.
  *
  * @param provider      The provider to perform the lookup with
- * @param addr          The address to retrieve the record for
+ * @param addr          The network address to retrieve the record for
  *                       (network byte ordering)
+ * @param mask          The CIDR network mask component of the prefix
  * @return the record that best matches the address, NULL if no record is found
  */
 ipmeta_record_t *ipmeta_provider_lookup_record(ipmeta_provider_t *provider,
-					       uint32_t addr);
+					       uint32_t addr, uint8_t mask);
 
  /** }@ */
 

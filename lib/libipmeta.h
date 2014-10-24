@@ -137,6 +137,19 @@ typedef struct ipmeta_record
 
 } ipmeta_record_t;
 
+
+typedef struct ipmeta_record_set {
+
+  ipmeta_record_t **records;
+  uint32_t *ip_cnts;
+  int n_recs;
+
+  int _cursor;
+  int _alloc_size;
+
+} ipmeta_record_set_t;
+
+
 /** @} */
 
 /**
@@ -253,13 +266,15 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  *
  * @param ipmeta        The ipmeta object associated with the provider
  * @param provider      The provider to perform the lookup with
- * @param addr          The CIDR address part to retrieve the record for
+ * @param addr          The CIDR address part to retrieve the records for
  *                       (network byte ordering)
  * @param mask          The CIDR mask defining the prefix length (0>32)
- * @return the record which best matches the address, NULL if no record is found
+ * @param records       A pointer to the record set structure where to return the matches
+ * @return              The number of (matched) records in the result set
  */
-ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr, uint8_t mask);
+int ipmeta_lookup(ipmeta_provider_t *provider,
+			       uint32_t addr, uint8_t mask,
+             ipmeta_record_set_t *records);
 
 /** Look up the given single IP address using the given provider
  *
@@ -267,10 +282,12 @@ ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
  * @param provider      The provider to perform the lookup with
  * @param addr          The address to retrieve the record for
  *                       (network byte ordering)
- * @return the record which best matches the address, NULL if no record is found
+ * @param records       A pointer to the record set structure where to return the matches
+ * @return              The number of (matched) records in the result set
  */
-ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
-             uint32_t addr);
+int ipmeta_lookup_single(ipmeta_provider_t *provider,
+             uint32_t addr,
+             ipmeta_record_set_t *records);
 
 /** Check if the given provider is enabled already
  *
@@ -305,14 +322,29 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
+//////
+
+void ipmeta_record_set_init(ipmeta_record_set_t *this);
+void ipmeta_record_set_free(ipmeta_record_set_t *this);
+void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
+int ipmeta_record_set_next(ipmeta_record_set_t *this, ipmeta_record_t **result);
+void ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips);
+void ipmeta_record_set_clear_records(ipmeta_record_set_t *this);
+void ipmeta_dump_record_set(ipmeta_record_set_t *record, char *ip_str);
+void ipmeta_write_record_set(ipmeta_record_set_t *record, iow_t *file, char *ip_str);
+
+/////
+
+
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
  * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param num_ips       The number of IPs from the prefix that this record applies to
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
-void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str);
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips);
 
 /** Dump names of the fields in a record structure
  *
@@ -330,7 +362,7 @@ void ipmeta_dump_record_header();
  * Each field in the record is written to the given file in pipe-delimited
  * format (prefixed with the IP string given)
  */
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str);
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str, int num_ips);
 
 /** Write names of the fields in a record structure to the given wandio file
  *

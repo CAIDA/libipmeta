@@ -149,19 +149,21 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
   return NULL;
 }
 
-inline ipmeta_record_t *ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr, uint8_t mask)
+inline int ipmeta_lookup(ipmeta_provider_t *provider,
+			       uint32_t addr, uint8_t mask,
+             ipmeta_record_set_t *records)
 {
   assert(provider != NULL && provider->enabled != 0);
 
-  return provider->lookup(provider, addr, mask);
+  return provider->lookup(provider, addr, mask, records);
 }
 
-inline ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
-             uint32_t addr)
+inline int ipmeta_lookup_single(ipmeta_provider_t *provider,
+             uint32_t addr,
+             ipmeta_record_set_t *records)
 {
   // Single IP address = /32
-  return ipmeta_lookup(provider, addr, 32);
+  return ipmeta_lookup(provider, addr, 32, records);
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)
@@ -189,11 +191,83 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
-#define PRINT_EMPTY_RECORD(function, file, ip_str)	\
+void ipmeta_record_set_init(ipmeta_record_set_t *this)
+{
+  this->n_recs=0;
+  this->_alloc_size=0;
+  this->_cursor=0;
+  this->records=NULL;
+  this->ip_cnts=NULL;
+}
+
+void ipmeta_record_set_free(ipmeta_record_set_t *this)
+{
+  // Free also the records?
+  free(this->records);
+  free(this->ip_cnts);
+}
+
+void ipmeta_record_set_rewind(ipmeta_record_set_t *this) 
+{
+  this->_cursor=0;
+}
+
+// Return number of IPs matching this record
+int ipmeta_record_set_next(ipmeta_record_set_t *this, ipmeta_record_t **result)
+{
+  if(this->n_recs<=this->_cursor) {
+    // No more records
+    return 0;
+  }
+  *result = this->records[this->_cursor];
+  return this->ip_cnts[this->_cursor++]; // Advance head
+}
+
+void ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips)
+{
+  this->n_recs++;
+  // Realloc if necessary
+  if (this->_alloc_size<this->n_recs) {
+    this->records = realloc(this->records, sizeof(ipmeta_record_t*) * this->n_recs);
+    this->ip_cnts = realloc(this->ip_cnts, sizeof(uint32_t) * this->n_recs);
+    this->_alloc_size = this->n_recs;
+  }
+  this->records[this->n_recs-1] = rec;
+  this->ip_cnts[this->n_recs-1] = num_ips;
+}
+
+void ipmeta_record_set_clear_records(ipmeta_record_set_t *this)
+{
+  this->n_recs=0;
+}
+
+void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str)
+{
+  ipmeta_record_t *rec;
+  uint32_t num_ips;
+  ipmeta_record_set_rewind(this);
+  while ( (num_ips = ipmeta_record_set_next(this, &rec)) ) {
+    ipmeta_dump_record(rec, ip_str, num_ips);
+  }
+}
+
+void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file, char *ip_str)
+{
+  ipmeta_record_t *rec;
+  uint32_t num_ips;
+  ipmeta_record_set_rewind(this);
+  while ( (num_ips = ipmeta_record_set_next(this, &rec)) ) {
+    ipmeta_write_record(file, rec, ip_str, num_ips);
+  }
+}
+
+#define PRINT_EMPTY_RECORD(function, file, ip_str, num_ips)	\
   do {							\
     function(file,					\
 	     "%s"					\
 	     SEPARATOR					\
+       "%"PRIu32         \
+       SEPARATOR          \
 	     SEPARATOR					\
 	     SEPARATOR					\
 	     SEPARATOR					\
@@ -208,15 +282,18 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     SEPARATOR					\
 	     SEPARATOR					\
 	     SEPARATOR					\
-	     "\n",					\
-	     ip_str);					\
+	     "\n",					    \
+	     ip_str,            \
+       num_ips);					\
   } while(0)
 
-#define PRINT_RECORD(function, file, record, ip_str)			\
+#define PRINT_RECORD(function, file, record, ip_str, num_ips)			\
   do {									\
     function(file,							\
 	     "%s"							\
 	     SEPARATOR							\
+       "%"PRIu32              \
+       SEPARATOR              \
 	     "%"PRIu32							\
 	     SEPARATOR							\
 	     "%s"							\
@@ -242,6 +319,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 	     "%s"							\
              SEPARATOR,                                                 \
 	     ip_str,							\
+       num_ips,             \
 	     record->id,						\
 	     record->country_code,					\
 	     record->continent_code,					\
@@ -278,18 +356,18 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
       }                                                                 \
   } while(0)
 
-void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str)
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
 {
   int i;
 
   if(record == NULL)
     {
       /* dump an empty record */
-      PRINT_EMPTY_RECORD(fprintf, stdout, ip_str);
+      PRINT_EMPTY_RECORD(fprintf, stdout, ip_str, num_ips);
     }
   else
     {
-      PRINT_RECORD(fprintf, stdout, record, ip_str);
+      PRINT_RECORD(fprintf, stdout, record, ip_str, num_ips);
     }
   return;
 }
@@ -297,8 +375,10 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str)
 #define PRINT_RECORD_HEADER(function, file)	\
   do {						\
   function(file,				\
-	   "ip"					\
+	   "ip-prefix"					\
 	   SEPARATOR				\
+     "num-ips"          \
+     SEPARATOR        \
 	   "id"					\
 	   SEPARATOR				\
 	   "country-code"			\
@@ -323,8 +403,8 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str)
 	   SEPARATOR				\
 	   "connection-speed"			\
 	   SEPARATOR				\
-           "polygon-ids"                        \
-           SEPARATOR                            \
+     "polygon-ids"                        \
+     SEPARATOR                            \
 	   "asn"				\
 	   SEPARATOR				\
 	   "asn-ip-cnt"				\
@@ -337,17 +417,17 @@ void ipmeta_dump_record_header()
 }
 
 inline void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
-				char *ip_str)
+				char *ip_str, int num_ips)
 {
   int i;
 
   if(record == NULL)
     {
-      PRINT_EMPTY_RECORD(wandio_printf, file, ip_str);
+      PRINT_EMPTY_RECORD(wandio_printf, file, ip_str, num_ips);
     }
   else
     {
-      PRINT_RECORD(wandio_printf, file, record, ip_str);
+      PRINT_RECORD(wandio_printf, file, record, ip_str, num_ips);
     }
   return;
 }

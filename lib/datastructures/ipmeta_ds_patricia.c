@@ -123,8 +123,9 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds,
   return 0;
 }
 
-ipmeta_record_t *ipmeta_ds_patricia_lookup_record(ipmeta_ds_t *ds,
-						  uint32_t addr, uint8_t mask)
+int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
+						  uint32_t addr, uint8_t mask,
+              ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
   patricia_tree_t *trie = STATE(ds)->trie;
@@ -138,6 +139,7 @@ ipmeta_record_t *ipmeta_ds_patricia_lookup_record(ipmeta_ds_t *ds,
   pfx.ref_count = 0;
   pfx.add.sin.s_addr = addr;
 
+  /*
   if((node = patricia_search_best2(trie, &pfx, 1)) == NULL)
     {
       return NULL;
@@ -148,4 +150,14 @@ ipmeta_record_t *ipmeta_ds_patricia_lookup_record(ipmeta_ds_t *ds,
     }
 
   return NULL;
+  */
+
+  ipmeta_record_set_clear_records(records);
+  // Temp return just the 1 record for the IP
+  if((node = patricia_search_best2(trie, &pfx, 1)) != NULL)
+    {
+      ipmeta_record_set_add_record(records, node->data, 1);
+    }
+
+  return records->n_recs;
 }

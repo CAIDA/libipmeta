@@ -187,10 +187,18 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
   return 0;
 }
 
-ipmeta_record_t *ipmeta_ds_bigarray_lookup_record(ipmeta_ds_t *ds,
-						  uint32_t addr, uint8_t mask)
+int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
+						  uint32_t addr, uint8_t mask,
+              ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
 
-  return STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]];
+  //return STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]];
+
+  ipmeta_record_set_clear_records(records);
+  // Temp return just the 1 record for the IP
+  ipmeta_record_set_add_record(records, STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]], 1);
+
+  return records->n_recs;
+
 }

@@ -442,10 +442,11 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
   return;
 }
 
-inline ipmeta_record_t *ipmeta_provider_pfx2as_lookup(
+inline int ipmeta_provider_pfx2as_lookup(
 						ipmeta_provider_t *provider,
-						uint32_t addr, uint8_t mask)
+						uint32_t addr, uint8_t mask,
+            ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record(provider, addr, mask);
+  return ipmeta_provider_lookup_records(provider, addr, mask, records);
 }

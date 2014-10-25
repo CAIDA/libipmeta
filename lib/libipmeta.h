@@ -52,6 +52,10 @@ typedef struct ipmeta_provider ipmeta_provider_t;
 /** Opaque struct holding state for a metadata ds */
 typedef struct ipmeta_ds ipmeta_ds_t;
 
+/** Opaque struct holding a set of records */
+typedef struct ipmeta_record_set ipmeta_record_set_t;
+
+
 /** @} */
 
 /**
@@ -136,18 +140,6 @@ typedef struct ipmeta_record
   struct ipmeta_record *next;
 
 } ipmeta_record_t;
-
-
-typedef struct ipmeta_record_set {
-
-  ipmeta_record_t **records;
-  uint32_t *ip_cnts;
-  int n_recs;
-
-  int _cursor;
-  int _alloc_size;
-
-} ipmeta_record_set_t;
 
 
 /** @} */
@@ -322,19 +314,51 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
-//////
+/** Initialize a new record set instance
+ *
+ * @return the record set instance created, NULL if an error occurs
+ */
+ipmeta_record_set_t *ipmeta_record_set_init();
 
-void ipmeta_record_set_init(ipmeta_record_set_t *this);
-void ipmeta_record_set_free(ipmeta_record_set_t *this);
+/** Free a record set instance
+ *
+ * @param this_p        The pointer to the record set instance to free
+ */
+void ipmeta_record_set_free(ipmeta_record_set_t **this_p);
+
+/** Move the record set iterator pointer to the first element 
+ *
+ * @param this          The record set instance
+ */
 void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
-int ipmeta_record_set_next(ipmeta_record_set_t *this, ipmeta_record_t **result);
-void ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips);
-void ipmeta_record_set_clear_records(ipmeta_record_set_t *this);
-void ipmeta_dump_record_set(ipmeta_record_set_t *record, char *ip_str);
-void ipmeta_write_record_set(ipmeta_record_set_t *record, iow_t *file, char *ip_str);
 
-/////
+/** Get the next record in the record set iterator 
+ *
+ * @param this          The record set instance
+ * @param num_ips       A pointer to an int where to place the number of matched IPs for that record.
+ * 
+ * @return a pointer to the record
+ */
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this, uint32_t *num_ips);
 
+/** Dump the given metadata record set to stdout
+ *
+ * @param this          The record set to dump
+ * @param ip_str        The IP address/prefix string this record was looked up for
+ *
+ * Each record is written in a new line and each record field is pipe-delimited.
+ */
+void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str);
+
+/** Write the given metadata record set to the given wandio file
+ *
+ * @param this          The record set to dump
+ * @param file          The wandio file to write to
+ * @param ip_str        The IP address/prefix string this record was looked up for
+ *
+ * Each record is written in a new line and each record field is pipe-delimited.
+ */
+void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file, char *ip_str);
 
 /** Dump the given metadata record to stdout
  *

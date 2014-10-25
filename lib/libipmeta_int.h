@@ -33,6 +33,7 @@
 
 #include "libipmeta.h"
 
+
 /** @file
  *
  * @brief Header file that contains the private components of libipmeta.
@@ -65,6 +66,35 @@ struct ipmeta
 
 };
 
+/** Structure which holds a set of records, returned by a query */
+struct ipmeta_record_set {
+
+  ipmeta_record_t **records;
+  uint32_t *ip_cnts;
+  int n_recs;
+
+  int _cursor;
+  int _alloc_size;
+};
+
 /** @} */
+
+/** Add a record to a record set. If necessary the internal structures will be realloc'd (only enlarging, never shrinking) 
+ *
+ * @param this          The record set instance to add the record to
+ * @param rec 			The record to add
+ * @param num_ips       The number of IPs matched in this record
+ * 
+ * @return 0 if insertion was successful, or -1 if realloc failed
+ */
+int ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips);
+
+/** Erases all records in the set. This doesn't actually free the memory for reusing optimization.
+ *
+ * @param this          The record set instance to clear the records for
+ */
+void ipmeta_record_set_clear_records(ipmeta_record_set_t *this);
+
+
 
 #endif /* __LIBIPMETA_INT_H */

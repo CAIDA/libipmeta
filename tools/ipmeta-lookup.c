@@ -65,8 +65,7 @@ static void lookup(char *addr_str, iow_t *outfile)
   mask = (pref_str && strlen(pref_str))?atoi(pref_str):32;
 
   // For now recycle the records each time
-  ipmeta_record_set_t recs;
-  ipmeta_record_set_init(&recs);
+  ipmeta_record_set_t *recs = ipmeta_record_set_init();
 
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
@@ -79,8 +78,8 @@ static void lookup(char *addr_str, iow_t *outfile)
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, &recs);
-	    ipmeta_dump_record_set(&recs, addr_str);
+	    ipmeta_lookup(enabled_providers[i], addr, mask, recs);
+	    ipmeta_dump_record_set(recs, addr_str);
 	}
       else
 	{
@@ -90,8 +89,8 @@ static void lookup(char *addr_str, iow_t *outfile)
 			    ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, &recs);
-	    ipmeta_write_record_set(&recs, outfile, addr_str);
+	    ipmeta_lookup(enabled_providers[i], addr, mask, recs);
+	    ipmeta_write_record_set(recs, outfile, addr_str);
 	}
     }
 
@@ -132,8 +131,6 @@ static void usage(const char *name)
 
 int main(int argc, char **argv)
 {
-
-ipmeta_record_set_t recs;
   int rc = -1;
   int i;
   int opt;

@@ -43,6 +43,7 @@
 
 #define SEPARATOR "|"
 
+
 ipmeta_t *ipmeta_init()
 {
   ipmeta_t *ipmeta;
@@ -191,20 +192,31 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
-void ipmeta_record_set_init(ipmeta_record_set_t *this)
+ipmeta_record_set_t *ipmeta_record_set_init()
 {
-  this->n_recs=0;
-  this->_alloc_size=0;
-  this->_cursor=0;
-  this->records=NULL;
-  this->ip_cnts=NULL;
+  ipmeta_record_set_t *this;
+
+  if((this = malloc_zero(sizeof(ipmeta_record_set_t))) == NULL)
+  {
+    ipmeta_log(__func__, "could not malloc ipmeta_record_set_t");
+    return NULL;
+  }
+  return this;
 }
 
-void ipmeta_record_set_free(ipmeta_record_set_t *this)
+void ipmeta_record_set_free(ipmeta_record_set_t **this_p)
 {
-  // Free also the records?
+  ipmeta_record_set_t *this = *this_p;
+
   free(this->records);
+  this->records=NULL;
   free(this->ip_cnts);
+  this->ip_cnts=NULL;
+  this->n_recs=0;
+  this->_cursor=0;
+  this->_alloc_size=0;
+  free(this);
+  *this_p=NULL;
 }
 
 void ipmeta_record_set_rewind(ipmeta_record_set_t *this) 
@@ -212,28 +224,38 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *this)
   this->_cursor=0;
 }
 
-// Return number of IPs matching this record
-int ipmeta_record_set_next(ipmeta_record_set_t *this, ipmeta_record_t **result)
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this, uint32_t *num_ips)
 {
   if(this->n_recs<=this->_cursor) {
     // No more records
-    return 0;
+    return NULL;
   }
-  *result = this->records[this->_cursor];
-  return this->ip_cnts[this->_cursor++]; // Advance head
+  *num_ips = this->ip_cnts[this->_cursor];
+  return this->records[this->_cursor++]; // Advance head
 }
 
-void ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips)
+int ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips)
 {
   this->n_recs++;
   // Realloc if necessary
   if (this->_alloc_size<this->n_recs) {
-    this->records = realloc(this->records, sizeof(ipmeta_record_t*) * this->n_recs);
-    this->ip_cnts = realloc(this->ip_cnts, sizeof(uint32_t) * this->n_recs);
+    if ( (this->records = realloc(this->records, sizeof(ipmeta_record_t*) * this->n_recs)) == NULL) 
+    {
+      ipmeta_log(__func__, "could not realloc records in record set");
+      return -1;
+    }
+
+    if ( (this->ip_cnts = realloc(this->ip_cnts, sizeof(uint32_t) * this->n_recs)) == NULL) 
+    {
+      ipmeta_log(__func__, "could not realloc ip_cnts in record set");
+      return -1;
+    }    
     this->_alloc_size = this->n_recs;
   }
   this->records[this->n_recs-1] = rec;
   this->ip_cnts[this->n_recs-1] = num_ips;
+
+  return 0;
 }
 
 void ipmeta_record_set_clear_records(ipmeta_record_set_t *this)
@@ -246,7 +268,7 @@ void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str)
   ipmeta_record_t *rec;
   uint32_t num_ips;
   ipmeta_record_set_rewind(this);
-  while ( (num_ips = ipmeta_record_set_next(this, &rec)) ) {
+  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
     ipmeta_dump_record(rec, ip_str, num_ips);
   }
 }
@@ -256,7 +278,7 @@ void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file, char *ip_st
   ipmeta_record_t *rec;
   uint32_t num_ips;
   ipmeta_record_set_rewind(this);
-  while ( (num_ips = ipmeta_record_set_next(this, &rec)) ) {
+  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
     ipmeta_write_record(file, rec, ip_str, num_ips);
   }
 }

@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <arpa/inet.h>
+#include <math.h>
 
 #include "utils.h"
 
@@ -45,7 +46,22 @@ static ipmeta_ds_t ipmeta_ds_bigarray = {
   NULL
 };
 
+
+khint_t _kh_bigarray_record_hash_func (ipmeta_record_t *rec) {
+  khint32_t h = rec->id;
+  return __ac_Wang_hash(h);
+}
+
+int _kh_bigarray_record_hash_equal (ipmeta_record_t * rec1, ipmeta_record_t * rec2) {
+  if (rec1->id == rec2->id) {
+    return 1;
+  }
+  return 0;
+}
+
+KHASH_INIT(recordu32, ipmeta_record_t *, uint32_t, 1, _kh_bigarray_record_hash_func, _kh_bigarray_record_hash_equal)
 KHASH_INIT(u32u32, uint32_t, uint32_t, 1, kh_int_hash_func, kh_int_hash_equal)
+
 
 typedef struct ipmeta_ds_bigarray_state
 {
@@ -193,12 +209,56 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
 {
   assert(ds != NULL && ds->state != NULL);
 
-  //return STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]];
-
   ipmeta_record_set_clear_records(records);
-  // Temp return just the 1 record for the IP
-  ipmeta_record_set_add_record(records, STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]], 1);
+  uint32_t total_ips = pow(2,32-mask);
+  ipmeta_record_t *rec;
+
+  // Optimisation for single IP special case (no hashing required)
+  if (total_ips==1) 
+    {
+      if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
+        {
+          ipmeta_record_set_add_record(records, rec, 1);
+          return 1;
+        }
+      return 0;
+    }
+
+  // Hash records -  Key: record pointers, Values: instance counter
+  khash_t(recordu32) *rec_h = kh_init(recordu32);
+  khiter_t rec_k;
+  int new_key;
+
+  // Map: index by record
+  for (int i=0;i<total_ips;i++)
+    {
+      if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
+        {
+          // No match
+          continue;
+        }
+
+      rec_k = kh_put(recordu32, rec_h, rec, &new_key);
+      if (new_key)
+        {
+          kh_value(rec_h, rec_k) = 1;
+        } 
+      else
+        {
+          kh_value(rec_h, rec_k)++;
+        }
+    }
+
+  // Reduce: unique records
+  for (rec_k = kh_begin(rec_h); rec_k != kh_end(rec_h); rec_k++)
+    {
+      if (kh_exist(rec_h, rec_k))
+        {
+          ipmeta_record_set_add_record(records, kh_key(rec_h, rec_k), kh_value(rec_h, rec_k));
+        }
+    }
+
+  kh_destroy(recordu32, rec_h);
 
   return records->n_recs;
-
 }

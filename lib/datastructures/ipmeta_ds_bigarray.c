@@ -46,7 +46,6 @@ static ipmeta_ds_t ipmeta_ds_bigarray = {
   NULL
 };
 
-
 khint_t _kh_bigarray_record_hash_func (ipmeta_record_t *rec) {
   khint32_t h = rec->id;
   return __ac_Wang_hash(h);
@@ -62,11 +61,14 @@ int _kh_bigarray_record_hash_equal (ipmeta_record_t * rec1, ipmeta_record_t * re
 KHASH_INIT(recordu32, ipmeta_record_t *, uint32_t, 1, _kh_bigarray_record_hash_func, _kh_bigarray_record_hash_equal)
 KHASH_INIT(u32u32, uint32_t, uint32_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
-
 typedef struct ipmeta_ds_bigarray_state
 {
   /** Temporary hash to map from record id to lookup id */
   khash_t(u32u32) *record_lookup;
+
+  /** Temporary hash to count occurences of records during lookup */
+  /** Key: record pointers, Values: instance counter */
+  khash_t(recordu32) *record_cnt;
 
   /** Mapping from a uint32 lookup id to a record.
    * @note, 0 is a reserved ID (indicates empty)
@@ -108,6 +110,8 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
   STATE(ds)->record_lookup = kh_init(u32u32);
 
+  STATE(ds)->record_cnt = kh_init(recordu32);
+
   return 0;
 }
 
@@ -131,6 +135,12 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 	  kh_destroy(u32u32, STATE(ds)->record_lookup);
 	  STATE(ds)->record_lookup = NULL;
 	}
+
+      if(STATE(ds)->record_cnt != NULL)
+        {
+          kh_destroy(recordu32, STATE(ds)->record_cnt);
+          STATE(ds)->record_cnt = NULL;
+        } 
 
       free(STATE(ds));
       ds->state = NULL;
@@ -224,8 +234,8 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
       return 0;
     }
 
-  // Hash records -  Key: record pointers, Values: instance counter
-  khash_t(recordu32) *rec_h = kh_init(recordu32);
+  // Clear record count hash
+  kh_clear(recordu32, STATE(ds)->record_cnt);
   khiter_t rec_k;
   int new_key;
 
@@ -238,27 +248,29 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
           continue;
         }
 
-      rec_k = kh_put(recordu32, rec_h, rec, &new_key);
+      rec_k = kh_put(recordu32, STATE(ds)->record_cnt, rec, &new_key);
       if (new_key)
         {
-          kh_value(rec_h, rec_k) = 1;
+          kh_value(STATE(ds)->record_cnt, rec_k) = 1;
         } 
       else
         {
-          kh_value(rec_h, rec_k)++;
+          kh_value(STATE(ds)->record_cnt, rec_k)++;
         }
     }
 
   // Reduce: unique records
-  for (rec_k = kh_begin(rec_h); rec_k != kh_end(rec_h); rec_k++)
+  for (rec_k = kh_begin(STATE(ds)->record_cnt); rec_k != kh_end(STATE(ds)->record_cnt); rec_k++)
     {
-      if (kh_exist(rec_h, rec_k))
+      if (kh_exist(STATE(ds)->record_cnt, rec_k))
         {
-          ipmeta_record_set_add_record(records, kh_key(rec_h, rec_k), kh_value(rec_h, rec_k));
+          ipmeta_record_set_add_record(
+                records, 
+                kh_key(STATE(ds)->record_cnt, rec_k), 
+                kh_value(STATE(ds)->record_cnt, rec_k)
+          );
         }
     }
-
-  kh_destroy(recordu32, rec_h);
 
   return records->n_recs;
 }

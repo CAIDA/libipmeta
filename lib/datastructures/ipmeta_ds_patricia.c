@@ -45,7 +45,6 @@ static ipmeta_ds_t ipmeta_ds_patricia = {
   NULL
 };
 
-
 khint_t _kh_patricia_record_hash_func (ipmeta_record_t *rec) {
   khint32_t h = rec->id;
   return __ac_Wang_hash(h);
@@ -60,10 +59,13 @@ int _kh_patricia_record_hash_equal (ipmeta_record_t * rec1, ipmeta_record_t * re
 
 KHASH_INIT(recordu32, ipmeta_record_t *, uint32_t, 1, _kh_patricia_record_hash_func, _kh_patricia_record_hash_equal)
 
-
 typedef struct ipmeta_ds_patricia_state
 {
   patricia_tree_t *trie;
+
+  /** Temporary hash to count #ips of records during lookup */
+  /** Key: record pointers, Values: #ips */
+  khash_t(recordu32) *record_cnt;
 } ipmeta_ds_patricia_state_t;
 
 ipmeta_ds_t *ipmeta_ds_patricia_alloc()
@@ -88,6 +90,8 @@ int ipmeta_ds_patricia_init(ipmeta_ds_t *ds)
   STATE(ds)->trie = New_Patricia(32);
   assert(STATE(ds)->trie != NULL);
 
+  STATE(ds)->record_cnt = kh_init(recordu32);
+
   return 0;
 }
 
@@ -105,6 +109,13 @@ void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
 	  Destroy_Patricia(STATE(ds)->trie, NULL);
 	  STATE(ds)->trie = NULL;
 	}
+
+      if(STATE(ds)->record_cnt != NULL)
+        {
+          kh_destroy(recordu32, STATE(ds)->record_cnt);
+          STATE(ds)->record_cnt = NULL;
+        } 
+
       free(STATE(ds));
       ds->state = NULL;
     }
@@ -140,7 +151,7 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds,
   return 0;
 }
 
-void _patricia_prefix_lookup(ipmeta_ds_t *ds, khash_t(recordu32) *rec_h, prefix_t pfx)
+void _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx)
 {
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;
@@ -148,7 +159,9 @@ void _patricia_prefix_lookup(ipmeta_ds_t *ds, khash_t(recordu32) *rec_h, prefix_
   if((node = patricia_search_best2(trie, &pfx, 1)) != NULL)
     {
       // Found match
+      khash_t(recordu32) *rec_h = STATE(ds)->record_cnt;
       int new_key;
+
       khiter_t rec_k = kh_put(recordu32, rec_h, node->data, &new_key);
       if (new_key)
         {
@@ -167,17 +180,17 @@ void _patricia_prefix_lookup(ipmeta_ds_t *ds, khash_t(recordu32) *rec_h, prefix_
       subpfx.bitlen = pfx.bitlen+1;
 
       // 1st CIDR half
-      _patricia_prefix_lookup(ds, rec_h, subpfx);
+      _patricia_prefix_lookup(ds, subpfx);
 
       // 2nd CIDR half
       subpfx.add.sin.s_addr = htonl(ntohl(subpfx.add.sin.s_addr) + pow(2,32-subpfx.bitlen));
-      _patricia_prefix_lookup(ds, rec_h, subpfx);
+      _patricia_prefix_lookup(ds, subpfx);
     }
 } 
 
 int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
-						  uint32_t addr, uint8_t mask,
-              ipmeta_record_set_t *records)
+				uint32_t addr, uint8_t mask,
+                                ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
   patricia_tree_t *trie = STATE(ds)->trie;
@@ -204,11 +217,12 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
       return 0;
     }
 
-  // Hash records -  Key: record pointers, Values: ip counter
-  khash_t(recordu32) *rec_h = kh_init(recordu32);
+  // Clear record count hash
+  khash_t(recordu32) *rec_h = STATE(ds)->record_cnt;
+  kh_clear(recordu32, rec_h);
 
   // Map: index by record
-  _patricia_prefix_lookup(ds, rec_h, pfx);
+  _patricia_prefix_lookup(ds, pfx);
 
   // Reduce: unique records
   for (khiter_t rec_k = kh_begin(rec_h); rec_k != kh_end(rec_h); rec_k++)
@@ -218,8 +232,6 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
           ipmeta_record_set_add_record(records, kh_key(rec_h, rec_k), kh_value(rec_h, rec_k));
         }
     }
-
-  kh_destroy(recordu32, rec_h);
 
   return records->n_recs;
 }

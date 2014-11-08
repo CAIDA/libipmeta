@@ -26,6 +26,7 @@ SUBDIRS =
 
 AM_CPPFLAGS = -I$(top_srcdir) -I$(top_srcdir)/common \
 	-I$(top_srcdir)/common/libpatricia \
+	-I$(top_srcdir)/common/libinterval3 \
 	-I$(top_srcdir)/lib
 
 noinst_LTLIBRARIES = libipmeta_datastructures.la
@@ -36,7 +37,9 @@ libipmeta_datastructures_la_SOURCES = 	\
 	ipmeta_ds_bigarray.c	\
 	ipmeta_ds_bigarray.h	\
 	ipmeta_ds_patricia.c 	\
-	ipmeta_ds_patricia.h
+	ipmeta_ds_patricia.h	\
+	ipmeta_ds_intervaltree.c	\
+	ipmeta_ds_intervaltree.h
 
 libipmeta_datastructures_la_LIBADD =
 

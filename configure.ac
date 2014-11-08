@@ -119,6 +119,8 @@ AC_HEADER_ASSERT
 AC_CONFIG_FILES([Makefile
 		common/Makefile
 		common/libpatricia/Makefile
+		common/libinterval3/rb_tree/Makefile
+		common/libinterval3/Makefile
 		common/libcsv/Makefile
 		lib/Makefile
 		lib/datastructures/Makefile

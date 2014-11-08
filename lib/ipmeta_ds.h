@@ -76,8 +76,11 @@ typedef enum ipmeta_ds_id
     /** Big-Array */
     IPMETA_DS_BIGARRAY      = 2,
 
+    /** Interval-Tree */
+    IPMETA_DS_INTERVALTREE  = 3,
+
     /** Highest numbered ds ID */
-    IPMETA_DS_MAX          = IPMETA_DS_BIGARRAY,
+    IPMETA_DS_MAX          = IPMETA_DS_INTERVALTREE,
 
     /** Default Geolocation data-structure */
     IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,

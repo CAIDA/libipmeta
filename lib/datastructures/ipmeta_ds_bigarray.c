@@ -159,7 +159,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
 
   uint32_t first_addr = ntohl(addr) & (~0UL << (32-mask));
-  uint32_t i;
+  uint64_t i;
   uint32_t lookup_id;
   khiter_t khiter;
   int khret;
@@ -205,7 +205,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 
   /* iterate over all ips in this prefix and point them to this index in the
      table */
-  for(i=first_addr; i >= first_addr && i <= (first_addr + (1 << (32 - mask))-1); i++)
+  for(i=first_addr; i < ((uint64_t)first_addr + (1 << (32 - mask))); i++)
     {
       state->array[i] = lookup_id;
     }
@@ -220,7 +220,7 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   assert(ds != NULL && ds->state != NULL);
 
   ipmeta_record_set_clear_records(records);
-  uint32_t total_ips = pow(2,32-mask);
+  uint64_t total_ips = pow(2,32-mask);
   ipmeta_record_t *rec;
 
   // Optimisation for single IP special case (no hashing required)
@@ -240,7 +240,7 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   int new_key;
 
   // Map: index by record
-  for (int i=0;i<total_ips;i++)
+  for (uint64_t i=0;i<total_ips;i++)
     {
       if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
         {

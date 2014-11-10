@@ -205,7 +205,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 
   /* iterate over all ips in this prefix and point them to this index in the
      table */
-  for(i=first_addr; i < (first_addr + (1 << (32 - mask))); i++)
+  for(i=first_addr; i >= first_addr && i <= (first_addr + (1 << (32 - mask))-1); i++)
     {
       state->array[i] = lookup_id;
     }

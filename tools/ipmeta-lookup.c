@@ -53,7 +53,7 @@ ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 char *provider_prefixes[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
 
-static void lookup(char *addr_str, iow_t *outfile)
+static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 {
   uint32_t addr;
   uint8_t mask;
@@ -63,9 +63,6 @@ static void lookup(char *addr_str, iow_t *outfile)
   char *pref_str = strdup(addr_str);	
   addr = inet_addr(strsep(&pref_str, "/"));
   mask = (pref_str && strlen(pref_str))?atoi(pref_str):32;
-
-  // For now recycle the records each time
-  ipmeta_record_set_t *recs = ipmeta_record_set_init();
 
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
@@ -78,8 +75,8 @@ static void lookup(char *addr_str, iow_t *outfile)
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, recs);
-	    ipmeta_dump_record_set(recs, addr_str);
+	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
+	    ipmeta_dump_record_set(records, addr_str);
 	}
       else
 	{
@@ -89,12 +86,10 @@ static void lookup(char *addr_str, iow_t *outfile)
 			    ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, recs);
-	    ipmeta_write_record_set(recs, outfile, addr_str);
+	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
+	    ipmeta_write_record_set(records, outfile, addr_str);
 	}
     }
-
-  ipmeta_record_set_free(&recs);
 
   return;
 }
@@ -148,6 +143,8 @@ int main(int argc, char **argv)
   int providers_cnt = 0;
   char *provider_arg_ptr = NULL;
   ipmeta_provider_t *provider = NULL;
+
+  ipmeta_record_set_t *records = ipmeta_record_set_init();
 
   int headers_enabled = 0;
 
@@ -350,7 +347,7 @@ int main(int argc, char **argv)
 	      *p = '\0';
 	    }
 
-	  lookup(buffer, outfile);
+	  lookup(buffer, outfile, records);
 	}
     }
 
@@ -359,7 +356,7 @@ int main(int argc, char **argv)
   /* now try looking up addresses given on the command line */
   for(i=lastopt; i<argc; i++)
     {
-      lookup(argv[i], outfile);
+      lookup(argv[i], outfile, records);
     }
 
   ipmeta_log(__func__, "done");
@@ -398,6 +395,11 @@ int main(int argc, char **argv)
   if(outfile != NULL)
     {
       wandio_wdestroy(outfile);
+    }
+
+  if (records != NULL)
+    {
+      ipmeta_record_set_free(&records);
     }
 
   /* default rc is -1 */

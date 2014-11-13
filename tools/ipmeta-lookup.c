@@ -60,9 +60,11 @@ static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
   int i;
 
   /* convert the prefix string to net/mask integers integer */
-  char *pref_str = strdup(addr_str);	
+  char *pref_str = strdup(addr_str);
+  char *orig_pref_str = pref_str;
   addr = inet_addr(strsep(&pref_str, "/"));
   mask = (pref_str && strlen(pref_str))?atoi(pref_str):32;
+  free(orig_pref_str);
 
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)

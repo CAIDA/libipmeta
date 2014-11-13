@@ -2103,6 +2103,12 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 
   if(state != NULL)
     {
+      if (state->ds_name != NULL)
+        {
+          free(state->ds_name);
+          state->ds_name = NULL;
+        }
+
       free(state->locations_file);
       state->locations_file = NULL;
 

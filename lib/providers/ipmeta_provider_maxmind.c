@@ -1070,6 +1070,12 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   if(state != NULL)
     {
+      if (state->ds_name != NULL)
+        {
+          free(state->ds_name);
+          state->ds_name = NULL;
+        }
+        
       if(state->locations_file != NULL)
 	{
 	  free(state->locations_file);

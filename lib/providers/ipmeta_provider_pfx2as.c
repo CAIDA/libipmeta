@@ -431,6 +431,12 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
   ipmeta_provider_pfx2as_state_t *state = STATE(provider);
   if(state != NULL)
     {
+      if (state->ds_name != NULL)
+        {
+          free(state->ds_name);
+          state->ds_name = NULL;
+        }
+
       if(state->pfx2as_file != NULL)
 	{
 	  free(state->pfx2as_file);

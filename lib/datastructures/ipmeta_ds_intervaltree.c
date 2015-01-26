@@ -31,7 +31,7 @@
 #include "libipmeta_int.h"
 #include "ipmeta_ds_intervaltree.h"
 
-#include "interval_tree.h" 
+#include "interval_tree.h"
 
 #define DS_NAME "intervaltree"
 
@@ -45,27 +45,10 @@ static ipmeta_ds_t ipmeta_ds_intervaltree = {
   NULL
 };
 
-khint_t _kh_interval3_record_hash_func (ipmeta_record_t *rec) {
-  khint32_t h = rec->id;
-  return __ac_Wang_hash(h);
-}
-
-int _kh_interval3_record_hash_equal (ipmeta_record_t * rec1, ipmeta_record_t * rec2) {
-  if (rec1->id == rec2->id) {
-    return 1;
-  }
-  return 0;
-}
-
-KHASH_INIT(recordu32, ipmeta_record_t *, uint32_t, 1, _kh_interval3_record_hash_func, _kh_interval3_record_hash_equal)
-
 typedef struct ipmeta_ds_intervaltree_state
 {
   interval_tree_t *tree;
 
-  /** Temporary hash to count #ips of unique records */
-  /** Key: record pointers, Values: #ips */
-  khash_t(recordu32) *record_cnt;
 } ipmeta_ds_intervaltree_state_t;
 
 ipmeta_ds_t *ipmeta_ds_intervaltree_alloc()
@@ -89,10 +72,8 @@ int ipmeta_ds_intervaltree_init(ipmeta_ds_t *ds)
   if (( STATE(ds)->tree = interval_tree_init() ) == NULL )
     {
       ipmeta_log(__func__, "could not malloc interval tree");
-      return -1;  
+      return -1;
     }
-
-  STATE(ds)->record_cnt = kh_init(recordu32);
 
   return 0;
 }
@@ -110,12 +91,6 @@ void ipmeta_ds_intervaltree_free(ipmeta_ds_t *ds)
         {
           interval_tree_free(STATE(ds)->tree);
           STATE(ds)->tree = NULL;
-        }
-
-      if(STATE(ds)->record_cnt != NULL)
-        {
-          kh_destroy(recordu32, STATE(ds)->record_cnt);
-          STATE(ds)->record_cnt = NULL;
         }
 
       free(STATE(ds));
@@ -157,53 +132,36 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
 {
   assert(ds != NULL && ds->state != NULL);
   interval_tree_t *tree = STATE(ds)->tree;
+  interval_t interval;
+  int num_matches = 0;
+  interval_t** matches = NULL;
+  uint32_t ov_start;
+  uint32_t ov_end;
+  int i;
+
   assert(tree != NULL);
 
   ipmeta_record_set_clear_records(records);
-
-  interval_t interval;
 
   interval.start = ntohl(addr);
   interval.end = interval.start + pow(2,32-mask) - 1;
   interval.data = NULL;
 
-  int num_matches;
+  matches = getOverlapping(tree, &interval, &num_matches);
 
-  interval_t** matches = getOverlapping(tree, &interval, &num_matches);
-
-  //printf ("Matches: %d\n", num_matches);
-
-  // Clear record count hash
-  khash_t(recordu32) *rec_h = STATE(ds)->record_cnt;
-  kh_clear(recordu32, rec_h);
-
-  // Map: Index matches by record ID
-  khiter_t rec_k;
-  int new_key;
-  uint32_t ov_start;
-  uint32_t ov_end;
-  for (int i=0;i<num_matches;i++)
+  for(i=0; i<num_matches; i++)
     {
-      //printf("%u-%u\n", matches[i]->start, matches[i]->end);
+      /* Calculate number of (overlapping) IPs in record match */
+      ov_start = (interval.start>matches[i]->start)?
+        interval.start:matches[i]->start;
 
-      rec_k = kh_put(recordu32, rec_h, (ipmeta_record_t *)matches[i]->data, &new_key);
-      if (new_key)
-        {
-          kh_value(rec_h, rec_k) = 0;
-        } 
-
-      // Calculate number of (overlapping) IPs in record match
-      ov_start = (interval.start>matches[i]->start)?interval.start:matches[i]->start;
       ov_end = (interval.end<matches[i]->end)?interval.end:matches[i]->end;
-      kh_value(rec_h, rec_k)+=ov_end - ov_start + 1;
-    }
 
-  // Reduce: unique records
-  for (khiter_t rec_k = kh_begin(rec_h); rec_k != kh_end(rec_h); rec_k++)
-    {
-      if (kh_exist(rec_h, rec_k))
+      if(ipmeta_record_set_add_record(records,
+                                      (ipmeta_record_t *)matches[i]->data,
+                                      ov_end - ov_start + 1) != 0)
         {
-          ipmeta_record_set_add_record(records, kh_key(rec_h, rec_k), kh_value(rec_h, rec_k));
+          return -1;
         }
     }
 

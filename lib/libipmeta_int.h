@@ -79,19 +79,23 @@ struct ipmeta_record_set {
 
 /** @} */
 
-/** Add a record to a record set. If necessary the internal structures will be realloc'd (only enlarging, never shrinking) 
+/** Add a record to a record set. If necessary the internal structures will be
+ * realloc'd (only enlarging, never shrinking)
  *
  * @param this          The record set instance to add the record to
- * @param rec 			The record to add
+ * @param rec 		The record to add
  * @param num_ips       The number of IPs matched in this record
- * 
+ *
  * @return 0 if insertion was successful, or -1 if realloc failed
  */
-int ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips);
+int ipmeta_record_set_add_record(ipmeta_record_set_t *this,
+                                 ipmeta_record_t *rec, int num_ips);
 
-/** Erases all records in the set. This doesn't actually free the memory for reusing optimization.
+/** Empties the set.
  *
  * @param this          The record set instance to clear the records for
+ *
+ * @note this function does not actually destroy any memory.
  */
 void ipmeta_record_set_clear_records(ipmeta_record_set_t *this);
 

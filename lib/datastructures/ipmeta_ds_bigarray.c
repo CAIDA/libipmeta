@@ -27,7 +27,6 @@
 
 #include <assert.h>
 #include <arpa/inet.h>
-#include <math.h>
 
 #include "utils.h"
 
@@ -46,29 +45,12 @@ static ipmeta_ds_t ipmeta_ds_bigarray = {
   NULL
 };
 
-khint_t _kh_bigarray_record_hash_func (ipmeta_record_t *rec) {
-  khint32_t h = rec->id;
-  return __ac_Wang_hash(h);
-}
-
-int _kh_bigarray_record_hash_equal (ipmeta_record_t * rec1, ipmeta_record_t * rec2) {
-  if (rec1->id == rec2->id) {
-    return 1;
-  }
-  return 0;
-}
-
-KHASH_INIT(recordu32, ipmeta_record_t *, uint32_t, 1, _kh_bigarray_record_hash_func, _kh_bigarray_record_hash_equal)
 KHASH_INIT(u32u32, uint32_t, uint32_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 typedef struct ipmeta_ds_bigarray_state
 {
   /** Temporary hash to map from record id to lookup id */
   khash_t(u32u32) *record_lookup;
-
-  /** Temporary hash to count occurences of records during lookup */
-  /** Key: record pointers, Values: instance counter */
-  khash_t(recordu32) *record_cnt;
 
   /** Mapping from a uint32 lookup id to a record.
    * @note, 0 is a reserved ID (indicates empty)
@@ -110,8 +92,6 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
   STATE(ds)->record_lookup = kh_init(u32u32);
 
-  STATE(ds)->record_cnt = kh_init(recordu32);
-
   return 0;
 }
 
@@ -135,12 +115,6 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 	  kh_destroy(u32u32, STATE(ds)->record_lookup);
 	  STATE(ds)->record_lookup = NULL;
 	}
-
-      if(STATE(ds)->record_cnt != NULL)
-        {
-          kh_destroy(recordu32, STATE(ds)->record_cnt);
-          STATE(ds)->record_cnt = NULL;
-        } 
 
       free(STATE(ds));
       ds->state = NULL;
@@ -214,19 +188,21 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 }
 
 int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
-						  uint32_t addr, uint8_t mask,
-              ipmeta_record_set_t *records)
+                                      uint32_t addr, uint8_t mask,
+                                      ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
 
-  ipmeta_record_set_clear_records(records);
-  uint64_t total_ips = pow(2,32-mask);
+  uint64_t total_ips = 1 << (32-mask);
+  uint64_t i;
   ipmeta_record_t *rec;
 
-  // Optimisation for single IP special case (no hashing required)
-  if (total_ips==1) 
+  ipmeta_record_set_clear_records(records);
+
+  /* Optimization for single IP special case (no hashing required) */
+  if(total_ips == 1)
     {
-      if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
+      if((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
         {
           ipmeta_record_set_add_record(records, rec, 1);
           return 1;
@@ -234,41 +210,18 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
       return 0;
     }
 
-  // Clear record count hash
-  kh_clear(recordu32, STATE(ds)->record_cnt);
-  khiter_t rec_k;
-  int new_key;
-
-  // Map: index by record
-  for (uint64_t i=0;i<total_ips;i++)
+  for(i=0; i<total_ips; i++)
     {
       if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
         {
-          // No match
+          /* No match */
           continue;
         }
 
-      rec_k = kh_put(recordu32, STATE(ds)->record_cnt, rec, &new_key);
-      if (new_key)
+      /* This has HORRIBLE performance. Never use bigarray for prefixes! */
+      if(ipmeta_record_set_add_record(records, rec, 1) != 0)
         {
-          kh_value(STATE(ds)->record_cnt, rec_k) = 1;
-        } 
-      else
-        {
-          kh_value(STATE(ds)->record_cnt, rec_k)++;
-        }
-    }
-
-  // Reduce: unique records
-  for (rec_k = kh_begin(STATE(ds)->record_cnt); rec_k != kh_end(STATE(ds)->record_cnt); rec_k++)
-    {
-      if (kh_exist(STATE(ds)->record_cnt, rec_k))
-        {
-          ipmeta_record_set_add_record(
-                records, 
-                kh_key(STATE(ds)->record_cnt, rec_k), 
-                kh_value(STATE(ds)->record_cnt, rec_k)
-          );
+          return -1;
         }
     }
 

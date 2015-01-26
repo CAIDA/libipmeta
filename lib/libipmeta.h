@@ -317,6 +317,9 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 /** Initialize a new record set instance
  *
  * @return the record set instance created, NULL if an error occurs
+ *
+ * @note an interval record set **DOES NOT** contain a unique set of
+ * records. Records can (and might) be repeated.
  */
 ipmeta_record_set_t *ipmeta_record_set_init();
 
@@ -326,20 +329,24 @@ ipmeta_record_set_t *ipmeta_record_set_init();
  */
 void ipmeta_record_set_free(ipmeta_record_set_t **this_p);
 
-/** Move the record set iterator pointer to the first element 
+/** Move the record set iterator pointer to the first element
  *
  * @param this          The record set instance
  */
 void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
 
-/** Get the next record in the record set iterator 
+/** Get the next record in the record set iterator
  *
  * @param this          The record set instance
- * @param num_ips       A pointer to an int where to place the number of matched IPs for that record.
- * 
+ * @param[out] num_ips  Pointer to an int set to the number of matched IPs
+ *
  * @return a pointer to the record
+ *
+ * @note an interval record set **DOES NOT** contain a unique set of
+ * records. Records can (and might) be repeated.
  */
-ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this, uint32_t *num_ips);
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this,
+                                        uint32_t *num_ips);
 
 /** Dump the given metadata record set to stdout
  *
@@ -358,7 +365,8 @@ void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str);
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
-void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file, char *ip_str);
+void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file,
+                             char *ip_str);
 
 /** Dump the given metadata record to stdout
  *

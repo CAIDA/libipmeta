@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "khash.h"
 #include "parse_cmd.h"
 #include "utils.h"
 #include "wandio_utils.h"
@@ -42,12 +43,6 @@
 #define MAXOPTS 1024
 
 #define SEPARATOR "|"
-
-/* from khash.h, rounds number up to nearest pow of 2 */
-#ifndef kroundup32
-#define kroundup32(x) \
-  (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
-#endif
 
 ipmeta_t *ipmeta_init()
 {

@@ -26,9 +26,9 @@
 #include "config.h"
 
 #include <assert.h>
+#include <arpa/inet.h>
 
 #include "interval_tree.h"
-#include "utils.h"
 
 #include "libipmeta_int.h"
 #include "ipmeta_ds_intervaltree.h"

@@ -337,10 +337,9 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
   return provider->ds->add_prefix(provider->ds, addr, mask, record);
 }
 
-int ipmeta_provider_lookup_records(
-					       ipmeta_provider_t *provider,
-					       uint32_t addr, uint8_t mask,
-                 ipmeta_record_set_t *records)
+int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
+                                   uint32_t addr, uint8_t mask,
+                                   ipmeta_record_set_t *records)
 {
   assert(provider != NULL);
   assert(provider->ds != NULL);

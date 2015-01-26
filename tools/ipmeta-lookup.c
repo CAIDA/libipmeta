@@ -55,16 +55,29 @@ int enabled_providers_cnt = 0;
 
 static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 {
+  char orig_str[BUFFER_LEN];
+
+  char *mask_str = addr_str;
   uint32_t addr;
   uint8_t mask;
   int i;
 
-  /* convert the prefix string to net/mask integers integer */
-  char *pref_str = strdup(addr_str);
-  char *orig_pref_str = pref_str;
-  addr = inet_addr(strsep(&pref_str, "/"));
-  mask = (pref_str && strlen(pref_str))?atoi(pref_str):32;
-  free(orig_pref_str);
+  /* preserve the original string for dumping */
+  strcpy(orig_str, addr_str);
+
+  /* extract the mask from the prefix */
+  if((mask_str = strchr(addr_str, '/')) != NULL)
+    {
+      *mask_str = '\0';
+      mask_str++;
+      mask = atoi(mask_str);
+    }
+  else
+    {
+      mask = 32;
+    }
+
+  addr = inet_addr(addr_str);
 
   /* look it up using each provider */
   for(i = 0; i < enabled_providers_cnt; i++)
@@ -78,7 +91,7 @@ static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 	    }
 
 	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
-	    ipmeta_dump_record_set(records, addr_str);
+	    ipmeta_dump_record_set(records, orig_str);
 	}
       else
 	{
@@ -89,7 +102,7 @@ static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 	    }
 
 	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
-	    ipmeta_write_record_set(records, outfile, addr_str);
+	    ipmeta_write_record_set(records, outfile, orig_str);
 	}
     }
 

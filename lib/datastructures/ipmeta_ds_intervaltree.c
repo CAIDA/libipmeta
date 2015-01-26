@@ -26,12 +26,12 @@
 #include "config.h"
 
 #include <assert.h>
-#include <math.h>
+
+#include "interval_tree.h"
+#include "utils.h"
 
 #include "libipmeta_int.h"
 #include "ipmeta_ds_intervaltree.h"
-
-#include "interval_tree.h"
 
 #define DS_NAME "intervaltree"
 
@@ -114,7 +114,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds,
   interval_t interval;
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + pow(2,32-mask) - 1;
+  interval.end = interval.start + (1 << (32-mask)) - 1;
   interval.data = record;
 
   if (interval_tree_add_interval(tree, &interval) == -1)
@@ -142,7 +142,7 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
   assert(tree != NULL);
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + pow(2,32-mask) - 1;
+  interval.end = interval.start + (1 << (32-mask)) - 1;
   interval.data = NULL;
 
   matches = getOverlapping(tree, &interval, &num_matches);

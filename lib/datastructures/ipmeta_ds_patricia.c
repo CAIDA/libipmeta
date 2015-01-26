@@ -26,9 +26,9 @@
 #include "config.h"
 
 #include <assert.h>
- #include <math.h>
 
 #include "patricia.h"
+#include "utils.h"
 
 #include "libipmeta_int.h"
 #include "ipmeta_ds_patricia.h"

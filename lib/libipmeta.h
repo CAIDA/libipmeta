@@ -339,6 +339,7 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
  *
  * @param this          The record set instance
  * @param[out] num_ips  Pointer to an int set to the number of matched IPs
+ *                      (optional)
  *
  * @return a pointer to the record
  *
@@ -394,7 +395,8 @@ void ipmeta_dump_record_header();
  * Each field in the record is written to the given file in pipe-delimited
  * format (prefixed with the IP string given)
  */
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str, int num_ips);
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
+                         char *ip_str, int num_ips);
 
 /** Write names of the fields in a record structure to the given wandio file
  *

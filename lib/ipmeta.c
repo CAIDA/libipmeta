@@ -43,6 +43,11 @@
 
 #define SEPARATOR "|"
 
+/* from khash.h, rounds number up to nearest pow of 2 */
+#ifndef kroundup32
+#define kroundup32(x) \
+  (--(x), (x)|=(x)>>1, (x)|=(x)>>2, (x)|=(x)>>4, (x)|=(x)>>8, (x)|=(x)>>16, ++(x))
+#endif
 
 ipmeta_t *ipmeta_init()
 {
@@ -162,8 +167,8 @@ inline int ipmeta_lookup(ipmeta_provider_t *provider,
 }
 
 inline int ipmeta_lookup_single(ipmeta_provider_t *provider,
-             uint32_t addr,
-             ipmeta_record_set_t *records)
+                                uint32_t addr,
+                                ipmeta_record_set_t *records)
 {
   ipmeta_record_set_clear(records);
 
@@ -205,6 +210,15 @@ ipmeta_record_set_t *ipmeta_record_set_init()
     ipmeta_log(__func__, "could not malloc ipmeta_record_set_t");
     return NULL;
   }
+
+  /* always have space for a single record */
+  if(ipmeta_record_set_add_record(this, NULL, 0) != 0)
+    {
+      free(this);
+      return NULL;
+    }
+  ipmeta_record_set_clear(this);
+
   return this;
 }
 
@@ -214,48 +228,68 @@ void ipmeta_record_set_free(ipmeta_record_set_t **this_p)
 
   free(this->records);
   this->records=NULL;
+
   free(this->ip_cnts);
   this->ip_cnts=NULL;
+
   this->n_recs=0;
   this->_cursor=0;
   this->_alloc_size=0;
+
   free(this);
   *this_p=NULL;
 }
 
-void ipmeta_record_set_rewind(ipmeta_record_set_t *this) 
+void ipmeta_record_set_rewind(ipmeta_record_set_t *this)
 {
   this->_cursor=0;
 }
 
-ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this, uint32_t *num_ips)
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this,
+                                        uint32_t *num_ips)
 {
-  if(this->n_recs<=this->_cursor) {
-    // No more records
-    return NULL;
-  }
-  *num_ips = this->ip_cnts[this->_cursor];
-  return this->records[this->_cursor++]; // Advance head
-}
-
-int ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec, int num_ips)
-{
-  this->n_recs++;
-  // Realloc if necessary
-  if (this->_alloc_size<this->n_recs) {
-    if ( (this->records = realloc(this->records, sizeof(ipmeta_record_t*) * this->n_recs)) == NULL) 
+  if(this->n_recs<=this->_cursor)
     {
-      ipmeta_log(__func__, "could not realloc records in record set");
-      return -1;
+      /* No more records */
+      return NULL;
     }
 
-    if ( (this->ip_cnts = realloc(this->ip_cnts, sizeof(uint32_t) * this->n_recs)) == NULL) 
+  if(num_ips != NULL)
     {
-      ipmeta_log(__func__, "could not realloc ip_cnts in record set");
-      return -1;
-    }    
-    this->_alloc_size = this->n_recs;
-  }
+      *num_ips = this->ip_cnts[this->_cursor];
+    }
+
+  return this->records[this->_cursor++]; /* Advance head */
+}
+
+int ipmeta_record_set_add_record(ipmeta_record_set_t *this,
+                                 ipmeta_record_t *rec, int num_ips)
+{
+  this->n_recs++;
+
+  /* Realloc if necessary */
+  if(this->_alloc_size<this->n_recs)
+    {
+      /* round n_recs up to next pow 2 */
+      this->_alloc_size = this->n_recs;
+      kroundup32(this->_alloc_size);
+
+      if((this->records =
+          realloc(this->records,
+                  sizeof(ipmeta_record_t*) * this->_alloc_size)) == NULL)
+        {
+          ipmeta_log(__func__, "could not realloc records in record set");
+          return -1;
+        }
+
+      if((this->ip_cnts =
+          realloc(this->ip_cnts, sizeof(uint32_t) * this->_alloc_size)) == NULL)
+        {
+          ipmeta_log(__func__, "could not realloc ip_cnts in record set");
+          return -1;
+        }
+    }
+
   this->records[this->n_recs-1] = rec;
   this->ip_cnts[this->n_recs-1] = num_ips;
 

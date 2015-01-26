@@ -97,7 +97,7 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *this,
  *
  * @note this function does not actually destroy any memory.
  */
-void ipmeta_record_set_clear_records(ipmeta_record_set_t *this);
+void ipmeta_record_set_clear(ipmeta_record_set_t *this);
 
 
 

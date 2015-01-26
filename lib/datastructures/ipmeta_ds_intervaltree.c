@@ -141,8 +141,6 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
 
   assert(tree != NULL);
 
-  ipmeta_record_set_clear_records(records);
-
   interval.start = ntohl(addr);
   interval.end = interval.start + pow(2,32-mask) - 1;
   interval.data = NULL;

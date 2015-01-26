@@ -197,8 +197,6 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   uint64_t i;
   ipmeta_record_t *rec;
 
-  ipmeta_record_set_clear_records(records);
-
   /* Optimization for single IP special case (no hashing required) */
   if(total_ips == 1)
     {

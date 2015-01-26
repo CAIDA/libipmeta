@@ -156,6 +156,8 @@ inline int ipmeta_lookup(ipmeta_provider_t *provider,
 {
   assert(provider != NULL && provider->enabled != 0);
 
+  ipmeta_record_set_clear(records);
+
   return provider->lookup(provider, addr, mask, records);
 }
 
@@ -163,7 +165,9 @@ inline int ipmeta_lookup_single(ipmeta_provider_t *provider,
              uint32_t addr,
              ipmeta_record_set_t *records)
 {
-  // Single IP address = /32
+  ipmeta_record_set_clear(records);
+
+  /* Single IP address = /32 */
   return ipmeta_lookup(provider, addr, 32, records);
 }
 
@@ -258,7 +262,7 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *this, ipmeta_record_t *rec
   return 0;
 }
 
-void ipmeta_record_set_clear_records(ipmeta_record_set_t *this)
+void ipmeta_record_set_clear(ipmeta_record_set_t *this)
 {
   this->n_recs=0;
 }

@@ -186,8 +186,6 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
   pfx.add.sin.s_addr = addr;
   pfx.bitlen = mask;
 
-  ipmeta_record_set_clear_records(records);
-
   /* Optimization for single IP special case (no hashing required) */
   if(mask == 32)
     {

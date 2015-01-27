@@ -161,14 +161,10 @@ inline int ipmeta_lookup(ipmeta_provider_t *provider,
   return provider->lookup(provider, addr, mask, records);
 }
 
-inline int ipmeta_lookup_single(ipmeta_provider_t *provider,
-                                uint32_t addr,
-                                ipmeta_record_set_t *records)
+inline ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
+                                             uint32_t addr)
 {
-  ipmeta_record_set_clear(records);
-
-  /* Single IP address = /32 */
-  return ipmeta_lookup(provider, addr, 32, records);
+  return provider->lookup_single(provider, addr);
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)

@@ -341,8 +341,12 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
                                    uint32_t addr, uint8_t mask,
                                    ipmeta_record_set_t *records)
 {
-  assert(provider != NULL);
-  assert(provider->ds != NULL);
-
   return provider->ds->lookup_records(provider->ds, addr, mask, records);
+}
+
+ipmeta_record_t *ipmeta_provider_lookup_record_single(
+                                                    ipmeta_provider_t *provider,
+                                                    uint32_t addr)
+{
+  return provider->ds->lookup_record_single(provider->ds, addr);
 }

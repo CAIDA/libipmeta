@@ -174,11 +174,6 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
 				uint32_t addr, uint8_t mask,
                                 ipmeta_record_set_t *records)
 {
-  assert(ds != NULL && ds->state != NULL);
-  patricia_tree_t *trie = STATE(ds)->trie;
-  assert(trie != NULL);
-
-  patricia_node_t *node = NULL;
   prefix_t pfx;
   /** @todo make support IPv6 */
   pfx.family = AF_INET;
@@ -186,19 +181,27 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
   pfx.add.sin.s_addr = addr;
   pfx.bitlen = mask;
 
-  /* Optimization for single IP special case (no hashing required) */
-  if(mask == 32)
-    {
-      if((node = patricia_search_best2(trie, &pfx, 1)) != NULL)
-        {
-          ipmeta_record_set_add_record(records, node->data, 1);
-          return 1;
-        }
-      return 0;
-    }
-
-  // Map: index by record
   _patricia_prefix_lookup(ds, pfx, records);
 
   return records->n_recs;
+}
+
+ipmeta_record_t *ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds,
+                                                         uint32_t addr)
+{
+  patricia_tree_t *trie = STATE(ds)->trie;
+  patricia_node_t *node = NULL;
+  prefix_t pfx;
+
+  /** @todo make support IPv6 */
+  pfx.family = AF_INET;
+  pfx.ref_count = 0;
+  pfx.add.sin.s_addr = addr;
+  pfx.bitlen = 32;
+
+  if((node = patricia_search_best2(trie, &pfx, 1)) != NULL)
+    {
+      return (ipmeta_record_t *)node->data;
+    }
+  return NULL;
 }

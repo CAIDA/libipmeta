@@ -130,7 +130,6 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
                                 uint32_t addr, uint8_t mask,
                                 ipmeta_record_set_t *records)
 {
-  assert(ds != NULL && ds->state != NULL);
   interval_tree_t *tree = STATE(ds)->tree;
   interval_t interval;
   int num_matches = 0;
@@ -138,8 +137,6 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
   uint32_t ov_start;
   uint32_t ov_end;
   int i;
-
-  assert(tree != NULL);
 
   interval.start = ntohl(addr);
   interval.end = interval.start + (1 << (32-mask)) - 1;
@@ -164,4 +161,28 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
     }
 
   return records->n_recs;
+}
+
+ipmeta_record_t *ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds,
+                                                             uint32_t addr)
+{
+  interval_tree_t *tree = STATE(ds)->tree;
+  interval_t interval;
+  int num_matches = 0;
+  interval_t** matches = NULL;
+
+  interval.start = ntohl(addr);
+  interval.end = interval.start;
+  interval.data = NULL;
+
+  matches = getOverlapping(tree, &interval, &num_matches);
+
+  /* we only have a single IP! */
+  if(num_matches == 0)
+    {
+      return NULL;
+    }
+
+  assert(num_matches == 1);
+  return matches[0]->data;
 }

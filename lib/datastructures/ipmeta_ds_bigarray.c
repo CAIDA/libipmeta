@@ -197,17 +197,6 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   uint64_t i;
   ipmeta_record_t *rec;
 
-  /* Optimization for single IP special case (no hashing required) */
-  if(total_ips == 1)
-    {
-      if((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
-        {
-          ipmeta_record_set_add_record(records, rec, 1);
-          return 1;
-        }
-      return 0;
-    }
-
   for(i=0; i<total_ips; i++)
     {
       if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
@@ -224,4 +213,16 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
     }
 
   return records->n_recs;
+}
+
+ipmeta_record_t *ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
+                                                         uint32_t addr)
+{
+  ipmeta_record_t *rec;
+
+  if((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
+    {
+      return rec;
+    }
+  return NULL;
 }

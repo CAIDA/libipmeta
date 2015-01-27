@@ -51,12 +51,14 @@
 #define IPMETA_PROVIDER_GENERATE_PROTOS(provname)			\
   ipmeta_provider_t * ipmeta_provider_##provname##_alloc();		\
   int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds,		\
-					int argc, char **argv);	\
+					int argc, char **argv);         \
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);	\
-  int ipmeta_provider_##provname##_lookup(		\
-					ipmeta_provider_t *provider, \
-					uint32_t addr, uint8_t mask, \
-          ipmeta_record_set_t *records);
+  int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,  \
+                                          uint32_t addr, uint8_t mask,  \
+                                          ipmeta_record_set_t *records); \
+  ipmeta_record_t *ipmeta_provider_##provname##_lookup_single(          \
+                                                 ipmeta_provider_t *provider, \
+                                                 uint32_t addr);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * provider API
@@ -65,6 +67,7 @@
   ipmeta_provider_##provname##_init,		\
     ipmeta_provider_##provname##_free,		\
     ipmeta_provider_##provname##_lookup,	\
+    ipmeta_provider_##provname##_lookup_single,	\
     0, NULL, NULL, NULL
 
 /** Structure which represents a metadata provider */
@@ -120,9 +123,10 @@ struct ipmeta_provider
   /** Perform an IP metadata lookup using this provider
    *
    * @param provider    The provider object to perform the lookup with
-   * @param addr        The IPv4 network address component to lookup metadata for
-   * @param mask        The IPv4 CIDR network mask defining the prefix length (0>32)
-   * @param records     A pointer to the record set structure where to return the matches   
+   * @param addr          The IPv4 network address part to lookup
+   *                       (network byte ordering)
+   * @param mask        The IPv4 network mask defining the prefix length (0-32)
+   * @param records     Pointer to a record set to use for matches
    * @return            The number of (matched) records in the result set
    *
    * For the most part providers will simply pass this call back to the provider
@@ -130,7 +134,18 @@ struct ipmeta_provider
    * datastructure, but this allows providers to do some arbitrary
    * pre/post-processing.
    */
-  int (*lookup)(struct ipmeta_provider *provider, uint32_t addr, uint8_t mask, ipmeta_record_set_t *records);
+  int (*lookup)(struct ipmeta_provider *provider, uint32_t addr, uint8_t mask,
+                ipmeta_record_set_t *records);
+
+  /** Look up the given single IP address using the given provider
+   *
+   * @param ipmeta        The ipmeta object associated with the provider
+   * @param provider      The provider to perform the lookup with
+   * @param addr          The address to retrieve the record for
+   *                       (network byte ordering)
+   * @return A pointer to the matching record, or NULL if there were no matches
+   */
+  ipmeta_record_t *(*lookup_single)(ipmeta_provider_t *provider, uint32_t addr);
 
   /** }@ */
 
@@ -273,12 +288,39 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
  * @param addr          The network address to retrieve the records for
  *                       (network byte ordering)
  * @param mask          The CIDR network mask component of the prefix
- * @param records       A pointer to the record set structure where to return the matches   
+ * @param records       A pointer to the record set structure where to return the matches
  * @return              The number of (matched) records in the result set
  */
 int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
 					       uint32_t addr, uint8_t mask,
                  ipmeta_record_set_t *records);
+
+/** Retrieves the records that correspond to the given prefix from the
+ * associated datastructure.
+ *
+ * @param provider    The provider object to perform the lookup with
+ * @param addr        The IPv4 network address part to retrieve records for
+ * @param mask        The IPv4 network mask defining the prefix length (0-32)
+ * @param records     Pointer to a record set to use for matches
+ * @return            The number of (matched) records in the result set
+ *
+ */
+int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
+                                   uint32_t addr, uint8_t mask,
+                                   ipmeta_record_set_t *records);
+
+/** Retrieves the one record that corresponds to the given single IP address
+ * using the given provider
+ *
+ * @param ipmeta        The ipmeta object associated with the provider
+ * @param provider      The provider to perform the lookup with
+ * @param addr          The address to retrieve the record for
+ *                       (network byte ordering)
+ * @return A pointer to the matching record, or NULL if there were no matches
+ */
+ipmeta_record_t *ipmeta_provider_lookup_record_single(
+                                                    ipmeta_provider_t *provider,
+                                                    uint32_t addr);
 
  /** }@ */
 

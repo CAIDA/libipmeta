@@ -52,8 +52,9 @@ ipmeta_t *ipmeta = NULL;
 ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 char *provider_prefixes[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
+ipmeta_record_set_t *records;
 
-static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
+static void lookup(char *addr_str, iow_t *outfile)
 {
   char orig_str[BUFFER_LEN];
 
@@ -90,9 +91,17 @@ static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 		      ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
-	    ipmeta_dump_record_set(records, orig_str);
-	}
+          if(mask == 32)
+            {
+              ipmeta_dump_record(ipmeta_lookup_single(enabled_providers[i],
+                                                      addr), orig_str, 1);
+            }
+          else
+            {
+              ipmeta_lookup(enabled_providers[i], addr, mask, records);
+              ipmeta_dump_record_set(records, orig_str);
+            }
+        }
       else
 	{
 	  if(enabled_providers_cnt > 1)
@@ -101,8 +110,16 @@ static void lookup(char *addr_str, iow_t *outfile, ipmeta_record_set_t *records)
 			    ipmeta_get_provider_name(enabled_providers[i]));
 	    }
 
-	    ipmeta_lookup(enabled_providers[i], addr, mask, records);
-	    ipmeta_write_record_set(records, outfile, orig_str);
+          if(mask == 32)
+            {
+              ipmeta_dump_record(ipmeta_lookup_single(enabled_providers[i],
+                                                      addr), orig_str, 1);
+            }
+          else
+            {
+              ipmeta_lookup(enabled_providers[i], addr, mask, records);
+              ipmeta_write_record_set(records, outfile, orig_str);
+            }
 	}
     }
 
@@ -159,7 +176,8 @@ int main(int argc, char **argv)
   char *provider_arg_ptr = NULL;
   ipmeta_provider_t *provider = NULL;
 
-  ipmeta_record_set_t *records = ipmeta_record_set_init();
+  records = ipmeta_record_set_init();
+  assert(records != NULL);
 
   int headers_enabled = 0;
 
@@ -362,7 +380,7 @@ int main(int argc, char **argv)
 	      *p = '\0';
 	    }
 
-	  lookup(buffer, outfile, records);
+	  lookup(buffer, outfile);
 	}
     }
 
@@ -371,7 +389,7 @@ int main(int argc, char **argv)
   /* now try looking up addresses given on the command line */
   for(i=lastopt; i<argc; i++)
     {
-      lookup(argv[i], outfile, records);
+      lookup(argv[i], outfile);
     }
 
   ipmeta_log(__func__, "done");
@@ -412,7 +430,7 @@ int main(int argc, char **argv)
       wandio_wdestroy(outfile);
     }
 
-  if (records != NULL)
+  if(records != NULL)
     {
       ipmeta_record_set_free(&records);
     }

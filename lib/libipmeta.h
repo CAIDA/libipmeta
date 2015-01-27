@@ -258,15 +258,14 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  *
  * @param ipmeta        The ipmeta object associated with the provider
  * @param provider      The provider to perform the lookup with
- * @param addr          The CIDR address part to retrieve the records for
+ * @param addr          The IPv4 network address part to lookup
  *                       (network byte ordering)
- * @param mask          The CIDR mask defining the prefix length (0>32)
- * @param records       A pointer to the record set structure where to return the matches
+ * @param mask          The IPv4 network mask defining the prefix length (0>32)
+ * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr, uint8_t mask,
-             ipmeta_record_set_t *records);
+int ipmeta_lookup(ipmeta_provider_t *provider, uint32_t addr, uint8_t mask,
+                  ipmeta_record_set_t *records);
 
 /** Look up the given single IP address using the given provider
  *
@@ -274,12 +273,10 @@ int ipmeta_lookup(ipmeta_provider_t *provider,
  * @param provider      The provider to perform the lookup with
  * @param addr          The address to retrieve the record for
  *                       (network byte ordering)
- * @param records       A pointer to the record set structure where to return the matches
- * @return              The number of (matched) records in the result set
+ * @return A pointer to the matching record, or NULL if there were no matches
  */
-int ipmeta_lookup_single(ipmeta_provider_t *provider,
-             uint32_t addr,
-             ipmeta_record_set_t *records);
+ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
+                                      uint32_t addr);
 
 /** Check if the given provider is enabled already
  *

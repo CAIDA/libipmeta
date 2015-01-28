@@ -1274,6 +1274,12 @@ static void parse_country_cell(void *s, size_t i, void *data)
           tok[0] = '?';
           tok[1] = '?';
         }
+      /* s/au/oc/ */
+      if(tok[0] == 'a' && tok[1] == 'u')
+        {
+          tok[0] = 'o';
+          tok[1] = 'c';
+        }
       state->tmp_country.continent[0] = toupper(tok[0]);
       state->tmp_country.continent[1] = toupper(tok[1]);
       break;

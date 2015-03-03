@@ -454,8 +454,8 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
 	   SEPARATOR				\
 	   "connection-speed"			\
 	   SEPARATOR				\
-     "polygon-ids"                        \
-     SEPARATOR                            \
+           "polygon-ids"                        \
+           SEPARATOR                            \
 	   "asn"				\
 	   SEPARATOR				\
 	   "asn-ip-cnt"				\

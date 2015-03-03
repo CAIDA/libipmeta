@@ -1099,7 +1099,7 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
   return;
 }
 
-inline int ipmeta_provider_maxmind_lookup(ipmeta_provider_t *provider,
+int ipmeta_provider_maxmind_lookup(ipmeta_provider_t *provider,
                                           uint32_t addr, uint8_t mask,
                                           ipmeta_record_set_t *records)
 {
@@ -1107,7 +1107,7 @@ inline int ipmeta_provider_maxmind_lookup(ipmeta_provider_t *provider,
   return ipmeta_provider_lookup_records(provider, addr, mask, records);
 }
 
-inline ipmeta_record_t *ipmeta_provider_maxmind_lookup_single(
+ipmeta_record_t *ipmeta_provider_maxmind_lookup_single(
                                                     ipmeta_provider_t *provider,
                                                     uint32_t addr)
 {

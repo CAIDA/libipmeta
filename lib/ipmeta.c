@@ -467,8 +467,8 @@ void ipmeta_dump_record_header()
   PRINT_RECORD_HEADER(fprintf, stdout);
 }
 
-inline void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
-				char *ip_str, int num_ips)
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
+                         char *ip_str, int num_ips)
 {
   int i;
 

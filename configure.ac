@@ -97,9 +97,11 @@ AC_FUNC_REALLOC
 
 # Checks for libraries.
 # we use libwandio for threaded IO
-AC_SEARCH_LIBS([wandio_create], [wandio trace], ,[AC_MSG_ERROR(
+AC_SEARCH_LIBS([wandio_create], [wandio trace], [with_wandio=yes],
+                 [AC_MSG_ERROR(
 		 [libwandio required (included with libtrace since 3.0.15)]
 		 )])
+AM_CONDITIONAL([WITH_WANDIO], [test "x$with_wandio" == xyes])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h math.h stdlib.h string.h \

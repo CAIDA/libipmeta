@@ -1490,8 +1490,7 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
     case POLYGON_COL_ID:
       /* Polygon id */
       state->tmp_polygon.id = strtoul(tok, &end, 10);
-      if(end == tok || *end != '\0' || errno == ERANGE ||
-	  state->tmp_polygon.id > UINT16_MAX)
+      if(end == tok || *end != '\0' || errno == ERANGE)
 	{
 	  ipmeta_log(__func__, "Invalid Polygon ID Value (%s)", tok);
 	  state->parser.status = CSV_EUSER;

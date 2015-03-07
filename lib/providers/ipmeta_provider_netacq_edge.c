@@ -1726,8 +1726,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
 	  return;
 	}
       state->tmp_na_to_polygon.polygon_ids[table_id] = strtoul(tok, &end, 10);
-      if (end == tok || *end != '\0' || errno == ERANGE ||
-	  state->tmp_na_to_polygon.polygon_ids[table_id] > UINT16_MAX)
+      if (end == tok || *end != '\0' || errno == ERANGE)
 	{
 	  ipmeta_log(__func__, "Invalid Polygon ID Value (%s)", tok);
 	  state->parser.status = CSV_EUSER;

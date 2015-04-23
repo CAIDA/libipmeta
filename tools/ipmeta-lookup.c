@@ -198,7 +198,8 @@ int main(int argc, char **argv)
   while(prevoptind = optind,
 	(opt = getopt(argc, argv, ":c:f:o:p:hv?")) >= 0)
     {
-      if (optind == prevoptind + 2 && *optarg == '-' ) {
+      if (optind == prevoptind + 2 &&
+          optarg && *optarg == '-' && *(optarg+1) != '\0') {
         opt = ':';
         -- optind;
       }

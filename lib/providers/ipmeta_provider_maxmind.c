@@ -382,7 +382,7 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
       if(tok != NULL)
 	{
 	  tmp->metro_code = strtol(tok, &end, 10);
-	  if (end == tok || *end != '\0' || errno == ERANGE)
+	  if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE))
 	    {
 	      ipmeta_log(__func__, "Invalid Metro Value (%s)", tok);
 	      state->parser.status = CSV_EUSER;
@@ -396,7 +396,7 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
       if(tok != NULL)
 	{
 	  tmp->area_code = strtol(tok, &end, 10);
-	  if (end == tok || *end != '\0' || errno == ERANGE)
+	  if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE))
 	    {
 	      ipmeta_log(__func__,
 			  "Invalid Area Code Value (%s)", tok);

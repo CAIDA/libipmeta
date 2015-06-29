@@ -112,8 +112,10 @@ static void lookup(char *addr_str, iow_t *outfile)
 
           if(mask == 32)
             {
-              ipmeta_dump_record(ipmeta_lookup_single(enabled_providers[i],
-                                                      addr), orig_str, 1);
+              ipmeta_write_record(outfile,
+                                  ipmeta_lookup_single(enabled_providers[i],
+                                                       addr),
+                                  orig_str, 1);
             }
           else
             {
@@ -198,7 +200,8 @@ int main(int argc, char **argv)
   while(prevoptind = optind,
 	(opt = getopt(argc, argv, ":c:f:o:p:hv?")) >= 0)
     {
-      if (optind == prevoptind + 2 && *optarg == '-' ) {
+      if (optind == prevoptind + 2 &&
+          optarg && *optarg == '-' && *(optarg+1) != '\0') {
         opt = ':';
         -- optind;
       }

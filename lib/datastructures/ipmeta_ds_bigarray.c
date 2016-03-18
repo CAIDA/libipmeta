@@ -61,7 +61,7 @@ typedef struct ipmeta_ds_bigarray_state
   int lookup_table_cnt;
 
   /** Mapping from IP address to uint32 lookup id (see lookup table) */
-  uint32_t array[UINT32_MAX];
+  uint32_t *array;
 } ipmeta_ds_bigarray_state_t;
 
 ipmeta_ds_t *ipmeta_ds_bigarray_alloc()
@@ -83,6 +83,12 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
     }
 
   /** NEVER support IPv6 :) */
+
+  if((STATE(ds)->array = malloc_zero(sizeof(uint32_t) * UINT32_MAX)) == NULL)
+    {
+      ipmeta_log(__func__, "could not malloc big array. is this a 64bit OS?");
+      return -1;
+    }
 
   if((STATE(ds)->lookup_table = malloc_zero(sizeof(ipmeta_record_t*))) == NULL)
     {

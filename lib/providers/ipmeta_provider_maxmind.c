@@ -156,6 +156,8 @@ static void usage(ipmeta_provider_t *provider)
   fprintf(stderr,
 	  "       -b            blocks file (must be used with -l)\n"
 	  "       -l            locations file (must be used with -b)\n");
+
+  free(names);
 }
 
 

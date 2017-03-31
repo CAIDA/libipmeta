@@ -99,6 +99,8 @@ static void usage(ipmeta_provider_t *provider)
 
   fprintf(stderr,
 	  "       -f            pfx2as file to use for lookups\n");
+
+  free(names);
 }
 
 

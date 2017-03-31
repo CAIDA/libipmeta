@@ -128,7 +128,10 @@ inline ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
 					     ipmeta_provider_id_t id)
 {
   assert(ipmeta != NULL);
-  assert(id > 0 && id <= IPMETA_PROVIDER_MAX);
+  if (id <= 0 || id > IPMETA_PROVIDER_MAX)
+    {
+      return NULL;
+    }
   return ipmeta->providers[id - 1];
 }
 
@@ -151,8 +154,8 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 }
 
 inline int ipmeta_lookup(ipmeta_provider_t *provider,
-			       uint32_t addr, uint8_t mask,
-             ipmeta_record_set_t *records)
+                         uint32_t addr, uint8_t mask,
+                         ipmeta_record_set_t *records)
 {
   assert(provider != NULL && provider->enabled != 0);
 

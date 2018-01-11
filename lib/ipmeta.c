@@ -144,7 +144,7 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
   for(i = 1; i <= IPMETA_PROVIDER_MAX; i++)
     {
       if((provider = ipmeta_get_provider_by_id(ipmeta, i)) != NULL &&
-	 strncasecmp(provider->name, name, strlen(provider->name)) == 0)
+	 strcasecmp(provider->name, name) == 0)
 	{
 	  return provider;
 	}

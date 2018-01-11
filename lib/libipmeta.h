@@ -191,7 +191,7 @@ typedef enum ipmeta_provider_id
  *
  * @return the ipmeta instance created, NULL if an error occurs
  */
-ipmeta_t *ipmeta_init();
+ipmeta_t *ipmeta_init(void);
 
 /** Free a libipmeta instance
  *
@@ -318,7 +318,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
  * @note an interval record set **DOES NOT** contain a unique set of
  * records. Records can (and might) be repeated.
  */
-ipmeta_record_set_t *ipmeta_record_set_init();
+ipmeta_record_set_t *ipmeta_record_set_init(void);
 
 /** Free a record set instance
  *
@@ -381,7 +381,7 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips);
  * Each record field name is written to stdout in pipe-delimited format, and in
  * the same order as the contents are written out when using ipmeta_dump_record.
  */
-void ipmeta_dump_record_header();
+void ipmeta_dump_record_header(void);
 
 /** Write the given metadata record to the given wandio file
  *

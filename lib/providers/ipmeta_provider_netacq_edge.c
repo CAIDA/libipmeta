@@ -407,8 +407,8 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       break;
 
     case LOCATION_COL_CC:
-      if(tok == NULL || strlen(tok) != 2 ||
-         (strlen(tok) == 1 && tok[0] != '?'))
+      if(tok == NULL || (strlen(tok) != 2 &&
+                         (strlen(tok) == 1 && tok[0] != '?')))
 	{
 	  ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
 	  ipmeta_log(__func__,
@@ -423,16 +423,11 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 	  tmp->country_code[0] = 'G';
 	  tmp->country_code[1] = 'B';
 	}
-      /* s/ ** /??/ */
-      else if(tok[0] == '*' && tok[1] == '*')
+      /* s/ ** /??/ and s/?/??/ */
+      else if(tok[0] == '?' ||
+              (tok[0] == '*' && tok[1] == '*'))
         {
           tmp->country_code[0] = '?';
-          tmp->country_code[1] = '?';
-          /* continent code will be 0 */
-        }
-      /* s/?/??/ */
-      else if(tok[0] == '?')
-        {
           tmp->country_code[1] = '?';
           /* continent code will be 0 */
         }

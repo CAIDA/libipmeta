@@ -407,7 +407,8 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       break;
 
     case LOCATION_COL_CC:
-      if(tok == NULL || strlen(tok) != 2)
+      if(tok == NULL || strlen(tok) != 2 ||
+         (strlen(tok) != 1 && tok[0] != '?'))
 	{
 	  ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
 	  ipmeta_log(__func__,

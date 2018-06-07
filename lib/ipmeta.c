@@ -219,6 +219,9 @@ ipmeta_record_set_t *ipmeta_record_set_init()
 void ipmeta_record_set_free(ipmeta_record_set_t **this_p)
 {
   ipmeta_record_set_t *this = *this_p;
+  if (this_p == NULL || this == NULL) {
+    return;
+  }
 
   free(this->records);
   this->records=NULL;

@@ -3,7 +3,7 @@
 Libipmeta it's a library to support the execution of historical and realtime geolocation metadata lookups using Maxmind GeoIP and/or NetAcuity (Digital Element) geolocation databases.
 
 ### Quick Start
-To get started using `libipmeta`, either download the latest release tarball, or clone the GitHub repository.
+To get started using `libipmeta`, either clone or download the contents from the GitHub repository.
 
 You will also need the libcurl and wandio libraries installed before building `libipmeta` (libcurl must be installed prior to building wandio).
 

@@ -1,6 +1,6 @@
 # libipmeta
 
-Libipmeta it's a library to support the execution of historical and realtime geolocation queries using Maxmind and/or Net Acuity geolocation databases.
+Libipmeta it's a library to support the execution of historical and realtime geolocation metadata lookups using Maxmind GeoIP and/or NetAcuity (Digital Element) geolocation databases.
 
 ### Quick Start
 To get started using `libipmeta`, either download the latest release tarball, or clone the GitHub repository.

@@ -10,13 +10,15 @@ You will also need the libcurl and wandio libraries installed before building `l
 #### Step 1. Install Dependencies
 
 ##### Required Libraries
-First, install the following dependencies of wandio using your favorite package manager (see the OS-specific instructions for more details):
+First, install the following dependencies of wandio using your favorite package manager:
 
  * libbz2
  * zlib
  * libcurl (> 7.18.0)
 
+##### Dependencies installation, OS-specific instructions
 **Ubuntu/Debian**
+
 `sudo apt-get install zlib1g-dev libbz2-dev libcurl4-openssl-dev`
 
 Then, install `wandio` as follows:
@@ -49,7 +51,7 @@ Then, depending on your OS, you may need to set LD_LIBRRAY_PATH as follows:
 If required libraries are not in the system library paths, specify their paths when running configure as follows:
 
 `$ ./configure CPPFLAGS='-I/path/to/deps/include' LDFLAGS='-L/path/to/deps/lib'`
-You may test that wandio works by running  $ wandiocat http://google.com
+You may test that wandio works by running `$ wandiocat http://google.com`
 
 #### Step 2. Install `libipmeta` via clone
 

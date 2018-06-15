@@ -59,4 +59,5 @@ You may test that wandio works by running `$ wandiocat http://google.com`
 $ git clone https://github.com/CAIDA/libipmeta.git
 $ cd libipmeta
 $ ./build_latest.sh
+$ make install
 ```

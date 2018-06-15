@@ -1,14 +1,25 @@
-1. Install Dependencies
+# libipmeta
 
-#### Required Libraries
+Libipmeta it's a library to support the execution of historical and realtime geolocation queries using Maxmind and/or Net Acuity geolocation databases.
+
+### Quick Start
+To get started using `libipmeta`, either download the latest release tarball, or clone the GitHub repository.
+
+You will also need the libcurl and wandio libraries installed before building `libipmeta` (libcurl must be installed prior to building wandio).
+
+#### Step 1. Install Dependencies
+
+##### Required Libraries
 First, install the following dependencies of wandio using your favorite package manager (see the OS-specific instructions for more details):
 
  * libbz2
  * zlib
  * libcurl (> 7.18.0)
 
-Then, install `wandio` as follows:
+**Ubuntu/Debian**
+`sudo apt-get install zlib1g-dev libbz2-dev libcurl4-openssl-dev`
 
+Then, install `wandio` as follows:
 ```
 $ mkdir ~/src
 $ cd ~/src/
@@ -40,7 +51,7 @@ If required libraries are not in the system library paths, specify their paths w
 `$ ./configure CPPFLAGS='-I/path/to/deps/include' LDFLAGS='-L/path/to/deps/lib'`
 You may test that wandio works by running  $ wandiocat http://google.com
 
-2. Clone and install libipmeta
+#### Step 2. Install `libipmeta` via clone
 
 ```
 $ git clone https://github.com/CAIDA/libipmeta.git

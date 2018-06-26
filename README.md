@@ -19,7 +19,7 @@ First, install the following dependencies of wandio using your favorite package 
 ##### Dependencies installation, OS-specific instructions
 **Ubuntu/Debian**
 
-`sudo apt-get install zlib1g-dev libbz2-dev libcurl4-openssl-dev`
+`sudo apt-get install zlib1g-dev libbz2-dev libcurl4-openssl-dev libtool`
 
 Then, install `wandio` as follows:
 ```

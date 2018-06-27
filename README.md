@@ -53,11 +53,13 @@ If required libraries are not in the system library paths, specify their paths w
 `$ ./configure CPPFLAGS='-I/path/to/deps/include' LDFLAGS='-L/path/to/deps/lib'`
 You may test that wandio works by running `$ wandiocat http://google.com`
 
-#### Step 2. Install `libipmeta` via clone
+#### Step 2. Install `libipmeta` via clone (initializing submodules)
 
 ```
 $ git clone https://github.com/CAIDA/libipmeta.git
 $ cd libipmeta
+$ git submodule init
+$ git submodule update
 $ ./build_latest.sh
 $ sudo make install
 $ sudo ldconfig

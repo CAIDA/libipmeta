@@ -52,10 +52,10 @@ typedef struct ipmeta_ds_bigarray_state
   /** Temporary hash to map from record id to lookup id */
   khash_t(u32u32) *record_lookup;
 
-  /** Mapping from a uint32 lookup id to a record.
+  /** Mapping from a uint32 lookup id to a list of records (one per provider).
    * @note, 0 is a reserved ID (indicates empty)
    */
-  ipmeta_record_t **lookup_table;
+  ipmeta_record_t ***lookup_table;
 
   /** Number of records in the lookup table */
   int lookup_table_cnt;
@@ -137,6 +137,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 {
   assert(ds != NULL && STATE(ds) != NULL);
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
+  ipmeta_record_t **recarray = NULL;
 
   uint32_t first_addr = ntohl(addr) & (~0UL << (32-mask));
   uint64_t i;
@@ -167,22 +168,27 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 	  return -1;
 	}
 
+      recarray = calloc(IPMETA_PROVIDER_MAX, sizeof(ipmeta_record_t *));
+
       lookup_id = state->lookup_table_cnt;
       /* move on to the next lookup id */
       state->lookup_table_cnt++;
 
       /* store this record in the lookup table */
-      state->lookup_table[lookup_id] = record;
+      state->lookup_table[lookup_id] = recarray;
 
       /* associate this record id with this lookup id */
       khiter = kh_put(u32u32, state->record_lookup, record->id, &khret);
       kh_value(state->record_lookup, khiter) = lookup_id;
+
     }
   else
     {
       lookup_id = kh_value(state->record_lookup, khiter);
+      recarray = state->lookup_table[lookup_id];
     }
 
+  recarray[record->source - 1] = record;
   /* iterate over all ips in this prefix and point them to this index in the
      table */
   for(i=first_addr; i < ((uint64_t)first_addr + (1 << (32 - mask))); i++)
@@ -201,34 +207,57 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
 
   uint64_t total_ips = 1 << (32-mask);
   uint64_t i;
+  int j;
   ipmeta_record_t *rec;
+  ipmeta_record_t **recarray;
 
+  /* This has HORRIBLE performance. Never use bigarray for prefixes! */
   for(i=0; i<total_ips; i++)
     {
-      if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
+      recarray = (ipmeta_record_t **)STATE(ds)->lookup_table[
+                STATE(ds)->array[ntohl(addr)+i]];
+      if(recarray == NULL)
         {
           /* No match */
           continue;
         }
-
-      /* This has HORRIBLE performance. Never use bigarray for prefixes! */
-      if(ipmeta_record_set_add_record(records, rec, 1) != 0)
+      for(j = 0; j < IPMETA_PROVIDER_MAX; j++)
         {
-          return -1;
+          if(ipmeta_record_set_add_record(records, recarray[j], 1) != 0)
+            {
+              return -1;
+            }
         }
     }
 
   return records->n_recs;
 }
 
-ipmeta_record_t *ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
-                                                         uint32_t addr)
+int ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
+                                            uint32_t addr,
+                                            uint32_t providermask,
+                                            ipmeta_record_set_t *found)
 {
-  ipmeta_record_t *rec;
+  ipmeta_record_t **recarray;
+  int i;
 
-  if((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
+  recarray = (ipmeta_record_t **)STATE(ds)->lookup_table[
+      STATE(ds)->array[ntohl(addr)]];
+
+  if(recarray == NULL)
     {
-      return rec;
+      return 0;
     }
-  return NULL;
+
+  for(i=0; i < IPMETA_PROVIDER_MAX; i++)
+    {
+       if ((1 << (i - 1)) & providermask)
+         {
+           if(ipmeta_record_set_add_record(found, recarray[i], 1) != 0)
+             {
+               return -1;
+             }
+         }
+    }
+  return found->n_recs;
 }

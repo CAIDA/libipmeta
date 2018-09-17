@@ -63,6 +63,54 @@ typedef struct ipmeta_record_set ipmeta_record_set_t;
  *
  * @{ */
 
+/** A unique identifier for each metadata provider that libipmeta supports
+ *
+ * @note Remember to add the provider name to provider_names in
+ * ipmeta_providers.c when you add a new provider ID below
+ */
+typedef enum ipmeta_provider_id
+  {
+    /** Geolocation data from Maxmind (Geo or GeoLite) */
+    IPMETA_PROVIDER_MAXMIND      =  1,
+
+    /** Geolocation data from Net Acuity Edge */
+    IPMETA_PROVIDER_NETACQ_EDGE  =  2,
+
+    /** @todo add a netacq-legacy provider */
+
+    /** ASN data from CAIDA pfx2as */
+    IPMETA_PROVIDER_PFX2AS       = 3,
+
+    /** Highest numbered metadata provider ID */
+    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_PFX2AS,
+
+  } ipmeta_provider_id_t;
+
+/** A unique identifier for each metadata ds that libipmeta supports.
+ *
+ * @note When adding a datastructure to this list, there must also be a
+ * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
+ */
+typedef enum ipmeta_ds_id
+  {
+    /** Patricia Trie */
+    IPMETA_DS_PATRICIA      = 1,
+
+    /** Big-Array */
+    IPMETA_DS_BIGARRAY      = 2,
+
+    /** Interval-Tree */
+    IPMETA_DS_INTERVALTREE  = 3,
+
+    /** Highest numbered ds ID */
+    IPMETA_DS_MAX          = IPMETA_DS_INTERVALTREE,
+
+    /** Default Geolocation data-structure */
+    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
+
+  } ipmeta_ds_id_t;
+
+
 /** Structure which contains an IP meta-data record
  *
  * @todo use some sort of key-value record so that we don't have to extend this
@@ -79,6 +127,9 @@ typedef struct ipmeta_record
    * i.e. id's may not be unique across different ipmeta_provider_t objects
    */
   uint32_t id;
+
+  /** The provider that this record came from */
+  ipmeta_provider_id_t source;
 
   /** 2 character string which holds the ISO2 country code */
   char country_code[3];
@@ -162,36 +213,16 @@ typedef enum ipmeta_provider_default
 
   } ipmeta_provider_default_t;
 
-/** A unique identifier for each metadata provider that libipmeta supports
- *
- * @note Remember to add the provider name to provider_names in
- * ipmeta_providers.c when you add a new provider ID below
- */
-typedef enum ipmeta_provider_id
-  {
-    /** Geolocation data from Maxmind (Geo or GeoLite) */
-    IPMETA_PROVIDER_MAXMIND      =  1,
-
-    /** Geolocation data from Net Acuity Edge */
-    IPMETA_PROVIDER_NETACQ_EDGE  =  2,
-
-    /** @todo add a netacq-legacy provider */
-
-    /** ASN data from CAIDA pfx2as */
-    IPMETA_PROVIDER_PFX2AS       = 3,
-
-    /** Highest numbered metadata provider ID */
-    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_PFX2AS,
-
-  } ipmeta_provider_id_t;
-
 /** @} */
 
 /** Initialize a new libipmeta instance
  *
+ * @param The name of the data structure to use for storing prefixes.
+ *        If NULL, the default data structure is used.
+ *
  * @return the ipmeta instance created, NULL if an error occurs
  */
-ipmeta_t *ipmeta_init(void);
+ipmeta_t *ipmeta_init(enum ipmeta_ds_id dstype);
 
 /** Free a libipmeta instance
  *
@@ -254,29 +285,31 @@ ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
 ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 					       const char *name);
 
-/** Look up the given IP prefix using the given provider
+/** Look up the given IP prefix using all known providers
  *
- * @param ipmeta        The ipmeta object associated with the provider
- * @param provider      The provider to perform the lookup with
+ * @param ipmeta        The ipmeta instance to use for the lookup
  * @param addr          The IPv4 network address part to lookup
  *                       (network byte ordering)
  * @param mask          The IPv4 network mask defining the prefix length (0>32)
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup(ipmeta_provider_t *provider, uint32_t addr, uint8_t mask,
+int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
                   ipmeta_record_set_t *records);
 
-/** Look up the given single IP address using the given provider
+/** Look up the given single IP address for a set of providers
  *
- * @param ipmeta        The ipmeta object associated with the provider
- * @param provider      The provider to perform the lookup with
+ * @param ipmeta        The ipmeta instance to use for the lookup
  * @param addr          The address to retrieve the record for
  *                       (network byte ordering)
- * @return A pointer to the matching record, or NULL if there were no matches
+ * @param providermask  A bitmask describing which providers to perform the
+                         lookup with
+ * @param found         Pointer to a record set to use for storing matches
+ * @return The number of providers which we were able to successfully find a
+ *         match for, or -1 if an error occured.
  */
-ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
-                                      uint32_t addr);
+int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
+                        uint32_t providermask, ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already
  *

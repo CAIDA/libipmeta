@@ -56,9 +56,10 @@
   int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,  \
                                           uint32_t addr, uint8_t mask,  \
                                           ipmeta_record_set_t *records); \
-  ipmeta_record_t *ipmeta_provider_##provname##_lookup_single(          \
+  int ipmeta_provider_##provname##_lookup_single(          \
                                                  ipmeta_provider_t *provider, \
-                                                 uint32_t addr);
+                                                 uint32_t addr, \
+                                                 ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * provider API
@@ -139,13 +140,15 @@ struct ipmeta_provider
 
   /** Look up the given single IP address using the given provider
    *
-   * @param ipmeta        The ipmeta object associated with the provider
    * @param provider      The provider to perform the lookup with
    * @param addr          The address to retrieve the record for
    *                       (network byte ordering)
+   * @param found         A pointer to a record set to store the matching
+   *                       record in
    * @return A pointer to the matching record, or NULL if there were no matches
    */
-  ipmeta_record_t *(*lookup_single)(ipmeta_provider_t *provider, uint32_t addr);
+  int (*lookup_single)(ipmeta_provider_t *provider, uint32_t addr,
+                ipmeta_record_set_t *found);
 
   /** }@ */
 
@@ -312,15 +315,16 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
 /** Retrieves the one record that corresponds to the given single IP address
  * using the given provider
  *
- * @param ipmeta        The ipmeta object associated with the provider
  * @param provider      The provider to perform the lookup with
  * @param addr          The address to retrieve the record for
  *                       (network byte ordering)
- * @return A pointer to the matching record, or NULL if there were no matches
+ * @param found         A pointer to a record set to store the found record in
+ * @return The number of successful matches (typically 0 or 1), or -1 if an
+ *         error occurs.
  */
-ipmeta_record_t *ipmeta_provider_lookup_record_single(
-                                                    ipmeta_provider_t *provider,
-                                                    uint32_t addr);
+int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
+                                         uint32_t addr,
+                                         ipmeta_record_set_t *found);
 
  /** }@ */
 

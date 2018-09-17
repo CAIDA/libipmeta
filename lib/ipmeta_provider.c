@@ -65,8 +65,8 @@ typedef ipmeta_provider_t* (*provider_alloc_func_t)();
 static const provider_alloc_func_t provider_alloc_functions[] = {
   NULL,
   ipmeta_provider_maxmind_alloc,
-  ipmeta_provider_netacq_edge_alloc,
-  ipmeta_provider_pfx2as_alloc,
+  NULL, //ipmeta_provider_netacq_edge_alloc,
+  NULL, //ipmeta_provider_pfx2as_alloc,
 };
 
 static void free_record(ipmeta_record_t *record)
@@ -152,6 +152,7 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
 
   /* initialize the record hash */
   provider->all_records = kh_init(ipmeta_rechash);
+  provider->ds = ipmeta->datastore;
 
   if(set_default == IPMETA_PROVIDER_DEFAULT_YES)
     {
@@ -176,11 +177,7 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
  err:
   if(provider != NULL)
     {
-      if(provider->ds != NULL)
-        {
-          provider->ds->free(provider->ds);
-          provider->ds = NULL;
-        }
+      provider->ds = NULL;
       /* do not free the provider as we did not alloc it */
     }
   return -1;
@@ -261,6 +258,7 @@ ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
     }
 
   record->id = id;
+  record->source = provider->id;
 
   assert(kh_get(ipmeta_rechash, provider->all_records, id) ==
 	 kh_end(provider->all_records));
@@ -345,9 +343,10 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
   return provider->ds->lookup_records(provider->ds, addr, mask, records);
 }
 
-ipmeta_record_t *ipmeta_provider_lookup_record_single(
-                                                    ipmeta_provider_t *provider,
-                                                    uint32_t addr)
+int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
+                                         uint32_t addr,
+                                         ipmeta_record_set_t *found)
 {
-  return provider->ds->lookup_record_single(provider->ds, addr);
+  return provider->ds->lookup_record_single(provider->ds, addr,
+        (1 << (provider->id - 1)), found);
 }

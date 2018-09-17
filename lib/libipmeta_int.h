@@ -64,6 +64,8 @@ struct ipmeta
   /** Default metadata provider */
   struct ipmeta_provider *provider_default;
 
+  struct ipmeta_ds *datastore;
+
 };
 
 /** Structure which holds a set of records, returned by a query */

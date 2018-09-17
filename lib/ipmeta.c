@@ -44,10 +44,10 @@
 
 #define SEPARATOR "|"
 
-ipmeta_t *ipmeta_init()
+ipmeta_t *ipmeta_init(enum ipmeta_ds_id dstype)
 {
   ipmeta_t *ipmeta;
-
+  int i;
   ipmeta_log(__func__, "initializing libipmeta");
 
   /* allocate some memory for our state */
@@ -60,6 +60,16 @@ ipmeta_t *ipmeta_init()
   /* allocate the providers */
   if(ipmeta_provider_alloc_all(ipmeta) != 0)
     {
+      free(ipmeta);
+      return NULL;
+    }
+
+  if (ipmeta_ds_init(&(ipmeta->datastore), dstype) != 0)
+    {
+      for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
+        {
+          ipmeta_provider_free(ipmeta, ipmeta->providers[i]);
+        }
       free(ipmeta);
       return NULL;
     }
@@ -79,7 +89,7 @@ void ipmeta_free(ipmeta_t *ipmeta)
     {
       ipmeta_provider_free(ipmeta, ipmeta->providers[i]);
     }
-
+  ipmeta->datastore->free(ipmeta->datastore);
   free(ipmeta);
   return;
 }
@@ -153,21 +163,25 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
   return NULL;
 }
 
-inline int ipmeta_lookup(ipmeta_provider_t *provider,
+inline int ipmeta_lookup(ipmeta_t *ipmeta,
                          uint32_t addr, uint8_t mask,
                          ipmeta_record_set_t *records)
 {
-  assert(provider != NULL && provider->enabled != 0);
+  assert(ipmeta != NULL && records != NULL);
 
   ipmeta_record_set_clear(records);
 
-  return provider->lookup(provider, addr, mask, records);
+  return ipmeta->datastore->lookup_records(ipmeta->datastore, addr, mask,
+                records);
 }
 
-inline ipmeta_record_t *ipmeta_lookup_single(ipmeta_provider_t *provider,
-                                             uint32_t addr)
+inline int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
+                                 uint32_t providermask,
+                                 ipmeta_record_set_t *found)
 {
-  return provider->lookup_single(provider, addr);
+  ipmeta_record_set_clear(found);
+  return ipmeta->datastore->lookup_record_single(ipmeta->datastore,
+                addr, providermask, found);
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)

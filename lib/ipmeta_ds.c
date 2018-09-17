@@ -47,29 +47,28 @@ static const ds_alloc_func_t ds_alloc_functions[] = {
   NULL,
   ipmeta_ds_patricia_alloc,
   ipmeta_ds_bigarray_alloc,
-  ipmeta_ds_intervaltree_alloc
+  NULL, //ipmeta_ds_intervaltree_alloc
 };
 
-int ipmeta_ds_init(ipmeta_provider_t *provider, ipmeta_ds_id_t ds_id)
+int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)
 {
-  assert(provider != NULL && provider->ds == NULL);
   assert(ARR_CNT(ds_alloc_functions) == IPMETA_DS_MAX + 1);
   assert(ds_id > 0 && ds_id <= IPMETA_DS_MAX);
 
   /* malloc some room for the datastructure */
-  if((provider->ds = malloc_zero(sizeof(ipmeta_ds_t))) == NULL)
+  if((*ds = malloc_zero(sizeof(ipmeta_ds_t))) == NULL)
     {
       ipmeta_log(__func__, "could not malloc ipmeta_ds_t");
       return -1;
     }
 
   /* allocate the datastructure */
-  memcpy(provider->ds, ds_alloc_functions[ds_id](), sizeof(ipmeta_ds_t));
+  memcpy(*ds, ds_alloc_functions[ds_id](), sizeof(ipmeta_ds_t));
 
-  assert(provider->ds != NULL);
+  assert(*ds != NULL);
 
   /** init the ds */
-  if(provider->ds->init(provider->ds) != 0)
+  if((*ds)->init(*ds) != 0)
     {
       return -1;
     }
@@ -77,7 +76,7 @@ int ipmeta_ds_init(ipmeta_provider_t *provider, ipmeta_ds_id_t ds_id)
   return 0;
 }
 
-int ipmeta_ds_init_by_name(ipmeta_provider_t *provider, const char *name)
+int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name)
 {
   int i;
   ipmeta_ds_t *tmp_ds;
@@ -92,7 +91,7 @@ int ipmeta_ds_init_by_name(ipmeta_provider_t *provider, const char *name)
 
       if(strcmp(tmp_ds->name, name) == 0)
 	{
-	  return ipmeta_ds_init(provider, i);
+	  return ipmeta_ds_init(ds, i);
 	}
     }
 

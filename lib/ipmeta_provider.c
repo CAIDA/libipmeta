@@ -65,8 +65,8 @@ typedef ipmeta_provider_t* (*provider_alloc_func_t)();
 static const provider_alloc_func_t provider_alloc_functions[] = {
   NULL,
   ipmeta_provider_maxmind_alloc,
-  NULL, //ipmeta_provider_netacq_edge_alloc,
-  NULL, //ipmeta_provider_pfx2as_alloc,
+  ipmeta_provider_netacq_edge_alloc,
+  ipmeta_provider_pfx2as_alloc,
 };
 
 static void free_record(ipmeta_record_t *record)
@@ -204,13 +204,6 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
 
       /* remove the pointer from ipmeta */
       ipmeta->providers[provider->id - 1] = NULL;
-
-      /* free the ds */
-      if(provider->ds != NULL)
-	{
-	  provider->ds->free(provider->ds);
-	  provider->ds = NULL;
-	}
 
       /* free the records hash */
       if(provider->all_records != NULL)

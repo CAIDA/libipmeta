@@ -285,17 +285,18 @@ ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
 ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 					       const char *name);
 
-/** Look up the given IP prefix using all known providers
+/** Look up the given IP prefix using a set of known providers
  *
  * @param ipmeta        The ipmeta instance to use for the lookup
  * @param addr          The IPv4 network address part to lookup
  *                       (network byte ordering)
  * @param mask          The IPv4 network mask defining the prefix length (0>32)
+ * @param provmask	A bitmask indicating which providers should be used
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
 int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
-                  ipmeta_record_set_t *records);
+                  uint32_t provmask, ipmeta_record_set_t *records);
 
 /** Look up the given single IP address for a set of providers
  *
@@ -388,6 +389,16 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
  */
 void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str);
 
+/** Dump the given metadata record set to stdout
+ *
+ * @param this          The record set to dump
+ * @param ip_str        The IP address/prefix string this record was looked up for
+ *
+ * Each record is written in a new line and each record field is pipe-delimited.
+ */
+void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
+		int providerid);
+
 /** Write the given metadata record set to the given wandio file
  *
  * @param record_set    The record set to dump
@@ -398,6 +409,17 @@ void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str);
  */
 void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
                              char *ip_str);
+
+/** Write the given metadata record set to the given wandio file
+ *
+ * @param this          The record set to dump
+ * @param file          The wandio file to write to
+ * @param ip_str        The IP address/prefix string this record was looked up for
+ *
+ * Each record is written in a new line and each record field is pipe-delimited.
+ */
+void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
+                             char *ip_str, int providerid);
 
 /** Dump the given metadata record to stdout
  *

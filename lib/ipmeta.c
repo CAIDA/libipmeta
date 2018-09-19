@@ -165,6 +165,7 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 
 inline int ipmeta_lookup(ipmeta_t *ipmeta,
                          uint32_t addr, uint8_t mask,
+			 uint32_t providermask,
                          ipmeta_record_set_t *records)
 {
   assert(ipmeta != NULL && records != NULL);
@@ -172,7 +173,7 @@ inline int ipmeta_lookup(ipmeta_t *ipmeta,
   ipmeta_record_set_clear(records);
 
   return ipmeta->datastore->lookup_records(ipmeta->datastore, addr, mask,
-                records);
+                providermask, records);
 }
 
 inline int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
@@ -332,6 +333,42 @@ void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
   while ( (rec = ipmeta_record_set_next(record_set, &num_ips)) ) {
     ipmeta_write_record(file, rec, ip_str, num_ips);
   }
+}
+
+void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
+		int provid)
+{
+  ipmeta_record_t *rec;
+  uint32_t num_ips;
+  ipmeta_record_set_rewind(this);
+  int dumped = 0;
+  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
+    if (rec->source != provid) continue;
+    ipmeta_dump_record(rec, ip_str, num_ips);
+    dumped ++;
+  }
+  if (dumped == 0)
+    {
+      ipmeta_dump_record(NULL, ip_str, num_ips);
+    }
+}
+
+void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this,
+		iow_t *file, char *ip_str, int provid)
+{
+  ipmeta_record_t *rec;
+  uint32_t num_ips;
+  ipmeta_record_set_rewind(this);
+  int dumped = 0;
+  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
+    if (rec->source != provid) continue;
+    ipmeta_write_record(file, rec, ip_str, num_ips);
+    dumped ++;
+  }
+  if (dumped == 0)
+    {
+      ipmeta_write_record(file, NULL, ip_str, num_ips);
+    }
 }
 
 #define PRINT_EMPTY_RECORD(function, file, ip_str, num_ips)	\

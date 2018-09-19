@@ -333,7 +333,8 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
                                    uint32_t addr, uint8_t mask,
                                    ipmeta_record_set_t *records)
 {
-  return provider->ds->lookup_records(provider->ds, addr, mask, records);
+  return provider->ds->lookup_records(provider->ds, addr, mask,
+		  (1 << (provider->id - 1)), records);
 }
 
 int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,

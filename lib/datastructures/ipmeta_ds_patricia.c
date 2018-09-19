@@ -76,6 +76,10 @@ int ipmeta_ds_patricia_init(ipmeta_ds_t *ds)
   return 0;
 }
 
+static void free_prefix(void *data) {
+  free(data);
+}
+
 void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
 {
   if(ds == NULL)
@@ -87,7 +91,7 @@ void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
     {
       if(STATE(ds)->trie != NULL)
 	{
-	  Destroy_Patricia(STATE(ds)->trie, NULL);
+	  Destroy_Patricia(STATE(ds)->trie, free_prefix);
 	  STATE(ds)->trie = NULL;
 	}
 
@@ -133,67 +137,161 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds,
   return 0;
 }
 
-int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
-                             ipmeta_record_set_t *records)
+static inline int extract_records_from_pnode(patricia_node_t *node,
+	uint32_t provmask, uint32_t *foundsofar, ipmeta_record_set_t *found,
+	uint8_t ascendallowed)
+{
+  ipmeta_record_t **recfound;
+  while(*foundsofar != provmask && node != NULL)
+    {
+      int i;
+      if(node->prefix == NULL)
+	{
+	  node = node->parent;
+	  continue;
+	}
+	
+      recfound = (ipmeta_record_t **)(node->data);
+      for (i = 0; i < IPMETA_PROVIDER_MAX; i++)
+        {
+          if ((1 << (i) & provmask) == 0)
+            {
+              continue;
+            }
+          if ((1 << (i) & *foundsofar) != 0)
+            {
+              continue;
+            }
+          if (recfound[i] == NULL)
+            {
+              continue;
+            }
+          if(ipmeta_record_set_add_record(found, recfound[i],
+                  (1 << (32 - node->prefix->bitlen))) != 0)
+            {
+              return -1;
+            }
+          *foundsofar |= (1 << (i));
+        }
+      if(!ascendallowed)
+        {
+	  node = NULL;
+        }
+      else
+        {      
+          node = node->parent;
+	}
+    }
+  return 0;
+}
+
+static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
+		uint32_t *foundsofar, ipmeta_record_set_t *records)
+{
+  prefix_t subpfx_a;
+  prefix_t subpfx_b;
+  patricia_node_t *node = NULL;
+  patricia_tree_t *trie = STATE(ds)->trie;
+
+  subpfx_a.family = AF_INET;
+  subpfx_a.ref_count = 0;
+
+  // 1st CIDR half
+  subpfx_a.add.sin.s_addr = pfx.add.sin.s_addr;
+  subpfx_a.bitlen = pfx.bitlen+1;
+
+  node = patricia_search_best2(trie, &subpfx_a, 1);
+  if(node && extract_records_from_pnode(node, provmask, foundsofar, records,
+			  0) < 0)
+       {
+	       ipmeta_log(__func__, "error while extracting records for prefix");
+	       return -1;
+       }      
+  
+  // 2nd CIDR half
+  subpfx_b.family = AF_INET;
+  subpfx_b.ref_count = 0;
+
+  // 1st CIDR half
+  subpfx_b.bitlen = pfx.bitlen+1;
+  subpfx_b.add.sin.s_addr =
+	  htonl(ntohl(subpfx_a.add.sin.s_addr) + (1 << (32-subpfx_a.bitlen)));
+
+  node = patricia_search_best2(trie, &subpfx_b, 1);
+  if(node && extract_records_from_pnode(node, provmask, foundsofar, records,
+			  0) < 0)
+       {
+	       ipmeta_log(__func__, "error while extracting records for prefix");
+	       return -1;
+       }      
+
+  if(*foundsofar == provmask || subpfx_a.bitlen == 32)  
+    {
+       return 0;
+    }
+
+  if(descend_ptree(ds, subpfx_a, provmask, foundsofar, records) < 0)
+    {
+       return -1;
+    }
+  if(descend_ptree(ds, subpfx_b, provmask, foundsofar, records) < 0)
+    {
+       return -1;
+    }
+  return 0;
+}
+
+int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
+                             ipmeta_record_set_t *records, uint32_t *foundsofar)
 {
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;
   int i;
 
-  if((node = patricia_search_best2(trie, &pfx, 1)) != NULL)
+  if(*foundsofar == provmask)
     {
-      /* Found match */
-      ipmeta_record_t **recarray = (ipmeta_record_t **)node->data;
-      for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
-        {
-          if(recarray[i-1] != NULL && ipmeta_record_set_add_record(records,
-              recarray[i-1], 1 << (32-pfx.bitlen)) != 0)
-            {
-              return -1;
-            }
-        }
+       return 0;
     }
-  else if (pfx.bitlen<32)
+
+  node = patricia_search_best2(trie, &pfx, 1);
+
+  if(node && extract_records_from_pnode(node, provmask, foundsofar, records,
+			  1) < 0)
     {
-      // Recursive lookup down the CIDR tree
-      prefix_t subpfx;
-      subpfx.family = AF_INET;
-      subpfx.ref_count = 0;
+      ipmeta_log(__func__, "error while extracting records for prefix");
+      return -1;
+    }      
 
-      subpfx.add.sin.s_addr = pfx.add.sin.s_addr;
-      subpfx.bitlen = pfx.bitlen+1;
+  if(*foundsofar != provmask && pfx.bitlen < 32)
+    {
+       // try looking for more specific prefixes for any providers where we
+       // have no answer, but don't waste time ascending the tree
+       if(descend_ptree(ds, pfx, provmask, foundsofar, records) < 0)
+         {
+            return -1;
+	 }
 
-      // 1st CIDR half
-      if(_patricia_prefix_lookup(ds, subpfx, records) != 0)
-        {
-          return -1;
-        }
-
-      // 2nd CIDR half
-      subpfx.add.sin.s_addr =
-        htonl(ntohl(subpfx.add.sin.s_addr) + (1 << (32-subpfx.bitlen)));
-
-      if(_patricia_prefix_lookup(ds, subpfx, records) != 0)
-        {
-          return -1;
-        }
     }
+
 
   return 0;
 }
 
 int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds,
 				uint32_t addr, uint8_t mask,
+				uint32_t providermask,
                                 ipmeta_record_set_t *records)
 {
   prefix_t pfx;
+  uint32_t foundsofar = 0;
+
   /** @todo make support IPv6 */
   pfx.family = AF_INET;
   pfx.ref_count = 0;
   pfx.add.sin.s_addr = addr;
   pfx.bitlen = mask;
 
-  _patricia_prefix_lookup(ds, pfx, records);
+  _patricia_prefix_lookup(ds, pfx, providermask, records, &foundsofar);
 
   return records->n_recs;
 }
@@ -207,8 +305,7 @@ int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds,
   patricia_node_t *node = NULL;
   prefix_t pfx;
   ipmeta_record_t **recfound;
-  int count = 0;
-  uint32_t foundsofar;
+  uint32_t foundsofar = 0;
 
   /** @todo make support IPv6 */
   pfx.family = AF_INET;
@@ -221,33 +318,10 @@ int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds,
       return 0;
     }
 
-  while(foundsofar != providermask && node != NULL)
+  if(extract_records_from_pnode(node, providermask, &foundsofar, found, 1) < 0)
     {
-      int i;
-      recfound = (ipmeta_record_t **)(node->data);
-      for (i = 0; i < IPMETA_PROVIDER_MAX; i++)
-        {
-          if ((1 << (i - 1) & providermask) == 0)
-            {
-              continue;
-            }
-          if ((1 << (i - 1) & foundsofar) != 0)
-            {
-              continue;
-            }
-          if (recfound[i] == NULL)
-            {
-              continue;
-            }
-
-          if(ipmeta_record_set_add_record(found, recfound[i],
-                  (1 << (node->prefix->bitlen))) != 0)
-            {
-              return -1;
-            }
-          foundsofar |= (1 << (i - 1));
-        }
-      node = node->parent;
+      return -1;
     }
+
   return found->n_recs;
 }

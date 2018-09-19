@@ -472,6 +472,7 @@ static void parse_maxmind_location_row(int c, void *data)
       return;
     }
 
+  state->tmp_record.source = provider->id;
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
   /* done processing the line */

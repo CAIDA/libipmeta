@@ -81,44 +81,34 @@ static void lookup(char *addr_str, iow_t *outfile)
 
   addr = inet_addr(addr_str);
 
+  if(mask == 32)
+  {
+	  ipmeta_lookup_single(ipmeta, addr, providermask, records);
+  }
+  else
+  {
+	  ipmeta_lookup(ipmeta, addr, mask, providermask, records);
+  }
+
   /* look it up using each provider */
-  for(i = 0; i < enabled_providers_cnt; i++)
+  for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
     {
+      if((providermask & (1 << (i))) == 0)    
+        {
+          continue;
+	}
+      
       if(outfile == NULL)
 	{
-	  if(enabled_providers_cnt > 1)
-	    {
-	      fprintf(stdout, "%s|",
-		      ipmeta_get_provider_name(enabled_providers[i]));
-	    }
-
-          if(mask == 32)
-            {
-              ipmeta_lookup_single(ipmeta, addr, providermask, records);
-            }
-          else
-            {
-              ipmeta_lookup(ipmeta, addr, mask, records);
-            }
-          ipmeta_dump_record_set(records, orig_str);
+	  fprintf(stdout, "%s|",ipmeta_get_provider_name(
+				  ipmeta_get_provider_by_id(ipmeta,i+1)));
+          ipmeta_dump_record_set_by_provider(records, orig_str, i+1);
         }
       else
 	{
-	  if(enabled_providers_cnt > 1)
-	    {
-	      wandio_printf(outfile, "%s|",
-			    ipmeta_get_provider_name(enabled_providers[i]));
-	    }
-
-          if(mask == 32)
-            {
-              ipmeta_lookup_single(ipmeta, addr, providermask, records);
-            }
-          else
-            {
-              ipmeta_lookup(ipmeta, addr, mask, records);
-            }
-          ipmeta_write_record_set(records, outfile, orig_str);
+	  wandio_printf(outfile, "%s|",
+	   	ipmeta_get_provider_by_id(ipmeta, i+1));
+          ipmeta_write_record_set_by_provider(records, outfile, orig_str, i+1);
 	}
     }
 

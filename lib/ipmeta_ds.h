@@ -53,6 +53,7 @@
 				 uint8_t mask, ipmeta_record_t *record); \
   int ipmeta_ds_##datastructure##_lookup_records(ipmeta_ds_t *ds,       \
                                                  uint32_t addr, uint8_t mask, \
+						 uint32_t providermask, \
                                                  ipmeta_record_set_t *records); \
   int ipmeta_ds_##datastructure##_lookup_record_single(    \
                                                    ipmeta_ds_t *ds, \
@@ -93,7 +94,7 @@ struct ipmeta_ds
 
   /** Pointer to lookup records function */
   int (*lookup_records)(struct ipmeta_ds *ds,
-                        uint32_t addr, uint8_t mask,
+                        uint32_t addr, uint8_t mask, uint32_t providermask,
                         ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */

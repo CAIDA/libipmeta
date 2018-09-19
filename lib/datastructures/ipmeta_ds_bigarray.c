@@ -84,13 +84,13 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
   /** NEVER support IPv6 :) */
 
-  if((STATE(ds)->array = malloc_zero(sizeof(uint32_t) * UINT32_MAX)) == NULL)
+  if((STATE(ds)->array = malloc_zero(sizeof(uint32_t) * IPMETA_PROVIDER_MAX * UINT32_MAX)) == NULL)
     {
       ipmeta_log(__func__, "could not malloc big array. is this a 64bit OS?");
       return -1;
     }
 
-  if((STATE(ds)->lookup_table = malloc_zero(sizeof(ipmeta_record_t*))) == NULL)
+  if((STATE(ds)->lookup_table = malloc_zero(sizeof(ipmeta_record_t**))) == NULL)
     {
       return -1;
     }
@@ -103,6 +103,7 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
 void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 {
+  uint64_t i;
   if(ds == NULL)
     {
       return;
@@ -112,6 +113,10 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
     {
       if(STATE(ds)->lookup_table != NULL)
 	{
+	  for(i = 0; i < STATE(ds)->lookup_table_cnt; i++)
+	    {
+	      free(STATE(ds)->lookup_table[i]);
+            }	    
 	  free(STATE(ds)->lookup_table);
 	  STATE(ds)->lookup_table = NULL;
 	}
@@ -121,7 +126,7 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 	  kh_destroy(u32u32, STATE(ds)->record_lookup);
 	  STATE(ds)->record_lookup = NULL;
 	}
-
+      free(STATE(ds)->array);
       free(STATE(ds));
       ds->state = NULL;
     }
@@ -130,6 +135,9 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 
   return;
 }
+
+#define LOOKUPINDEX(addr, prov) \
+	(STATE(ds)->array[(addr * IPMETA_PROVIDER_MAX) + (prov - 1)])
 
 int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 				  uint32_t addr, uint8_t mask,
@@ -162,7 +170,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
       /* realloc the lookup table for this record */
       if((state->lookup_table =
 	  realloc(state->lookup_table,
-		  sizeof(ipmeta_record_t*) * (state->lookup_table_cnt+1))
+		  sizeof(ipmeta_record_t**) * (state->lookup_table_cnt+1))
 	  ) == NULL)
 	{
 	  return -1;
@@ -193,7 +201,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
      table */
   for(i=first_addr; i < ((uint64_t)first_addr + (1 << (32 - mask))); i++)
     {
-      state->array[i] = lookup_id;
+      LOOKUPINDEX(i, record->source) = lookup_id;
     }
 
   return 0;
@@ -201,6 +209,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 
 int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
                                       uint32_t addr, uint8_t mask,
+				      uint32_t providermask,
                                       ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
@@ -210,23 +219,23 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   int j;
   ipmeta_record_t *rec;
   ipmeta_record_t **recarray;
+  uint64_t lookupind, arrayind;
 
   /* This has HORRIBLE performance. Never use bigarray for prefixes! */
   for(i=0; i<total_ips; i++)
     {
-      recarray = (ipmeta_record_t **)STATE(ds)->lookup_table[
-                STATE(ds)->array[ntohl(addr)+i]];
-      if(recarray == NULL)
-        {
-          /* No match */
-          continue;
-        }
+      arrayind = ntohl(addr) + i;
       for(j = 0; j < IPMETA_PROVIDER_MAX; j++)
         {
-          if(ipmeta_record_set_add_record(records, recarray[j], 1) != 0)
+          if ((1 << (j)) & providermask)
             {
-              return -1;
-            }
+	       lookupind = LOOKUPINDEX(arrayind, j+1);
+               recarray = (ipmeta_record_t **)(STATE(ds)->lookup_table[lookupind]);	   
+	       if(ipmeta_record_set_add_record(records, recarray[j], 1) != 0)
+                 {
+                   return -1;
+                 }
+	    }
         }
     }
 
@@ -240,24 +249,25 @@ int ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
 {
   ipmeta_record_t **recarray;
   int i;
+  uint64_t lookupind, arrayind;
 
-  recarray = (ipmeta_record_t **)STATE(ds)->lookup_table[
-      STATE(ds)->array[ntohl(addr)]];
-
-  if(recarray == NULL)
-    {
-      return 0;
-    }
-
+  arrayind = ntohl(addr);
   for(i=0; i < IPMETA_PROVIDER_MAX; i++)
     {
-       if ((1 << (i - 1)) & providermask)
-         {
-           if(ipmeta_record_set_add_record(found, recarray[i], 1) != 0)
-             {
-               return -1;
-             }
-         }
+       if(((1 << (i)) & providermask) == 0)
+	 {
+ 	   continue;
+	 }
+       lookupind = LOOKUPINDEX(arrayind, i + 1);
+       if(lookupind == 0)
+	 {
+	   continue;
+	 }
+       recarray = (ipmeta_record_t **)(STATE(ds)->lookup_table[lookupind]);	   
+       if(ipmeta_record_set_add_record(found, recarray[i], 1) != 0)
+       {
+	       return -1;
+       }
     }
   return found->n_recs;
 }

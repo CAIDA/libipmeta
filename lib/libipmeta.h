@@ -389,10 +389,12 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
  */
 void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str);
 
-/** Dump the given metadata record set to stdout
+/** Dump only records sourced from a specific provider in the given metadata
+ *  record set to stdout
  *
  * @param this          The record set to dump
  * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param providerid	The id number of the provider to limit our output to
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
@@ -410,11 +412,13 @@ void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
 void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
                              char *ip_str);
 
-/** Write the given metadata record set to the given wandio file
+/** Write only records sourced from a specific provider in the given metadata
+ *  record set to a wandio file
  *
  * @param this          The record set to dump
  * @param file          The wandio file to write to
  * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param providerid	The id number of the provider to limit our output to
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */

@@ -125,6 +125,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta,
       free(local_args);
     }
 
+  ipmeta->all_provmask |= (1 << (provider->id - 1));
   return rc;
 }
 
@@ -171,6 +172,10 @@ inline int ipmeta_lookup(ipmeta_t *ipmeta,
   assert(ipmeta != NULL && records != NULL);
 
   ipmeta_record_set_clear(records);
+  if(providermask == 0)
+    {
+      providermask = ipmeta->all_provmask;
+    }
 
   return ipmeta->datastore->lookup_records(ipmeta->datastore, addr, mask,
                 providermask, records);
@@ -181,6 +186,10 @@ inline int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
                                  ipmeta_record_set_t *found)
 {
   ipmeta_record_set_clear(found);
+  if(providermask == 0)
+    {
+      providermask = ipmeta->all_provmask;
+    }
   return ipmeta->datastore->lookup_record_single(ipmeta->datastore,
                 addr, providermask, found);
 }

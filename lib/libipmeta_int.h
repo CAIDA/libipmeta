@@ -66,6 +66,8 @@ struct ipmeta
 
   struct ipmeta_ds *datastore;
 
+  uint32_t all_provmask;
+
 };
 
 /** Structure which holds a set of records, returned by a query */

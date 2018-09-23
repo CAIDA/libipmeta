@@ -139,7 +139,7 @@ static void usage(ipmeta_provider_t *provider)
 
   fprintf(stderr,
 	  "provider usage: %s (-l locations -b blocks)|(-d directory)\n"
-	  "       -d            directory containing blocks and location files\n"
+	  "       -d            directory containing blocks and location files\n", provider->name);
   fprintf(stderr,
 	  "       -b            blocks file (must be used with -l)\n"
 	  "       -l            locations file (must be used with -b)\n");

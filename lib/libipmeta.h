@@ -291,7 +291,8 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  * @param addr          The IPv4 network address part to lookup
  *                       (network byte ordering)
  * @param mask          The IPv4 network mask defining the prefix length (0>32)
- * @param provmask	A bitmask indicating which providers should be used
+ * @param provmask	A bitmask indicating which providers should be used.
+ *                       Set to '0' to automatically use all active providers.
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
@@ -304,7 +305,8 @@ int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
  * @param addr          The address to retrieve the record for
  *                       (network byte ordering)
  * @param providermask  A bitmask describing which providers to perform the
-                         lookup with
+                         lookup with. Set to '0' to automatically use all
+                         active providers.
  * @param found         Pointer to a record set to use for storing matches
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.

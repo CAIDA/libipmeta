@@ -301,7 +301,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, "b:c:l:r:p:t:?")) >= 0)
+  while((opt = getopt(argc, argv, "b:c:D:l:r:p:t:?")) >= 0)
     {
       switch(opt)
 	{
@@ -312,6 +312,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 	case 'c':
 	  state->country_file = strdup(optarg);
 	  break;
+
+        case 'D':
+          fprintf(stderr, "WARNING: -D option is no longer supported by individual providers.\n");
+          break;
 
 	case 'l':
 	  state->locations_file = strdup(optarg);

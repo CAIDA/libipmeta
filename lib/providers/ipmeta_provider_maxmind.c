@@ -140,17 +140,6 @@ static void usage(ipmeta_provider_t *provider)
   fprintf(stderr,
 	  "provider usage: %s (-l locations -b blocks)|(-d directory)\n"
 	  "       -d            directory containing blocks and location files\n"
-	  "       -D            datastructure to use. may be one of:\n",
-	  provider->name);
-
-  for(i=0; i<IPMETA_DS_MAX; i++)
-    {
-      fprintf(stderr,
-	      "                      - %s%s\n",
-	      names[i],
-	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
-    }
-
   fprintf(stderr,
 	  "       -b            blocks file (must be used with -l)\n"
 	  "       -l            locations file (must be used with -b)\n");
@@ -188,7 +177,9 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 	case 'b':
 	  state->blocks_file = strdup(optarg);
 	  break;
-
+        case 'D':
+          fprintf(stderr, "WARNING: -D option is no longer supported by individual providers.\n");
+          break;
 	case 'd':
 	  /* no need to dup right now because we will do it later */
 	  directory = optarg;

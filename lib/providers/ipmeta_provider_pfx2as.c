@@ -107,10 +107,13 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while((opt = getopt(argc, argv, ":f:?")) >= 0)
+  while((opt = getopt(argc, argv, ":D:f:?")) >= 0)
     {
       switch(opt)
 	{
+        case 'D':
+          fprintf(stderr, "WARNING: -D option is no longer supported by individual providers.\n");
+          break;
 	case 'f':
 	  state->pfx2as_file = strdup(optarg);
 	  break;

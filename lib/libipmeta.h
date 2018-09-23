@@ -360,6 +360,15 @@ ipmeta_record_set_t *ipmeta_record_set_init(void);
  */
 void ipmeta_record_set_free(ipmeta_record_set_t **record_set_p);
 
+/** Clear a record set instance, without freeing the allocated memory.
+ *
+ * @param this          The record set to clear.
+ *
+ * @note this function allows you to reuse a record set without having
+ * to free and re-initialise a record set instance.
+ */
+void ipmeta_record_set_clear(ipmeta_record_set_t *this);
+
 /** Move the record set iterator pointer to the first element
  *
  * @param record_set    The record set instance

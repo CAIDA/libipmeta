@@ -240,6 +240,17 @@ ipmeta_record_set_t *ipmeta_record_set_init()
   return record_set;
 }
 
+void ipmeta_record_set_clear(ipmeta_record_set_t *record_set)
+{
+  if (record_set == NULL)
+    {
+      return;
+    }
+
+  record_set->n_recs = 0;
+  record_set->_cursor = 0;
+}
+
 void ipmeta_record_set_free(ipmeta_record_set_t **record_set_p)
 {
   ipmeta_record_set_t *record_set = *record_set_p;
@@ -316,11 +327,6 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
   record_set->ip_cnts[record_set->n_recs-1] = num_ips;
 
   return 0;
-}
-
-void ipmeta_record_set_clear(ipmeta_record_set_t *record_set)
-{
-  record_set->n_recs=0;
 }
 
 void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str)

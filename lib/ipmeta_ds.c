@@ -47,7 +47,7 @@ static const ds_alloc_func_t ds_alloc_functions[] = {
   NULL,
   ipmeta_ds_patricia_alloc,
   ipmeta_ds_bigarray_alloc,
-  NULL, //ipmeta_ds_intervaltree_alloc
+  ipmeta_ds_intervaltree_alloc
 };
 
 int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)

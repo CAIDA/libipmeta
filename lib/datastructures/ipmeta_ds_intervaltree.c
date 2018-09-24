@@ -48,6 +48,7 @@ static ipmeta_ds_t ipmeta_ds_intervaltree = {
 typedef struct ipmeta_ds_intervaltree_state
 {
   interval_tree_t *tree;
+  uint8_t providerid;
 
 } ipmeta_ds_intervaltree_state_t;
 
@@ -74,6 +75,7 @@ int ipmeta_ds_intervaltree_init(ipmeta_ds_t *ds)
       ipmeta_log(__func__, "could not malloc interval tree");
       return -1;
     }
+  STATE(ds)->providerid = 0;
 
   return 0;
 }
@@ -117,6 +119,17 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds,
   interval.end = interval.start + (1 << (32-mask)) - 1;
   interval.data = record;
 
+  if (STATE(ds)->providerid == 0)
+    {
+      STATE(ds)->providerid = record->source;
+    }
+  else if (STATE(ds)->providerid != record->source)
+    {
+      ipmeta_log(__func__, "interval tree does not support storing records from multiple providers");
+      ipmeta_log(__func__, "please use a separate ipmeta instance for each provider");
+      return -1;
+    }
+
   if (interval_tree_add_interval(tree, &interval) == -1)
     {
       ipmeta_log(__func__, "could not malloc to insert prefix in interval tree");
@@ -128,6 +141,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds,
 
 int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
                                 uint32_t addr, uint8_t mask,
+                                uint32_t providermask,
                                 ipmeta_record_set_t *records)
 {
   interval_tree_t *tree = STATE(ds)->tree;
@@ -163,12 +177,14 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds,
   return records->n_recs;
 }
 
-ipmeta_record_t *ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds,
-                                                             uint32_t addr)
+int ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds,
+                                                uint32_t addr,
+                                                uint32_t providermask,
+                                                ipmeta_record_set_t *found)
 {
   interval_tree_t *tree = STATE(ds)->tree;
   interval_t interval;
-  int num_matches = 0;
+  int num_matches = 0, i;
   interval_t** matches = NULL;
 
   interval.start = ntohl(addr);
@@ -180,9 +196,16 @@ ipmeta_record_t *ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds,
   /* we only have a single IP! */
   if(num_matches == 0)
     {
-      return NULL;
+      return 0;
+    }
+  for (i = 0; i < num_matches; i++)
+    {
+      if(ipmeta_record_set_add_record(found,
+          (ipmeta_record_t *)(matches[i]->data), 1) != 0)
+        {
+           return -1;
+        }
     }
 
-  assert(num_matches == 1);
-  return matches[0]->data;
+  return found->n_recs;
 }

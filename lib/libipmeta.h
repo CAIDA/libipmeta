@@ -322,19 +322,19 @@ ipmeta_record_set_t *ipmeta_record_set_init(void);
 
 /** Free a record set instance
  *
- * @param this_p        The pointer to the record set instance to free
+ * @param record_set_p  The pointer to the record set instance to free
  */
-void ipmeta_record_set_free(ipmeta_record_set_t **this_p);
+void ipmeta_record_set_free(ipmeta_record_set_t **record_set_p);
 
 /** Move the record set iterator pointer to the first element
  *
- * @param this          The record set instance
+ * @param record_set    The record set instance
  */
-void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
+void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
 
 /** Get the next record in the record set iterator
  *
- * @param this          The record set instance
+ * @param record_set    The record set instance
  * @param[out] num_ips  Pointer to an int set to the number of matched IPs
  *                      (optional)
  *
@@ -343,27 +343,27 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *this);
  * @note an interval record set **DOES NOT** contain a unique set of
  * records. Records can (and might) be repeated.
  */
-ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this,
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
                                         uint32_t *num_ips);
 
 /** Dump the given metadata record set to stdout
  *
- * @param this          The record set to dump
+ * @param record_set    The record set to dump
  * @param ip_str        The IP address/prefix string this record was looked up for
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
-void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str);
+void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str);
 
 /** Write the given metadata record set to the given wandio file
  *
- * @param this          The record set to dump
+ * @param record_set    The record set to dump
  * @param file          The wandio file to write to
  * @param ip_str        The IP address/prefix string this record was looked up for
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
-void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file,
+void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
                              char *ip_str);
 
 /** Dump the given metadata record to stdout

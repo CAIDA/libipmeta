@@ -197,55 +197,55 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
 
 ipmeta_record_set_t *ipmeta_record_set_init()
 {
-  ipmeta_record_set_t *this;
+  ipmeta_record_set_t *record_set;
 
-  if((this = malloc_zero(sizeof(ipmeta_record_set_t))) == NULL)
+  if((record_set = malloc_zero(sizeof(ipmeta_record_set_t))) == NULL)
   {
     ipmeta_log(__func__, "could not malloc ipmeta_record_set_t");
     return NULL;
   }
 
   /* always have space for a single record */
-  if(ipmeta_record_set_add_record(this, NULL, 0) != 0)
+  if(ipmeta_record_set_add_record(record_set, NULL, 0) != 0)
     {
-      free(this);
+      free(record_set);
       return NULL;
     }
-  ipmeta_record_set_clear(this);
+  ipmeta_record_set_clear(record_set);
 
-  return this;
+  return record_set;
 }
 
-void ipmeta_record_set_free(ipmeta_record_set_t **this_p)
+void ipmeta_record_set_free(ipmeta_record_set_t **record_set_p)
 {
-  ipmeta_record_set_t *this = *this_p;
-  if (this_p == NULL || this == NULL) {
+  ipmeta_record_set_t *record_set = *record_set_p;
+  if (record_set_p == NULL || record_set == NULL) {
     return;
   }
 
-  free(this->records);
-  this->records=NULL;
+  free(record_set->records);
+  record_set->records=NULL;
 
-  free(this->ip_cnts);
-  this->ip_cnts=NULL;
+  free(record_set->ip_cnts);
+  record_set->ip_cnts=NULL;
 
-  this->n_recs=0;
-  this->_cursor=0;
-  this->_alloc_size=0;
+  record_set->n_recs=0;
+  record_set->_cursor=0;
+  record_set->_alloc_size=0;
 
-  free(this);
-  *this_p=NULL;
+  free(record_set);
+  *record_set_p=NULL;
 }
 
-void ipmeta_record_set_rewind(ipmeta_record_set_t *this)
+void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set)
 {
-  this->_cursor=0;
+  record_set->_cursor=0;
 }
 
-ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this,
+ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
                                         uint32_t *num_ips)
 {
-  if(this->n_recs<=this->_cursor)
+  if(record_set->n_recs<=record_set->_cursor)
     {
       /* No more records */
       return NULL;
@@ -253,67 +253,69 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *this,
 
   if(num_ips != NULL)
     {
-      *num_ips = this->ip_cnts[this->_cursor];
+      *num_ips = record_set->ip_cnts[record_set->_cursor];
     }
 
-  return this->records[this->_cursor++]; /* Advance head */
+  return record_set->records[record_set->_cursor++]; /* Advance head */
 }
 
-int ipmeta_record_set_add_record(ipmeta_record_set_t *this,
+int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
                                  ipmeta_record_t *rec, int num_ips)
 {
-  this->n_recs++;
+  record_set->n_recs++;
 
   /* Realloc if necessary */
-  if(this->_alloc_size<this->n_recs)
+  if(record_set->_alloc_size<record_set->n_recs)
     {
       /* round n_recs up to next pow 2 */
-      this->_alloc_size = this->n_recs;
-      kroundup32(this->_alloc_size);
+      record_set->_alloc_size = record_set->n_recs;
+      kroundup32(record_set->_alloc_size);
 
-      if((this->records =
-          realloc(this->records,
-                  sizeof(ipmeta_record_t*) * this->_alloc_size)) == NULL)
+      if((record_set->records =
+          realloc(record_set->records,
+                  sizeof(ipmeta_record_t*) * record_set->_alloc_size)) == NULL)
         {
           ipmeta_log(__func__, "could not realloc records in record set");
           return -1;
         }
 
-      if((this->ip_cnts =
-          realloc(this->ip_cnts, sizeof(uint32_t) * this->_alloc_size)) == NULL)
+      if((record_set->ip_cnts =
+          realloc(record_set->ip_cnts,
+                  sizeof(uint32_t) * record_set->_alloc_size)) == NULL)
         {
           ipmeta_log(__func__, "could not realloc ip_cnts in record set");
           return -1;
         }
     }
 
-  this->records[this->n_recs-1] = rec;
-  this->ip_cnts[this->n_recs-1] = num_ips;
+  record_set->records[record_set->n_recs-1] = rec;
+  record_set->ip_cnts[record_set->n_recs-1] = num_ips;
 
   return 0;
 }
 
-void ipmeta_record_set_clear(ipmeta_record_set_t *this)
+void ipmeta_record_set_clear(ipmeta_record_set_t *record_set)
 {
-  this->n_recs=0;
+  record_set->n_recs=0;
 }
 
-void ipmeta_dump_record_set(ipmeta_record_set_t *this, char *ip_str)
+void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str)
 {
   ipmeta_record_t *rec;
   uint32_t num_ips;
-  ipmeta_record_set_rewind(this);
-  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
+  ipmeta_record_set_rewind(record_set);
+  while ( (rec = ipmeta_record_set_next(record_set, &num_ips)) ) {
     ipmeta_dump_record(rec, ip_str, num_ips);
   }
 }
 
-void ipmeta_write_record_set(ipmeta_record_set_t *this, iow_t *file, char *ip_str)
+void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
+                             char *ip_str)
 {
   ipmeta_record_t *rec;
   uint32_t num_ips;
-  ipmeta_record_set_rewind(this);
-  while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
+  ipmeta_record_set_rewind(record_set);
+  while ( (rec = ipmeta_record_set_next(record_set, &num_ips)) ) {
     ipmeta_write_record(file, rec, ip_str, num_ips);
   }
 }

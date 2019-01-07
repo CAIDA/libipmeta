@@ -23,7 +23,6 @@
  *
  */
 
-
 #ifndef __LIBIPMETA_INT_H
 #define __LIBIPMETA_INT_H
 
@@ -32,7 +31,6 @@
 #include "khash.h"
 
 #include "libipmeta.h"
-
 
 /** @file
  *
@@ -53,8 +51,7 @@ KHASH_MAP_INIT_INT(ipmeta_rechash, struct ipmeta_record *)
  * @{ */
 
 /** Structure which holds state for a libipmeta instance */
-struct ipmeta
-{
+struct ipmeta {
 
   /** Array of metadata providers
    * @note index of provider is given by (ipmeta_provider_id_t - 1)
@@ -67,7 +64,6 @@ struct ipmeta
   struct ipmeta_ds *datastore;
 
   uint32_t all_provmask;
-
 };
 
 /** Structure which holds a set of records, returned by a query */
@@ -102,7 +98,5 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
  * @note this function does not actually destroy any memory.
  */
 void ipmeta_record_set_clear(ipmeta_record_set_t *record_set);
-
-
 
 #endif /* __LIBIPMETA_INT_H */

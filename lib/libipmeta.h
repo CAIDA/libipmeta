@@ -23,7 +23,6 @@
  *
  */
 
-
 #ifndef __LIBIPMETA_H
 #define __LIBIPMETA_H
 
@@ -55,7 +54,6 @@ typedef struct ipmeta_ds ipmeta_ds_t;
 /** Opaque struct holding a set of records */
 typedef struct ipmeta_record_set ipmeta_record_set_t;
 
-
 /** @} */
 
 /**
@@ -68,48 +66,45 @@ typedef struct ipmeta_record_set ipmeta_record_set_t;
  * @note Remember to add the provider name to provider_names in
  * ipmeta_providers.c when you add a new provider ID below
  */
-typedef enum ipmeta_provider_id
-  {
-    /** Geolocation data from Maxmind (Geo or GeoLite) */
-    IPMETA_PROVIDER_MAXMIND      =  1,
+typedef enum ipmeta_provider_id {
+  /** Geolocation data from Maxmind (Geo or GeoLite) */
+  IPMETA_PROVIDER_MAXMIND = 1,
 
-    /** Geolocation data from Net Acuity Edge */
-    IPMETA_PROVIDER_NETACQ_EDGE  =  2,
+  /** Geolocation data from Net Acuity Edge */
+  IPMETA_PROVIDER_NETACQ_EDGE = 2,
 
-    /** @todo add a netacq-legacy provider */
+  /** @todo add a netacq-legacy provider */
 
-    /** ASN data from CAIDA pfx2as */
-    IPMETA_PROVIDER_PFX2AS       = 3,
+  /** ASN data from CAIDA pfx2as */
+  IPMETA_PROVIDER_PFX2AS = 3,
 
-    /** Highest numbered metadata provider ID */
-    IPMETA_PROVIDER_MAX          = IPMETA_PROVIDER_PFX2AS,
+  /** Highest numbered metadata provider ID */
+  IPMETA_PROVIDER_MAX = IPMETA_PROVIDER_PFX2AS,
 
-  } ipmeta_provider_id_t;
+} ipmeta_provider_id_t;
 
 /** A unique identifier for each metadata ds that libipmeta supports.
  *
  * @note When adding a datastructure to this list, there must also be a
  * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
  */
-typedef enum ipmeta_ds_id
-  {
-    /** Patricia Trie */
-    IPMETA_DS_PATRICIA      = 1,
+typedef enum ipmeta_ds_id {
+  /** Patricia Trie */
+  IPMETA_DS_PATRICIA = 1,
 
-    /** Big-Array */
-    IPMETA_DS_BIGARRAY      = 2,
+  /** Big-Array */
+  IPMETA_DS_BIGARRAY = 2,
 
-    /** Interval-Tree */
-    IPMETA_DS_INTERVALTREE  = 3,
+  /** Interval-Tree */
+  IPMETA_DS_INTERVALTREE = 3,
 
-    /** Highest numbered ds ID */
-    IPMETA_DS_MAX          = IPMETA_DS_INTERVALTREE,
+  /** Highest numbered ds ID */
+  IPMETA_DS_MAX = IPMETA_DS_INTERVALTREE,
 
-    /** Default Geolocation data-structure */
-    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
+  /** Default Geolocation data-structure */
+  IPMETA_DS_DEFAULT = IPMETA_DS_PATRICIA,
 
-  } ipmeta_ds_id_t;
-
+} ipmeta_ds_id_t;
 
 /** Structure which contains an IP meta-data record
  *
@@ -119,8 +114,7 @@ typedef enum ipmeta_ds_id
  * @note you must update the ipmeta_dump_record and ipmeta_write_record (and
  * related _header functions) functions when making changes to this structure.
  */
-typedef struct ipmeta_record
-{
+typedef struct ipmeta_record {
   /** A unique ID for this record (used to join the Blocks and Locations Files)
    *
    * This should be considered unique only within a single provider type
@@ -192,7 +186,6 @@ typedef struct ipmeta_record
 
 } ipmeta_record_t;
 
-
 /** @} */
 
 /**
@@ -203,15 +196,14 @@ typedef struct ipmeta_record
 /** Should this provider be set to be the default metadata provider
  * @todo make use of this
  */
-typedef enum ipmeta_provider_default
-  {
-    /** This provider should *not* be the default geolocation result */
-    IPMETA_PROVIDER_DEFAULT_NO   = 0,
+typedef enum ipmeta_provider_default {
+  /** This provider should *not* be the default geolocation result */
+  IPMETA_PROVIDER_DEFAULT_NO = 0,
 
-    /** This provider should be the default geolocation result */
-    IPMETA_PROVIDER_DEFAULT_YES  = 1,
+  /** This provider should be the default geolocation result */
+  IPMETA_PROVIDER_DEFAULT_YES = 1,
 
-  } ipmeta_provider_default_t;
+} ipmeta_provider_default_t;
 
 /** @} */
 
@@ -254,10 +246,9 @@ void ipmeta_free(ipmeta_t *ipmeta);
  * have an effect on plugins which make use of the default provider
  * (e.g. corsaro_report).
  */
-int ipmeta_enable_provider(ipmeta_t *ipmeta,
-			   ipmeta_provider_t *provider,
-			   const char *options,
-			   ipmeta_provider_default_t set_default);
+int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
+                           const char *options,
+                           ipmeta_provider_default_t set_default);
 
 /** Retrieve the provider object for the default metadata provider
  *
@@ -274,7 +265,7 @@ ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta);
  * @return the provider object for the given ID, NULL if there are no matches
  */
 ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
-					     ipmeta_provider_id_t id);
+                                             ipmeta_provider_id_t id);
 
 /** Retrieve the provider object for the given provider name
  *
@@ -283,7 +274,7 @@ ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,
  * @return the provider object for the given name, NULL if there are no matches
  */
 ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
-					       const char *name);
+                                               const char *name);
 
 /** Look up the given IP prefix using a set of known providers
  *
@@ -311,8 +302,8 @@ int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.
  */
-int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
-                        uint32_t providermask, ipmeta_record_set_t *found);
+int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr, uint32_t providermask,
+                         ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already
  *
@@ -394,7 +385,8 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
 /** Dump the given metadata record set to stdout
  *
  * @param record_set    The record set to dump
- * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
@@ -404,19 +396,21 @@ void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str);
  *  record set to stdout
  *
  * @param this          The record set to dump
- * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
  * @param providerid	The id number of the provider to limit our output to
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
 void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
-		int providerid);
+                                        int providerid);
 
 /** Write the given metadata record set to the given wandio file
  *
  * @param record_set    The record set to dump
  * @param file          The wandio file to write to
- * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
@@ -428,19 +422,22 @@ void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
  *
  * @param this          The record set to dump
  * @param file          The wandio file to write to
- * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
  * @param providerid	The id number of the provider to limit our output to
  *
  * Each record is written in a new line and each record field is pipe-delimited.
  */
 void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
-                             char *ip_str, int providerid);
+                                         char *ip_str, int providerid);
 
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up for
- * @param num_ips       The number of IPs from the prefix that this record applies to
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
+ * @param num_ips       The number of IPs from the prefix that this record
+ * applies to
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
@@ -457,13 +454,14 @@ void ipmeta_dump_record_header(void);
  *
  * @param file          The wandio file to write to
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up for
+ * @param ip_str        The IP address/prefix string this record was looked up
+ * for
  *
  * Each field in the record is written to the given file in pipe-delimited
  * format (prefixed with the IP string given)
  */
-void ipmeta_write_record(iow_t *file, ipmeta_record_t *record,
-                         char *ip_str, int num_ips);
+void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
+                         int num_ips);
 
 /** Write names of the fields in a record structure to the given wandio file
  *
@@ -486,7 +484,7 @@ void ipmeta_write_record_header(iow_t *file);
  * DO NOT free the records contained in the array.
  */
 int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
-				    ipmeta_record_t ***records);
+                                    ipmeta_record_t ***records);
 
 /**
  * @name Logging functions
@@ -506,7 +504,6 @@ void ipmeta_log(const char *func, const char *format, ...);
  * @name Provider-specific convenience functions
  * @{ */
 
-
 /** Convenience function to retrieve a list of ISO 2 character country codes
  *
  * @param countries[out]   The provided pointer is updated to point to an
@@ -523,11 +520,11 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  *                          array of 2 character continent code strings
  * @return the number of elements in the array
  */
-int ipmeta_provider_maxmind_get_country_continent_list(const char ***continents);
+int ipmeta_provider_maxmind_get_country_continent_list(
+  const char ***continents);
 
 /** Information about a single Net Acuity region */
-typedef struct ipmeta_provider_netacq_edge_region
-{
+typedef struct ipmeta_provider_netacq_edge_region {
   /** A unique code for this region */
   uint32_t code;
 
@@ -543,8 +540,7 @@ typedef struct ipmeta_provider_netacq_edge_region
 } ipmeta_provider_netacq_edge_region_t;
 
 /** Information about a single Net Acuity country */
-typedef struct ipmeta_provider_netacq_edge_country
-{
+typedef struct ipmeta_provider_netacq_edge_country {
   /** A unique code for this country */
   uint32_t code;
 
@@ -572,8 +568,7 @@ typedef struct ipmeta_provider_netacq_edge_country
     library rather than just being in netacq */
 
 /** Information about a single Polygon */
-typedef struct ipmeta_polygon
-{
+typedef struct ipmeta_polygon {
   /** A unique code for this polygon
       (0 is reserved for the "unknown polygon") */
   uint32_t id;
@@ -590,8 +585,7 @@ typedef struct ipmeta_polygon
 } ipmeta_polygon_t;
 
 /** Information about a Polygon table */
-typedef struct ipmeta_polygon_table
-{
+typedef struct ipmeta_polygon_table {
   /** Generated table ID
       (corresponds to the index in the polygon_ids array in a record) */
   uint32_t id;
@@ -618,8 +612,8 @@ typedef struct ipmeta_polygon_table
  * @note This function will return NULL unless regions info has been loaded by
  * using the -r option.
  */
-int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
-		       ipmeta_provider_netacq_edge_region_t ***regions);
+int ipmeta_provider_netacq_edge_get_regions(
+  ipmeta_provider_t *provider, ipmeta_provider_netacq_edge_region_t ***regions);
 
 /** Retrieve a list of Net Acuity country objects
  *
@@ -631,8 +625,9 @@ int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,
  * @note This function will return NULL unless countries info has been loaded by
  * using the -c option.
  */
-int ipmeta_provider_netacq_edge_get_countries(ipmeta_provider_t *provider,
-		        ipmeta_provider_netacq_edge_country_t ***countries);
+int ipmeta_provider_netacq_edge_get_countries(
+  ipmeta_provider_t *provider,
+  ipmeta_provider_netacq_edge_country_t ***countries);
 
 /** Retrieve a list of Polygon table objects
  *
@@ -644,8 +639,8 @@ int ipmeta_provider_netacq_edge_get_countries(ipmeta_provider_t *provider,
  * @note This function will return NULL unless polygon info has been loaded by
  * using the -p option.
  */
-int ipmeta_provider_netacq_edge_get_polygon_tables(ipmeta_provider_t *provider,
-                                              ipmeta_polygon_table_t ***tables);
+int ipmeta_provider_netacq_edge_get_polygon_tables(
+  ipmeta_provider_t *provider, ipmeta_polygon_table_t ***tables);
 
 /** @} */
 

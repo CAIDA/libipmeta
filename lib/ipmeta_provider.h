@@ -23,7 +23,6 @@
  *
  */
 
-
 #ifndef __IPMETA_PROVIDER_H
 #define __IPMETA_PROVIDER_H
 
@@ -42,38 +41,33 @@
 /** Convenience macro to allow provider implementations to retrieve their state
  *  object
  */
-#define IPMETA_PROVIDER_STATE(type, provider) \
-  ((ipmeta_provider_##type##_state_t*)(provider)->state)
+#define IPMETA_PROVIDER_STATE(type, provider)                                  \
+  ((ipmeta_provider_##type##_state_t *)(provider)->state)
 
 /** Convenience macro that defines all the function prototypes for the ipmeta
  * provider API
  */
-#define IPMETA_PROVIDER_GENERATE_PROTOS(provname)			\
-  ipmeta_provider_t * ipmeta_provider_##provname##_alloc();		\
-  int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds,		\
-					int argc, char **argv);         \
-  void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);	\
-  int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,  \
-                                          uint32_t addr, uint8_t mask,  \
-                                          ipmeta_record_set_t *records); \
-  int ipmeta_provider_##provname##_lookup_single(          \
-                                                 ipmeta_provider_t *provider, \
-                                                 uint32_t addr, \
-                                                 ipmeta_record_set_t *found);
+#define IPMETA_PROVIDER_GENERATE_PROTOS(provname)                              \
+  ipmeta_provider_t *ipmeta_provider_##provname##_alloc();                     \
+  int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds, int argc,       \
+                                        char **argv);                          \
+  void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);               \
+  int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,         \
+                                          uint32_t addr, uint8_t mask,         \
+                                          ipmeta_record_set_t *records);       \
+  int ipmeta_provider_##provname##_lookup_single(                              \
+    ipmeta_provider_t *provider, uint32_t addr, ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * provider API
  */
-#define IPMETA_PROVIDER_GENERATE_PTRS(provname)	\
-  ipmeta_provider_##provname##_init,		\
-    ipmeta_provider_##provname##_free,		\
-    ipmeta_provider_##provname##_lookup,	\
-    ipmeta_provider_##provname##_lookup_single,	\
-    0, NULL, NULL, NULL
+#define IPMETA_PROVIDER_GENERATE_PTRS(provname)                                \
+  ipmeta_provider_##provname##_init, ipmeta_provider_##provname##_free,        \
+    ipmeta_provider_##provname##_lookup,                                       \
+    ipmeta_provider_##provname##_lookup_single, 0, NULL, NULL, NULL
 
 /** Structure which represents a metadata provider */
-struct ipmeta_provider
-{
+struct ipmeta_provider {
   /**
    * @name Provider information fields
    *
@@ -110,7 +104,7 @@ struct ipmeta_provider
    * @warning the strings contained in argv will be free'd once this function
    * returns. Ensure you make appropriate copies as needed.
    */
-  int (*init)(struct ipmeta_provider *provider, int argc, char ** argv);
+  int (*init)(struct ipmeta_provider *provider, int argc, char **argv);
 
   /** Shutdown and free provider-specific state for this provider
    *
@@ -148,7 +142,7 @@ struct ipmeta_provider
    * @return A pointer to the matching record, or NULL if there were no matches
    */
   int (*lookup_single)(ipmeta_provider_t *provider, uint32_t addr,
-                ipmeta_record_set_t *found);
+                       ipmeta_record_set_t *found);
 
   /** }@ */
 
@@ -165,7 +159,7 @@ struct ipmeta_provider
   int enabled;
 
   /** A hash of id => record for all allocated records of this provider */
-  khash_t(ipmeta_rechash) *all_records;
+  khash_t(ipmeta_rechash) * all_records;
 
   /** The datastructure that will be used to perform IP => record lookups */
   struct ipmeta_ds *ds;
@@ -203,21 +197,19 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
  * have an effect on plugins which make use of the default provider
  * (e.g. corsaro_report).
  */
-int ipmeta_provider_init(ipmeta_t *ipmeta,
-			 ipmeta_provider_t *provider,
-			 int argc, char **argv,
-			 ipmeta_provider_default_t set_default);
+int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
+                         int argc, char **argv,
+                         ipmeta_provider_default_t set_default);
 
 /** Free the given provider object
  *
  * @param ipmeta          The ipmeta object to remove the provider from
  * @param provider        The provider object to free
  *
- * @note if this provider was the default, there will be *no* default provider set
- * after this function returns
+ * @note if this provider was the default, there will be *no* default provider
+ * set after this function returns
  */
-void ipmeta_provider_free(ipmeta_t *ipmeta,
-			  ipmeta_provider_t *provider);
+void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider);
 
 /** }@ */
 
@@ -234,8 +226,7 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
  * @param provider      The provider to register state for
  * @param state         A pointer to the state object to register
  */
-void ipmeta_provider_register_state(ipmeta_provider_t *provider,
-				    void *state);
+void ipmeta_provider_register_state(ipmeta_provider_t *provider, void *state);
 
 /** Free the state for a provider
  *
@@ -257,7 +248,7 @@ void ipmeta_provider_free_state(ipmeta_provider_t *provider);
  * will be free'd.
  */
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
-					     uint32_t id);
+                                             uint32_t id);
 
 /** Get the metadata record for the given id
  *
@@ -266,8 +257,7 @@ ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
  * @return the corresponding metadata record, NULL if an error occurred
  */
 ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
-					    uint32_t id);
-
+                                            uint32_t id);
 
 /** Register a new prefix to record mapping for the given provider
  *
@@ -279,10 +269,8 @@ ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
  * @return 0 if the prefix is successfully associated with the prefix, -1 if an
  * error occurs
  */
-int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
-				     uint32_t addr,
-				     uint8_t mask,
-				     ipmeta_record_t *record);
+int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
+                                     uint8_t mask, ipmeta_record_t *record);
 
 /** Retrieves the records that correspond to the given prefix from the
  * associated datastructure.
@@ -291,12 +279,12 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
  * @param addr          The network address to retrieve the records for
  *                       (network byte ordering)
  * @param mask          The CIDR network mask component of the prefix
- * @param records       A pointer to the record set structure where to return the matches
+ * @param records       A pointer to the record set structure where to return
+ * the matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
-					       uint32_t addr, uint8_t mask,
-                 ipmeta_record_set_t *records);
+int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+                                   uint8_t mask, ipmeta_record_set_t *records);
 
 /** Retrieves the records that correspond to the given prefix from the
  * associated datastructure.
@@ -308,9 +296,8 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
  * @return            The number of (matched) records in the result set
  *
  */
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
-                                   uint32_t addr, uint8_t mask,
-                                   ipmeta_record_set_t *records);
+int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+                                   uint8_t mask, ipmeta_record_set_t *records);
 
 /** Retrieves the one record that corresponds to the given single IP address
  * using the given provider
@@ -326,6 +313,6 @@ int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
                                          uint32_t addr,
                                          ipmeta_record_set_t *found);
 
- /** }@ */
+/** }@ */
 
 #endif /* __IPMETA_PROVIDER_H */

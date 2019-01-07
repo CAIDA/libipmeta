@@ -52,10 +52,10 @@ typedef struct ipmeta_ds_bigarray_state
   /** Temporary hash to map from record id to lookup id */
   khash_t(u32u32) *record_lookup;
 
-  /** Mapping from a uint32 lookup id to a record.
+  /** Mapping from a uint32 lookup id to a list of records (one per provider).
    * @note, 0 is a reserved ID (indicates empty)
    */
-  ipmeta_record_t **lookup_table;
+  ipmeta_record_t ***lookup_table;
 
   /** Number of records in the lookup table */
   int lookup_table_cnt;
@@ -84,13 +84,13 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
   /** NEVER support IPv6 :) */
 
-  if((STATE(ds)->array = malloc_zero(sizeof(uint32_t) * UINT32_MAX)) == NULL)
+  if((STATE(ds)->array = malloc_zero(sizeof(uint32_t) * IPMETA_PROVIDER_MAX * UINT32_MAX)) == NULL)
     {
       ipmeta_log(__func__, "could not malloc big array. is this a 64bit OS?");
       return -1;
     }
 
-  if((STATE(ds)->lookup_table = malloc_zero(sizeof(ipmeta_record_t*))) == NULL)
+  if((STATE(ds)->lookup_table = malloc_zero(sizeof(ipmeta_record_t**))) == NULL)
     {
       return -1;
     }
@@ -103,6 +103,7 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
 void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 {
+  uint64_t i;
   if(ds == NULL)
     {
       return;
@@ -112,6 +113,10 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
     {
       if(STATE(ds)->lookup_table != NULL)
 	{
+	  for(i = 0; i < STATE(ds)->lookup_table_cnt; i++)
+	    {
+	      free(STATE(ds)->lookup_table[i]);
+            }	    
 	  free(STATE(ds)->lookup_table);
 	  STATE(ds)->lookup_table = NULL;
 	}
@@ -121,7 +126,7 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 	  kh_destroy(u32u32, STATE(ds)->record_lookup);
 	  STATE(ds)->record_lookup = NULL;
 	}
-
+      free(STATE(ds)->array);
       free(STATE(ds));
       ds->state = NULL;
     }
@@ -131,12 +136,16 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
   return;
 }
 
+#define LOOKUPINDEX(addr, prov) \
+	(STATE(ds)->array[(addr * IPMETA_PROVIDER_MAX) + (prov - 1)])
+
 int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 				  uint32_t addr, uint8_t mask,
 				  ipmeta_record_t *record)
 {
   assert(ds != NULL && STATE(ds) != NULL);
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
+  ipmeta_record_t **recarray = NULL;
 
   uint32_t first_addr = ntohl(addr) & (~0UL << (32-mask));
   uint64_t i;
@@ -161,33 +170,38 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
       /* realloc the lookup table for this record */
       if((state->lookup_table =
 	  realloc(state->lookup_table,
-		  sizeof(ipmeta_record_t*) * (state->lookup_table_cnt+1))
+		  sizeof(ipmeta_record_t**) * (state->lookup_table_cnt+1))
 	  ) == NULL)
 	{
 	  return -1;
 	}
+
+      recarray = calloc(IPMETA_PROVIDER_MAX, sizeof(ipmeta_record_t *));
 
       lookup_id = state->lookup_table_cnt;
       /* move on to the next lookup id */
       state->lookup_table_cnt++;
 
       /* store this record in the lookup table */
-      state->lookup_table[lookup_id] = record;
+      state->lookup_table[lookup_id] = recarray;
 
       /* associate this record id with this lookup id */
       khiter = kh_put(u32u32, state->record_lookup, record->id, &khret);
       kh_value(state->record_lookup, khiter) = lookup_id;
+
     }
   else
     {
       lookup_id = kh_value(state->record_lookup, khiter);
+      recarray = state->lookup_table[lookup_id];
     }
 
+  recarray[record->source - 1] = record;
   /* iterate over all ips in this prefix and point them to this index in the
      table */
   for(i=first_addr; i < ((uint64_t)first_addr + (1 << (32 - mask))); i++)
     {
-      state->array[i] = lookup_id;
+      LOOKUPINDEX(i, record->source) = lookup_id;
     }
 
   return 0;
@@ -195,40 +209,64 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds,
 
 int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
                                       uint32_t addr, uint8_t mask,
+				      uint32_t providermask,
                                       ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
 
   uint64_t total_ips = 1 << (32-mask);
   uint64_t i;
-  ipmeta_record_t *rec;
+  int j;
+  ipmeta_record_t **recarray;
+  uint64_t lookupind, arrayind;
 
+  /* This has HORRIBLE performance. Never use bigarray for prefixes! */
   for(i=0; i<total_ips; i++)
     {
-      if ((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)+i]])==NULL)
+      arrayind = ntohl(addr) + i;
+      for(j = 0; j < IPMETA_PROVIDER_MAX; j++)
         {
-          /* No match */
-          continue;
-        }
-
-      /* This has HORRIBLE performance. Never use bigarray for prefixes! */
-      if(ipmeta_record_set_add_record(records, rec, 1) != 0)
-        {
-          return -1;
+          if ((1 << (j)) & providermask)
+            {
+	       lookupind = LOOKUPINDEX(arrayind, j+1);
+               recarray = (ipmeta_record_t **)(STATE(ds)->lookup_table[lookupind]);	   
+	       if(ipmeta_record_set_add_record(records, recarray[j], 1) != 0)
+                 {
+                   return -1;
+                 }
+	    }
         }
     }
 
   return records->n_recs;
 }
 
-ipmeta_record_t *ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
-                                                         uint32_t addr)
+int ipmeta_ds_bigarray_lookup_record_single(ipmeta_ds_t *ds,
+                                            uint32_t addr,
+                                            uint32_t providermask,
+                                            ipmeta_record_set_t *found)
 {
-  ipmeta_record_t *rec;
+  ipmeta_record_t **recarray;
+  int i;
+  uint64_t lookupind, arrayind;
 
-  if((rec = STATE(ds)->lookup_table[STATE(ds)->array[ntohl(addr)]])!=NULL)
+  arrayind = ntohl(addr);
+  for(i=0; i < IPMETA_PROVIDER_MAX; i++)
     {
-      return rec;
+       if(((1 << (i)) & providermask) == 0)
+	 {
+ 	   continue;
+	 }
+       lookupind = LOOKUPINDEX(arrayind, i + 1);
+       if(lookupind == 0)
+	 {
+	   continue;
+	 }
+       recarray = (ipmeta_record_t **)(STATE(ds)->lookup_table[lookupind]);	   
+       if(ipmeta_record_set_add_record(found, recarray[i], 1) != 0)
+       {
+	       return -1;
+       }
     }
-  return NULL;
+  return found->n_recs;
 }

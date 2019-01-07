@@ -70,8 +70,6 @@ static ipmeta_provider_t ipmeta_provider_maxmind = {
 
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_maxmind_state {
-  /* datastructure name */
-  char *ds_name;
 
   /* info extracted from args */
   char *locations_file;
@@ -135,29 +133,12 @@ typedef enum blocks_cols {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
-  int i;
-  const char **names = ipmeta_ds_get_all();
-  assert(names != NULL);
-
   fprintf(stderr,
 	  "provider usage: %s (-l locations -b blocks)|(-d directory)\n"
 	  "       -d            directory containing blocks and location files\n"
-	  "       -D            datastructure to use. may be one of:\n",
-	  provider->name);
-
-  for(i=0; i<IPMETA_DS_MAX; i++)
-    {
-      fprintf(stderr,
-	      "                      - %s%s\n",
-	      names[i],
-	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
-    }
-
-  fprintf(stderr,
 	  "       -b            blocks file (must be used with -l)\n"
-	  "       -l            locations file (must be used with -b)\n");
-
-  free(names);
+	  "       -l            locations file (must be used with -b)\n",
+          provider->name);
 }
 
 
@@ -190,14 +171,12 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 	case 'b':
 	  state->blocks_file = strdup(optarg);
 	  break;
-
+        case 'D':
+          fprintf(stderr, "WARNING: -D option is no longer supported by individual providers.\n");
+          break;
 	case 'd':
 	  /* no need to dup right now because we will do it later */
 	  directory = optarg;
-	  break;
-
-	case 'D':
-	  state->ds_name = strdup(optarg);
 	  break;
 
 	case 'l':
@@ -478,6 +457,7 @@ static void parse_maxmind_location_row(int c, void *data)
       return;
     }
 
+  state->tmp_record.source = provider->id;
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
   /* done processing the line */
@@ -980,26 +960,6 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider,
       return -1;
     }
 
-  /* initialize the datastructure */
-  if(state->ds_name == NULL)
-    {
-      if(ipmeta_ds_init(provider, IPMETA_DS_DEFAULT) != 0)
-	{
-	  ipmeta_log(__func__, "could not initialize datastructure");
-	  goto err;
-	}
-    }
-  else
-    {
-      if(ipmeta_ds_init_by_name(provider, state->ds_name) != 0)
-	{
-	  ipmeta_log(__func__, "could not initialize datastructure");
-	  fprintf(stderr, "ERROR: Check datastructure name (%s)\n",
-		  state->ds_name);
-	  goto err;
-	}
-    }
-
   assert(state->locations_file != NULL && state->blocks_file != NULL);
 
   /* populate the country2continent hash */
@@ -1072,12 +1032,6 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   if(state != NULL)
     {
-      if (state->ds_name != NULL)
-        {
-          free(state->ds_name);
-          state->ds_name = NULL;
-        }
-
       if(state->locations_file != NULL)
 	{
 	  free(state->locations_file);
@@ -1109,12 +1063,12 @@ int ipmeta_provider_maxmind_lookup(ipmeta_provider_t *provider,
   return ipmeta_provider_lookup_records(provider, addr, mask, records);
 }
 
-ipmeta_record_t *ipmeta_provider_maxmind_lookup_single(
-                                                    ipmeta_provider_t *provider,
-                                                    uint32_t addr)
+int ipmeta_provider_maxmind_lookup_single(ipmeta_provider_t *provider,
+                                          uint32_t addr,
+                                          ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record_single(provider, addr);
+  return ipmeta_provider_lookup_record_single(provider, addr, found);
 }
 
 /* ========== HELPER FUNCTIONS ========== */

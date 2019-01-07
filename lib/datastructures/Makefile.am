@@ -36,10 +36,10 @@ include_HEADERS =
 libipmeta_datastructures_la_SOURCES = 	\
 	ipmeta_ds_bigarray.c	\
 	ipmeta_ds_bigarray.h	\
-	ipmeta_ds_patricia.c 	\
-	ipmeta_ds_patricia.h	\
 	ipmeta_ds_intervaltree.c	\
-	ipmeta_ds_intervaltree.h
+	ipmeta_ds_intervaltree.h	\
+	ipmeta_ds_patricia.c 	\
+	ipmeta_ds_patricia.h	
 
 libipmeta_datastructures_la_LIBADD =
 

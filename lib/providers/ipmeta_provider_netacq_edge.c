@@ -75,8 +75,6 @@ typedef struct na_to_polygon
 
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_netacq_edge_state {
-  /* datastructure name */
-  char *ds_name;
 
   /* info extracted from args */
   char *locations_file;
@@ -265,25 +263,12 @@ typedef enum na_to_polygon_cols {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
-  int i;
-  const char **names = ipmeta_ds_get_all();
-  assert(names != NULL);
-
   fprintf(stderr,
 	  "provider usage: %s -l locations -b blocks\n"
 	  "       -b            blocks file (must be used with -l)\n"
-	  "       -c            country decode file\n"
-	  "       -D            datastructure to use. may be one of:\n",
+	  "       -c            country decode file\n",
 	  provider->name);
 
-
-  for(i=0; i<IPMETA_DS_MAX; i++)
-    {
-      fprintf(stderr,
-	      "                      - %s%s\n",
-	      names[i],
-	      (i+1 == IPMETA_DS_DEFAULT) ? " (default)" : "");
-    }
 
   fprintf(stderr,
 	  "       -l            locations file (must be used with -b)\n"
@@ -293,7 +278,6 @@ static void usage(ipmeta_provider_t *provider)
           "                       (can be used up to %d times to specify multiple tables)\n",
           POLYGON_FILE_CNT_MAX);
 
-  free(names);
 }
 
 
@@ -329,9 +313,9 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 	  state->country_file = strdup(optarg);
 	  break;
 
-	case 'D':
-	  state->ds_name = strdup(optarg);
-	  break;
+        case 'D':
+          fprintf(stderr, "WARNING: -D option is no longer supported by individual providers.\n");
+          break;
 
 	case 'l':
 	  state->locations_file = strdup(optarg);
@@ -609,6 +593,7 @@ static void parse_netacq_edge_location_row(int c, void *data)
       return;
     }
 
+  state->tmp_record.source = provider->id;
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
   /* tag with polygon id, if there is a match in the netacq2polygons table */
@@ -1915,26 +1900,6 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider,
       return -1;
     }
 
-  /* initialize the datastructure */
-  if(state->ds_name == NULL)
-    {
-      if(ipmeta_ds_init(provider, IPMETA_DS_DEFAULT) != 0)
-	{
-	  ipmeta_log(__func__, "could not initialize datastructure");
-	  goto err;
-	}
-    }
-  else
-    {
-      if(ipmeta_ds_init_by_name(provider, state->ds_name) != 0)
-	{
-	  ipmeta_log(__func__, "could not initialize datastructure");
-	  fprintf(stderr, "ERROR: Check datastructure name (%s)\n",
-		  state->ds_name);
-	  goto err;
-	}
-    }
-
   assert(state->locations_file != NULL && state->blocks_file != NULL);
 
   /* if provided, open the region decode file and populate the lookup arrays */
@@ -2103,12 +2068,6 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 
   if(state != NULL)
     {
-      if (state->ds_name != NULL)
-        {
-          free(state->ds_name);
-          state->ds_name = NULL;
-        }
-
       free(state->locations_file);
       state->locations_file = NULL;
 
@@ -2220,12 +2179,12 @@ int ipmeta_provider_netacq_edge_lookup(
   return ipmeta_provider_lookup_records(provider, addr, mask, records);
 }
 
-ipmeta_record_t *ipmeta_provider_netacq_edge_lookup_single(
-                                                    ipmeta_provider_t *provider,
-                                                    uint32_t addr)
+int ipmeta_provider_netacq_edge_lookup_single(ipmeta_provider_t *provider,
+                                              uint32_t addr,
+					      ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record_single(provider, addr);
+  return ipmeta_provider_lookup_record_single(provider, addr, found);
 }
 
 int ipmeta_provider_netacq_edge_get_regions(ipmeta_provider_t *provider,

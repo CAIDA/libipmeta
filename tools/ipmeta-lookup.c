@@ -49,6 +49,7 @@
 #define DEFAULT_COMPRESS_LEVEL 6
 
 ipmeta_t *ipmeta = NULL;
+uint32_t providermask = 0;
 ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 char *provider_prefixes[IPMETA_PROVIDER_MAX];
 int enabled_providers_cnt = 0;
@@ -80,48 +81,34 @@ static void lookup(char *addr_str, iow_t *outfile)
 
   addr = inet_addr(addr_str);
 
+  if(mask == 32)
+  {
+	  ipmeta_lookup_single(ipmeta, addr, providermask, records);
+  }
+  else
+  {
+	  ipmeta_lookup(ipmeta, addr, mask, providermask, records);
+  }
+
   /* look it up using each provider */
-  for(i = 0; i < enabled_providers_cnt; i++)
+  for(i = 0; i < IPMETA_PROVIDER_MAX; i++)
     {
+      if((providermask & (1 << (i))) == 0)    
+        {
+          continue;
+	}
+      
       if(outfile == NULL)
 	{
-	  if(enabled_providers_cnt > 1)
-	    {
-	      fprintf(stdout, "%s|",
-		      ipmeta_get_provider_name(enabled_providers[i]));
-	    }
-
-          if(mask == 32)
-            {
-              ipmeta_dump_record(ipmeta_lookup_single(enabled_providers[i],
-                                                      addr), orig_str, 1);
-            }
-          else
-            {
-              ipmeta_lookup(enabled_providers[i], addr, mask, records);
-              ipmeta_dump_record_set(records, orig_str);
-            }
+	  fprintf(stdout, "%s|",ipmeta_get_provider_name(
+				  ipmeta_get_provider_by_id(ipmeta,i+1)));
+          ipmeta_dump_record_set_by_provider(records, orig_str, i+1);
         }
       else
 	{
-	  if(enabled_providers_cnt > 1)
-	    {
-	      wandio_printf(outfile, "%s|",
-			    ipmeta_get_provider_name(enabled_providers[i]));
-	    }
-
-          if(mask == 32)
-            {
-              ipmeta_write_record(outfile,
-                                  ipmeta_lookup_single(enabled_providers[i],
-                                                       addr),
-                                  orig_str, 1);
-            }
-          else
-            {
-              ipmeta_lookup(enabled_providers[i], addr, mask, records);
-              ipmeta_write_record_set(records, outfile, orig_str);
-            }
+	  wandio_printf(outfile, "%s|",
+	   	ipmeta_get_provider_by_id(ipmeta, i+1));
+          ipmeta_write_record_set_by_provider(records, outfile, orig_str, i+1);
 	}
     }
 
@@ -137,6 +124,8 @@ static void usage(const char *name)
   fprintf(stderr,
 	  "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f iplist]|[ip1 ip2...ipN]\n"
 	  "       -c <level>    the compression level to use (default: %d)\n"
+          "       -d <struct>   data structure to use for storing prefixes\n"
+          "                     (default: patricia)\n"
 	  "       -f <iplist>   perform lookups on IP addresses listed in "
 	  "the given file\n"
 	  "       -h            write out a header row with field names\n"
@@ -186,19 +175,14 @@ int main(int argc, char **argv)
   int compress_level = DEFAULT_COMPRESS_LEVEL;
   char *outfile_name = NULL;
   iow_t *outfile = NULL;
-
-  /* this must be called before usage is called */
-  if((ipmeta = ipmeta_init()) == NULL)
-    {
-      fprintf(stderr, "could not initialize libipmeta\n");
-      goto quit;
-    }
+  char *ds_name = NULL;
+  ipmeta_ds_id_t dstype = IPMETA_DS_DEFAULT;
 
   /* initialize the providers array to NULL first */
   memset(providers, 0, sizeof(char*)*IPMETA_PROVIDER_MAX);
 
   while(prevoptind = optind,
-	(opt = getopt(argc, argv, ":c:f:o:p:hv?")) >= 0)
+	(opt = getopt(argc, argv, ":D:c:f:o:p:hv?")) >= 0)
     {
       if (optind == prevoptind + 2 &&
           optarg && *optarg == '-' && *(optarg+1) != '\0') {
@@ -210,6 +194,10 @@ int main(int argc, char **argv)
 	case 'c':
 	  compress_level = atoi(optarg);
 	  break;
+
+        case 'D':
+          ds_name = optarg;
+          break;
 
 	case 'f':
 	  ip_file = strdup(optarg);
@@ -247,6 +235,30 @@ int main(int argc, char **argv)
 	  usage(argv[0]);
 	  goto quit;
 	}
+    }
+
+  if(ds_name != NULL)
+    {
+      if(strcasecmp(ds_name, "bigarray") == 0)
+        {
+          dstype = IPMETA_DS_BIGARRAY;
+        }
+      else if(strcasecmp(ds_name, "patricia") == 0)
+        {
+          dstype = IPMETA_DS_PATRICIA;
+        }
+      else
+        {
+          fprintf(stderr, "unknown data structure type %s, falling back to default\n", ds_name);
+        }
+    }
+
+
+  /* this must be called before usage is called */
+  if((ipmeta = ipmeta_init(dstype)) == NULL)
+    {
+      fprintf(stderr, "could not initialize libipmeta\n");
+      goto quit;
     }
 
   /* store the value of the last index*/
@@ -324,7 +336,7 @@ int main(int argc, char **argv)
 	  usage(argv[0]);
 	  goto quit;
 	}
-
+      providermask |= (1 << (ipmeta_get_provider_id(provider) - 1));
       enabled_providers[enabled_providers_cnt++] = provider;
     }
 

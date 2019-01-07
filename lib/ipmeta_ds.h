@@ -27,6 +27,7 @@
 #define __IPMETA_DS_H
 
 #include "libipmeta_int.h"
+#include "libipmeta.h"
 
 /** @file
  *
@@ -52,10 +53,13 @@
 				 uint8_t mask, ipmeta_record_t *record); \
   int ipmeta_ds_##datastructure##_lookup_records(ipmeta_ds_t *ds,       \
                                                  uint32_t addr, uint8_t mask, \
+						 uint32_t providermask, \
                                                  ipmeta_record_set_t *records); \
-  ipmeta_record_t *ipmeta_ds_##datastructure##_lookup_record_single(    \
-                                                              ipmeta_ds_t *ds, \
-                                                              uint32_t addr);
+  int ipmeta_ds_##datastructure##_lookup_record_single(    \
+                                                   ipmeta_ds_t *ds, \
+                                                   uint32_t addr, \
+                                                   uint32_t providermask, \
+                                                   ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * datastructure API
@@ -67,29 +71,6 @@
     ipmeta_ds_##datastructure##_lookup_records, \
     ipmeta_ds_##datastructure##_lookup_record_single,
 
-/** A unique identifier for each metadata ds that libipmeta supports.
- *
- * @note When adding a datastructure to this list, there must also be a
- * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
- */
-typedef enum ipmeta_ds_id
-  {
-    /** Patricia Trie */
-    IPMETA_DS_PATRICIA      = 1,
-
-    /** Big-Array */
-    IPMETA_DS_BIGARRAY      = 2,
-
-    /** Interval-Tree */
-    IPMETA_DS_INTERVALTREE  = 3,
-
-    /** Highest numbered ds ID */
-    IPMETA_DS_MAX          = IPMETA_DS_INTERVALTREE,
-
-    /** Default Geolocation data-structure */
-    IPMETA_DS_DEFAULT      = IPMETA_DS_PATRICIA,
-
-  } ipmeta_ds_id_t;
 
 /** Structure which represents a metadata datastructure */
 struct ipmeta_ds
@@ -113,12 +94,14 @@ struct ipmeta_ds
 
   /** Pointer to lookup records function */
   int (*lookup_records)(struct ipmeta_ds *ds,
-                        uint32_t addr, uint8_t mask,
+                        uint32_t addr, uint8_t mask, uint32_t providermask,
                         ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */
-  ipmeta_record_t *(*lookup_record_single)(struct ipmeta_ds *ds,
-                                           uint32_t addr);
+  int (*lookup_record_single)(struct ipmeta_ds *ds,
+                                           uint32_t addr,
+                                           uint32_t providermask,
+                                           ipmeta_record_set_t *found);
 
   /** Pointer to a instance-specific state object */
   void *state;
@@ -131,7 +114,7 @@ struct ipmeta_ds
  * @param ds_id         id of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */
-int ipmeta_ds_init(struct ipmeta_provider *provider, enum ipmeta_ds_id ds_id);
+int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id);
 
 /** Search for a datastructure with the given name and then initialize it
  *
@@ -139,7 +122,7 @@ int ipmeta_ds_init(struct ipmeta_provider *provider, enum ipmeta_ds_id ds_id);
  * @param name          name of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */
-int ipmeta_ds_init_by_name(ipmeta_provider_t *provider, const char *name);
+int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name);
 
 /** Get an array of all available datastructure names
  *

@@ -64,6 +64,10 @@ struct ipmeta
   /** Default metadata provider */
   struct ipmeta_provider *provider_default;
 
+  struct ipmeta_ds *datastore;
+
+  uint32_t all_provmask;
+
 };
 
 /** Structure which holds a set of records, returned by a query */
@@ -82,22 +86,22 @@ struct ipmeta_record_set {
 /** Add a record to a record set. If necessary the internal structures will be
  * realloc'd (only enlarging, never shrinking)
  *
- * @param this          The record set instance to add the record to
- * @param rec 		The record to add
+ * @param record_set    The record set instance to add the record to
+ * @param rec           The record to add
  * @param num_ips       The number of IPs matched in this record
  *
  * @return 0 if insertion was successful, or -1 if realloc failed
  */
-int ipmeta_record_set_add_record(ipmeta_record_set_t *this,
+int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
                                  ipmeta_record_t *rec, int num_ips);
 
 /** Empties the set.
  *
- * @param this          The record set instance to clear the records for
+ * @param record_set    The record set instance to clear the records for
  *
  * @note this function does not actually destroy any memory.
  */
-void ipmeta_record_set_clear(ipmeta_record_set_t *this);
+void ipmeta_record_set_clear(ipmeta_record_set_t *record_set);
 
 
 

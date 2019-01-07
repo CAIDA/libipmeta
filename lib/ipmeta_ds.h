@@ -40,41 +40,35 @@
 /** Convenience macro to allow datastructure implementations to retrieve their
  *  state object
  */
-#define IPMETA_DS_STATE(type, ds) ((ipmeta_ds_##type##_state_t*)(ds)->state)
+#define IPMETA_DS_STATE(type, ds) ((ipmeta_ds_##type##_state_t *)(ds)->state)
 
 /** Convenience macro that defines all the function prototypes for the ipmeta
  * datastructure API
  */
-#define IPMETA_DS_GENERATE_PROTOS(datastructure)			\
-  ipmeta_ds_t * ipmeta_ds_##datastructure##_alloc();			\
-  int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);		\
-  void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);		\
-  int ipmeta_ds_##datastructure##_add_prefix(ipmeta_ds_t *ds, uint32_t addr, \
-				 uint8_t mask, ipmeta_record_t *record); \
-  int ipmeta_ds_##datastructure##_lookup_records(ipmeta_ds_t *ds,       \
-                                                 uint32_t addr, uint8_t mask, \
-						 uint32_t providermask, \
-                                                 ipmeta_record_set_t *records); \
-  int ipmeta_ds_##datastructure##_lookup_record_single(    \
-                                                   ipmeta_ds_t *ds, \
-                                                   uint32_t addr, \
-                                                   uint32_t providermask, \
-                                                   ipmeta_record_set_t *found);
+#define IPMETA_DS_GENERATE_PROTOS(datastructure)                               \
+  ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc();                            \
+  int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);                       \
+  void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
+  int ipmeta_ds_##datastructure##_add_prefix(                                  \
+    ipmeta_ds_t *ds, uint32_t addr, uint8_t mask, ipmeta_record_t *record);    \
+  int ipmeta_ds_##datastructure##_lookup_records(                              \
+    ipmeta_ds_t *ds, uint32_t addr, uint8_t mask, uint32_t providermask,       \
+    ipmeta_record_set_t *records);                                             \
+  int ipmeta_ds_##datastructure##_lookup_record_single(                        \
+    ipmeta_ds_t *ds, uint32_t addr, uint32_t providermask,                     \
+    ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * datastructure API
  */
-#define IPMETA_DS_GENERATE_PTRS(datastructure)	\
-  ipmeta_ds_##datastructure##_init,		\
-    ipmeta_ds_##datastructure##_free,		\
-    ipmeta_ds_##datastructure##_add_prefix,	\
-    ipmeta_ds_##datastructure##_lookup_records, \
+#define IPMETA_DS_GENERATE_PTRS(datastructure)                                 \
+  ipmeta_ds_##datastructure##_init, ipmeta_ds_##datastructure##_free,          \
+    ipmeta_ds_##datastructure##_add_prefix,                                    \
+    ipmeta_ds_##datastructure##_lookup_records,                                \
     ipmeta_ds_##datastructure##_lookup_record_single,
 
-
 /** Structure which represents a metadata datastructure */
-struct ipmeta_ds
-{
+struct ipmeta_ds {
   /** The ID of this datastructure */
   enum ipmeta_ds_id id;
 
@@ -88,24 +82,20 @@ struct ipmeta_ds
   void (*free)(struct ipmeta_ds *ds);
 
   /** Pointer to add prefix function */
-  int (*add_prefix)(struct ipmeta_ds *ds,
-		    uint32_t addr, uint8_t mask,
-		    struct ipmeta_record *record);
+  int (*add_prefix)(struct ipmeta_ds *ds, uint32_t addr, uint8_t mask,
+                    struct ipmeta_record *record);
 
   /** Pointer to lookup records function */
-  int (*lookup_records)(struct ipmeta_ds *ds,
-                        uint32_t addr, uint8_t mask, uint32_t providermask,
-                        ipmeta_record_set_t *records);
+  int (*lookup_records)(struct ipmeta_ds *ds, uint32_t addr, uint8_t mask,
+                        uint32_t providermask, ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */
-  int (*lookup_record_single)(struct ipmeta_ds *ds,
-                                           uint32_t addr,
-                                           uint32_t providermask,
-                                           ipmeta_record_set_t *found);
+  int (*lookup_record_single)(struct ipmeta_ds *ds, uint32_t addr,
+                              uint32_t providermask,
+                              ipmeta_record_set_t *found);
 
   /** Pointer to a instance-specific state object */
   void *state;
-
 };
 
 /** Initialize the given datastructure and associate it with the given provider

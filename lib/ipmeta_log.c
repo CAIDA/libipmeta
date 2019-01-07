@@ -32,8 +32,8 @@
 #include "config.h"
 
 #include <assert.h>
-#include <stdarg.h>
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,28 +51,29 @@
 
 static char *timestamp_str(char *buf, const size_t len)
 {
-  struct timeval  tv;
-  struct tm      *tm;
-  int             ms;
-  time_t          t;
+  struct timeval tv;
+  struct tm *tm;
+  int ms;
+  time_t t;
 
   buf[0] = '\0';
   gettimeofday_wrap(&tv);
   t = tv.tv_sec;
-  if((tm = localtime(&t)) == NULL) return buf;
+  if ((tm = localtime(&t)) == NULL)
+    return buf;
 
   ms = tv.tv_usec / 1000;
-  snprintf(buf, len, "[%02d:%02d:%02d:%03d] ",
-	   tm->tm_hour, tm->tm_min, tm->tm_sec, ms);
+  snprintf(buf, len, "[%02d:%02d:%02d:%03d] ", tm->tm_hour, tm->tm_min,
+           tm->tm_sec, ms);
 
   return buf;
 }
 
 static void generic_log(const char *func, const char *format, va_list ap)
 {
-  char     message[512];
-  char     ts[16];
-  char     fs[64];
+  char message[512];
+  char ts[16];
+  char fs[64];
 
   assert(format != NULL);
 
@@ -80,8 +81,10 @@ static void generic_log(const char *func, const char *format, va_list ap)
 
   timestamp_str(ts, sizeof(ts));
 
-  if(func != NULL) snprintf(fs, sizeof(fs), "%s: ", func);
-  else             fs[0] = '\0';
+  if (func != NULL)
+    snprintf(fs, sizeof(fs), "%s: ", func);
+  else
+    fs[0] = '\0';
 
   fprintf(stderr, "%s%s%s\n", ts, fs, message);
   fflush(stderr);

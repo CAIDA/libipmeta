@@ -354,7 +354,7 @@ void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
 		int provid)
 {
   ipmeta_record_t *rec;
-  uint32_t num_ips;
+  uint32_t num_ips = 0;
   ipmeta_record_set_rewind(this);
   int dumped = 0;
   while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {
@@ -372,7 +372,7 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this,
 		iow_t *file, char *ip_str, int provid)
 {
   ipmeta_record_t *rec;
-  uint32_t num_ips;
+  uint32_t num_ips = 0;
   ipmeta_record_set_rewind(this);
   int dumped = 0;
   while ( (rec = ipmeta_record_set_next(this, &num_ips)) ) {

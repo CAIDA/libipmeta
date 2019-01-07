@@ -55,7 +55,7 @@
 #include "ipmeta_provider_pfx2as.h"
 
 /** Convenience typedef for the provider alloc function type */
-typedef ipmeta_provider_t* (*provider_alloc_func_t)();
+typedef ipmeta_provider_t *(*provider_alloc_func_t)();
 
 /** Array of datastructure allocation functions.
  *
@@ -71,10 +71,9 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
 
 static void free_record(ipmeta_record_t *record)
 {
-  if(record == NULL)
-    {
-      return;
-    }
+  if (record == NULL) {
+    return;
+  }
 
   free(record->region);
   record->region = NULL;
@@ -109,44 +108,39 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
   int i;
 
   /* loop across all providers and alloc each one */
-  for(i = 1; i <= IPMETA_PROVIDER_MAX; i++)
-    {
-      ipmeta_provider_t *provider;
-      /* first, create the struct */
-      if((provider = malloc_zero(sizeof(ipmeta_provider_t))) == NULL)
-	{
-	  ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
-	  return -1;
-	}
-
-      /* get the core provider details (id, name) from the provider plugin */
-      memcpy(provider,
-	     provider_alloc_functions[i](),
-	     sizeof(ipmeta_provider_t));
-
-      /* poke it into ipmeta */
-      ipmeta->providers[i-1] = provider;
+  for (i = 1; i <= IPMETA_PROVIDER_MAX; i++) {
+    ipmeta_provider_t *provider;
+    /* first, create the struct */
+    if ((provider = malloc_zero(sizeof(ipmeta_provider_t))) == NULL) {
+      ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
+      return -1;
     }
+
+    /* get the core provider details (id, name) from the provider plugin */
+    memcpy(provider, provider_alloc_functions[i](), sizeof(ipmeta_provider_t));
+
+    /* poke it into ipmeta */
+    ipmeta->providers[i - 1] = provider;
+  }
 
   return 0;
 }
 
-int ipmeta_provider_init(ipmeta_t *ipmeta,
-			 ipmeta_provider_t *provider,
-			 int argc, char **argv,
-			 ipmeta_provider_default_t set_default)
+int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
+                         int argc, char **argv,
+                         ipmeta_provider_default_t set_default)
 {
   assert(ipmeta != NULL);
   assert(provider != NULL);
 
   /* if it has already been initialized, then we simply return */
-  if(provider->enabled != 0)
-    {
-      ipmeta_log(__func__,
-		 "WARNING: provider (%s) is already initialized, "
-		 "ignoring new settings", provider->name);
-      return 0;
-    }
+  if (provider->enabled != 0) {
+    ipmeta_log(__func__,
+               "WARNING: provider (%s) is already initialized, "
+               "ignoring new settings",
+               provider->name);
+    return 0;
+  }
 
   /* otherwise, we need to init this plugin */
 
@@ -154,18 +148,16 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
   provider->all_records = kh_init(ipmeta_rechash);
   provider->ds = ipmeta->datastore;
 
-  if(set_default == IPMETA_PROVIDER_DEFAULT_YES)
-    {
-      ipmeta->provider_default = provider;
-    }
+  if (set_default == IPMETA_PROVIDER_DEFAULT_YES) {
+    ipmeta->provider_default = provider;
+  }
 
   /* now that we have set up the datastructure stuff, ask the provider to
      initialize. this will normally mean that it reads in some database and
      populates the datatructures */
-  if(provider->init(provider, argc, argv) != 0)
-    {
-      goto err;
-    }
+  if (provider->init(provider, argc, argv) != 0) {
+    goto err;
+  }
 
   /* 2017-03-31 AK moves this to after a successful init, otherwise the provider
      is marked as enabled even when it is not. But I'm not sure if this leads to
@@ -174,46 +166,40 @@ int ipmeta_provider_init(ipmeta_t *ipmeta,
 
   return 0;
 
- err:
-  if(provider != NULL)
-    {
-      provider->ds = NULL;
-      /* do not free the provider as we did not alloc it */
-    }
+err:
+  if (provider != NULL) {
+    provider->ds = NULL;
+    /* do not free the provider as we did not alloc it */
+  }
   return -1;
 }
 
-
-void ipmeta_provider_free(ipmeta_t *ipmeta,
-			  ipmeta_provider_t *provider)
+void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
 {
   assert(ipmeta != NULL);
   assert(provider != NULL);
 
   /* only free everything if we were enabled */
-  if(provider->enabled != 0)
-    {
-      /* ok, lets check if we were the default */
-      if(ipmeta->provider_default == provider)
-	{
-	  ipmeta->provider_default = NULL;
-	}
-
-      /* ask the provider to free it's own state */
-      provider->free(provider);
-
-      /* remove the pointer from ipmeta */
-      ipmeta->providers[provider->id - 1] = NULL;
-
-      /* free the records hash */
-      if(provider->all_records != NULL)
-	{
-	  /* this is where the records are free'd */
-	  kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
-	  kh_destroy(ipmeta_rechash, provider->all_records);
-	  provider->all_records = NULL;
-	}
+  if (provider->enabled != 0) {
+    /* ok, lets check if we were the default */
+    if (ipmeta->provider_default == provider) {
+      ipmeta->provider_default = NULL;
     }
+
+    /* ask the provider to free it's own state */
+    provider->free(provider);
+
+    /* remove the pointer from ipmeta */
+    ipmeta->providers[provider->id - 1] = NULL;
+
+    /* free the records hash */
+    if (provider->all_records != NULL) {
+      /* this is where the records are free'd */
+      kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
+      kh_destroy(ipmeta_rechash, provider->all_records);
+      provider->all_records = NULL;
+    }
+  }
 
   /* finally, free the actual provider structure */
   free(provider);
@@ -221,8 +207,7 @@ void ipmeta_provider_free(ipmeta_t *ipmeta,
   return;
 }
 
-void ipmeta_provider_register_state(ipmeta_provider_t *provider,
-				    void *state)
+void ipmeta_provider_register_state(ipmeta_provider_t *provider, void *state)
 {
   assert(provider != NULL);
   assert(state != NULL);
@@ -239,48 +224,46 @@ void ipmeta_provider_free_state(ipmeta_provider_t *provider)
 }
 
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
-					     uint32_t id)
+                                             uint32_t id)
 {
   ipmeta_record_t *record;
   khiter_t khiter;
   int khret;
 
-  if((record = malloc_zero(sizeof(ipmeta_record_t))) == NULL)
-    {
-      return NULL;
-    }
+  if ((record = malloc_zero(sizeof(ipmeta_record_t))) == NULL) {
+    return NULL;
+  }
 
   record->id = id;
   record->source = provider->id;
 
   assert(kh_get(ipmeta_rechash, provider->all_records, id) ==
-	 kh_end(provider->all_records));
+         kh_end(provider->all_records));
 
   khiter = kh_put(ipmeta_rechash, provider->all_records, id, &khret);
   kh_value(provider->all_records, khiter) = record;
 
   assert(kh_get(ipmeta_rechash, provider->all_records, id) !=
-	 kh_end(provider->all_records));
+         kh_end(provider->all_records));
 
   return record;
 }
 
 ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
-					    uint32_t id)
+                                            uint32_t id)
 {
   khiter_t khiter;
 
   /* grab the corresponding record from the hash */
-  if((khiter = kh_get(ipmeta_rechash, provider->all_records, id))
-     == kh_end(provider->all_records))
-    {
-      return NULL;
-    }
+  if ((khiter = kh_get(ipmeta_rechash, provider->all_records, id)) ==
+      kh_end(provider->all_records)) {
+    return NULL;
+  }
   return kh_val(provider->all_records, khiter);
 }
 
 int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
-				    ipmeta_record_t ***records)
+                                    ipmeta_record_t ***records)
 {
   ipmeta_record_t **rec_arr = NULL;
   ipmeta_record_t **rec_ptr = NULL;
@@ -288,40 +271,33 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
   khiter_t i;
 
   /* if there are no records in the array, don't bother */
-  if(rec_cnt == 0)
-    {
-      *records = NULL;
-      return 0;
-    }
+  if (rec_cnt == 0) {
+    *records = NULL;
+    return 0;
+  }
 
   /* first we malloc an array to hold all the records */
-  if((rec_arr = malloc(sizeof(ipmeta_record_t*) * rec_cnt)) == NULL)
-    {
-      return -1;
-    }
+  if ((rec_arr = malloc(sizeof(ipmeta_record_t *) * rec_cnt)) == NULL) {
+    return -1;
+  }
 
   rec_ptr = rec_arr;
   /* insert all the records into the array */
-  for(i = kh_begin(provider->all_records);
-      i != kh_end(provider->all_records);
-      ++i)
-    {
-      if(kh_exist(provider->all_records, i))
-	{
-	  *rec_ptr = kh_value(provider->all_records, i);
-	  rec_ptr++;
-	}
+  for (i = kh_begin(provider->all_records); i != kh_end(provider->all_records);
+       ++i) {
+    if (kh_exist(provider->all_records, i)) {
+      *rec_ptr = kh_value(provider->all_records, i);
+      rec_ptr++;
     }
+  }
 
   /* return the array and the count */
   *records = rec_arr;
   return rec_cnt;
 }
 
-int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
-				     uint32_t addr,
-				     uint8_t mask,
-				     ipmeta_record_t *record)
+int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
+                                     uint8_t mask, ipmeta_record_t *record)
 {
   assert(provider != NULL && record != NULL);
   assert(provider->ds != NULL);
@@ -329,12 +305,11 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider,
   return provider->ds->add_prefix(provider->ds, addr, mask, record);
 }
 
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider,
-                                   uint32_t addr, uint8_t mask,
-                                   ipmeta_record_set_t *records)
+int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+                                   uint8_t mask, ipmeta_record_set_t *records)
 {
   return provider->ds->lookup_records(provider->ds, addr, mask,
-		  (1 << (provider->id - 1)), records);
+                                      (1 << (provider->id - 1)), records);
 }
 
 int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
@@ -342,5 +317,5 @@ int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
                                          ipmeta_record_set_t *found)
 {
   return provider->ds->lookup_record_single(provider->ds, addr,
-        (1 << (provider->id - 1)), found);
+                                            (1 << (provider->id - 1)), found);
 }

@@ -217,7 +217,6 @@ int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds,
   uint64_t total_ips = 1 << (32-mask);
   uint64_t i;
   int j;
-  ipmeta_record_t *rec;
   ipmeta_record_t **recarray;
   uint64_t lookupind, arrayind;
 

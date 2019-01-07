@@ -133,18 +133,12 @@ typedef enum blocks_cols {
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
 {
-  int i;
-  const char **names = ipmeta_ds_get_all();
-  assert(names != NULL);
-
   fprintf(stderr,
 	  "provider usage: %s (-l locations -b blocks)|(-d directory)\n"
-	  "       -d            directory containing blocks and location files\n", provider->name);
-  fprintf(stderr,
+	  "       -d            directory containing blocks and location files\n"
 	  "       -b            blocks file (must be used with -l)\n"
-	  "       -l            locations file (must be used with -b)\n");
-
-  free(names);
+	  "       -l            locations file (must be used with -b)\n",
+          provider->name);
 }
 
 

@@ -246,7 +246,6 @@ int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
 {
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;
-  int i;
 
   if(*foundsofar == provmask)
     {
@@ -304,7 +303,6 @@ int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds,
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;
   prefix_t pfx;
-  ipmeta_record_t **recfound;
   uint32_t foundsofar = 0;
 
   /** @todo make support IPv6 */

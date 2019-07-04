@@ -1,6 +1,12 @@
 # libipmeta
 
-Libipmeta it's a library to support the execution of historical and realtime geolocation metadata lookups using Maxmind GeoIP and/or NetAcuity (Digital Element) geolocation databases.
+Libipmeta it's a library to support the execution of historical and
+realtime geolocation metadata lookups using Maxmind GeoIP and/or
+NetAcuity (Digital Element) geolocation databases.
+
+**NOTE: This is libipmeta v2. If you are trying to install PyIPMeta,
+then you must use
+[libipmeta v1](https://github.com/CAIDA/libipmeta/releases/tag/v1.0.0)**
 
 ### Quick Start
 To get started using `libipmeta`, either clone or download the contents from the GitHub repository.

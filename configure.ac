@@ -25,6 +25,7 @@
 AC_PREREQ([2.68])
 
 AC_INIT([libipmeta], [2.0.0], [corsaro-info@caida.org])
+AM_INIT_AUTOMAKE([foreign])
 
 # The following define the version numbers for the libtool-created library
 # (libipmeta), and not for the overall package. The package version (above)

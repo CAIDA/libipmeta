@@ -64,7 +64,7 @@ static void lookup(char *addr_str, iow_t *outfile)
   uint8_t mask;
   int i;
 
-  printf('stdout', 'Entering a lookup function');
+  printf("Entering a lookup function");
 
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);

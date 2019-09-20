@@ -318,7 +318,7 @@ int main(int argc, char **argv)
     if (enabled_providers_cnt > 1) {
       if (outfile != NULL) {
         wandio_printf(outfile, "provider|");
-        // added
+        // added - To remove later
         fprintf(stdout, "provider|");
       } else {
         fprintf(stdout, "provider|");

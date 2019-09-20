@@ -156,6 +156,8 @@ int main(int argc, char **argv)
   ipmeta_provider_t *provider = NULL;
 
   records = ipmeta_record_set_init();
+  // If expression evaluates to FALSE, assert() displays an error message on
+  // stderr
   assert(records != NULL);
 
   int headers_enabled = 0;
@@ -166,6 +168,8 @@ int main(int argc, char **argv)
   char *ds_name = NULL;
   ipmeta_ds_id_t dstype = IPMETA_DS_DEFAULT;
 
+  // The function void *memset(void *str, int c, size_t n) copies the character
+  // c to the first n characters of the string pointed to, by the argument str.
   /* initialize the providers array to NULL first */
   memset(providers, 0, sizeof(char *) * IPMETA_PROVIDER_MAX);
 
@@ -178,6 +182,7 @@ int main(int argc, char **argv)
     }
     switch (opt) {
     case 'c':
+      // atoi converts the string argument str to an integer (type int).
       compress_level = atoi(optarg);
       break;
 
@@ -186,6 +191,8 @@ int main(int argc, char **argv)
       break;
 
     case 'f':
+      // strdup returns a pointer to a null-terminated byte string
+      // which is a duplicate of the string optarg
       ip_file = strdup(optarg);
       break;
 
@@ -311,6 +318,8 @@ int main(int argc, char **argv)
     if (enabled_providers_cnt > 1) {
       if (outfile != NULL) {
         wandio_printf(outfile, "provider|");
+        // added
+        fprintf(stdout, "provider|");
       } else {
         fprintf(stdout, "provider|");
       }

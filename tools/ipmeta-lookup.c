@@ -64,8 +64,10 @@ static void lookup(char *addr_str, iow_t *outfile)
   uint8_t mask;
   int i;
 
-  /* preserve the original string for dumping */
-  strcpy(orig_str, addr_str);
+  printf('stdout', 'Entering a lookup function')
+
+    /* preserve the original string for dumping */
+    strcpy(orig_str, addr_str);
 
   /* extract the mask from the prefix */
   if ((mask_str = strchr(addr_str, '/')) != NULL) {
@@ -354,6 +356,7 @@ int main(int argc, char **argv)
         *p = '\0';
       }
 
+      // actual lookup happens here
       lookup(buffer, outfile);
     }
   }
@@ -362,6 +365,7 @@ int main(int argc, char **argv)
 
   /* now try looking up addresses given on the command line */
   for (i = lastopt; i < argc; i++) {
+    // actual lookup happens here
     lookup(argv[i], outfile);
   }
 

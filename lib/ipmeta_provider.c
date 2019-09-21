@@ -127,8 +127,7 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
 }
 
 int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
-                         int argc, char **argv,
-                         ipmeta_provider_default_t set_default)
+                         int argc, char **argv)
 {
   assert(ipmeta != NULL);
   assert(provider != NULL);
@@ -147,10 +146,6 @@ int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
   /* initialize the record hash */
   provider->all_records = kh_init(ipmeta_rechash);
   provider->ds = ipmeta->datastore;
-
-  if (set_default == IPMETA_PROVIDER_DEFAULT_YES) {
-    ipmeta->provider_default = provider;
-  }
 
   /* now that we have set up the datastructure stuff, ask the provider to
      initialize. this will normally mean that it reads in some database and
@@ -181,11 +176,6 @@ void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
 
   /* only free everything if we were enabled */
   if (provider->enabled != 0) {
-    /* ok, lets check if we were the default */
-    if (ipmeta->provider_default == provider) {
-      ipmeta->provider_default = NULL;
-    }
-
     /* ask the provider to free it's own state */
     provider->free(provider);
 

@@ -57,7 +57,7 @@ typedef struct ipmeta_record_set ipmeta_record_set_t;
 /** @} */
 
 /**
- * @name Public Data Structures
+ * @name Public Enums
  *
  * @{ */
 
@@ -105,6 +105,13 @@ typedef enum ipmeta_ds_id {
   IPMETA_DS_DEFAULT = IPMETA_DS_PATRICIA,
 
 } ipmeta_ds_id_t;
+
+/** @} */
+
+/**
+ * @name Public Data Structures
+ *
+ * @{ */
 
 /** Structure which contains an IP meta-data record
  *
@@ -188,29 +195,9 @@ typedef struct ipmeta_record {
 
 /** @} */
 
-/**
- * @name Public Enums
- *
- * @{ */
-
-/** Should this provider be set to be the default metadata provider
- * @todo make use of this
- */
-typedef enum ipmeta_provider_default {
-  /** This provider should *not* be the default geolocation result */
-  IPMETA_PROVIDER_DEFAULT_NO = 0,
-
-  /** This provider should be the default geolocation result */
-  IPMETA_PROVIDER_DEFAULT_YES = 1,
-
-} ipmeta_provider_default_t;
-
-/** @} */
-
 /** Initialize a new libipmeta instance
  *
  * @param The name of the data structure to use for storing prefixes.
- *        If NULL, the default data structure is used.
  *
  * @return the ipmeta instance created, NULL if an error occurs
  */
@@ -227,7 +214,6 @@ void ipmeta_free(ipmeta_t *ipmeta);
  * @param ipmeta        The ipmeta object to enable the provider for
  * @param provider      Pointer to the provider to be enabled
  * @param options       Options string to pass to the provider
- * @param set_default   Set this provider as default if non-zero
  * @return 0 if the provider was initialized, -1 if an error occurred
  *
  * Once ipmeta_init is called, ipmeta_enable_provider should be called once for
@@ -240,23 +226,9 @@ void ipmeta_free(ipmeta_t *ipmeta);
  * providers, the ipmeta_get_all_providers function can be used to get a list of
  * all providers and then ipmeta_get_provider_name can be used on each to get
  * their name.
- *
- * @note Default provider status overrides the requests of previous
- * plugins. Thus, the order in which users request the plugins to be run in can
- * have an effect on plugins which make use of the default provider
- * (e.g. corsaro_report).
  */
 int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
-                           const char *options,
-                           ipmeta_provider_default_t set_default);
-
-/** Retrieve the provider object for the default metadata provider
- *
- * @param ipmeta       The ipmeta object to retrieve the provider object from
- * @return the provider object for the default provider, NULL if there is no
- * default provider
- */
-ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta);
+                           const char *options);
 
 /** Retrieve the provider object for the given provider ID
  *

@@ -189,25 +189,15 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
  *
  * @param ipmeta        The ipmeta object to initialize the provider for
  * @param provider_id   The unique ID of the metadata provider
- * @param set_default   Set this provider as the default
  * @return the provider object created, NULL if an error occurred
- *
- * @note Default provider status overrides the requests of previous
- * plugins. Thus, the order in which users request the plugins to be run in can
- * have an effect on plugins which make use of the default provider
- * (e.g. corsaro_report).
  */
 int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
-                         int argc, char **argv,
-                         ipmeta_provider_default_t set_default);
+                         int argc, char **argv);
 
 /** Free the given provider object
  *
  * @param ipmeta          The ipmeta object to remove the provider from
  * @param provider        The provider object to free
- *
- * @note if this provider was the default, there will be *no* default provider
- * set after this function returns
  */
 void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider);
 

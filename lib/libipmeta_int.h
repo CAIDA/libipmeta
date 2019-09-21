@@ -58,9 +58,6 @@ struct ipmeta {
    */
   struct ipmeta_provider *providers[IPMETA_PROVIDER_MAX];
 
-  /** Default metadata provider */
-  struct ipmeta_provider *provider_default;
-
   struct ipmeta_ds *datastore;
 
   uint32_t all_provmask;

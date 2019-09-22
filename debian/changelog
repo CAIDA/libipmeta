@@ -1,7 +1,9 @@
 libipmeta2 (2.0.0) unstable; urgency=medium
 
-  * This is the first release in the v2 series of libipmeta.
-  * This version has a different public API to v1 so will require some changes to code that uses it, but may be more efficient when using multiple providers simultaneously.
+  * First release in the v2 series of libipmeta.
+    This version has a different public API to v1 so will require some
+    changes to code that uses it, but may be more efficient when using
+    multiple providers simultaneously.
 
  -- Alistair King <software@caida.org>  Fri, 20 Sep 2019 15:53:03 -0700
 

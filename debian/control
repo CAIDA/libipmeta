@@ -5,45 +5,44 @@ Maintainer: CAIDA Software Maintainer <software@caida.org>
 Build-Depends: debhelper (>= 10), autotools-dev,
  libwandio1 (>=4.2.0)
 Standards-Version: 4.1.2
-Homepage: https://www.caida.org
+Homepage: https://github.com/CAIDA/libipmeta
 
 Package: ipmeta
 Architecture: any
 Section: libdevel
 Depends: ipmeta2-tools (=${binary:Version}), libipmeta2-dev (=${binary:Version}),
- ${shlibs:Depends}, ${misc:Depends}
-Description: meta package for full libipmeta tools and development environment
- Meta package containing the libipmeta library, development environment, and tools.
+ ${misc:Depends}
+Description: Meta package for full libipmeta install
+ Meta package for latest libipmeta, including libipmeta, command-line tools and
+ development environment.
  .
- libIPMeta: High-performance library for performing IP-metadata tagging. Includes
- support for Maxmind and Net Acuity geolocation as well as prefix-to-ASN lookups.
+ libIPMeta: High-performance library for performing IP-metadata tagging.
+ Includes support for Maxmind and Net Acuity geolocation as well as
+ prefix-to-ASN lookups.
 
 Package: ipmeta2-tools
 Architecture: any
 Section: libs
-Depends: libwandio1 (>=4.2.0), libipmeta2 (=${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
-Description: command line tools for performing IP annotation using libipmeta
- Command line tools for performing IP annotation using libipmeta
- .
- libIPMeta: High-performance library for performing IP-metadata tagging. Includes
- support for Maxmind and Net Acuity geolocation as well as prefix-to-ASN lookups.
+Depends: libipmeta2 (=${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
+Description: Command line tools for performing IP annotation using libipmeta
+ libIPMeta: High-performance library for performing IP-metadata tagging.
+ Includes support for Maxmind and Net Acuity geolocation as well as
+ prefix-to-ASN lookups.
 
 Package: libipmeta2
 Architecture: any
 Section: libs
 Depends: libwandio1 (>=4.2.0), ${shlibs:Depends}, ${misc:Depends}
 Description: High-performance library for performing IP-metadata tagging
- This package contains the libipmeta2 IP annotation library.
- .
- libIPMeta: High-performance library for performing IP-metadata tagging. Includes
- support for Maxmind and Net Acuity geolocation as well as prefix-to-ASN lookups.
+ libIPMeta: High-performance library for performing IP-metadata tagging.
+ Includes support for Maxmind and Net Acuity geolocation as well as
+ prefix-to-ASN lookups.
 
 Package: libipmeta2-dev
 Architecture: any
 Section: libdevel
-Depends: libipmeta2 (=${binary:Version}), ${shlibs:Depends}, ${misc:Depends}
-Description: development environment for libipmeta2
- This package contains development headers and shared libraries for the libipmeta2 library.
- .
- libIPMeta: High-performance library for performing IP-metadata tagging. Includes
- support for Maxmind and Net Acuity geolocation as well as prefix-to-ASN lookups.
+Depends: libipmeta2 (=${binary:Version}), ${misc:Depends}
+Description: Development environment for libipmeta2
+ libIPMeta: High-performance library for performing IP-metadata tagging.
+ Includes support for Maxmind and Net Acuity geolocation as well as
+ prefix-to-ASN lookups.

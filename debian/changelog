@@ -1,3 +1,11 @@
+libipmeta2 (2.1.0) unstable; urgency=medium
+
+  * This release removes the concept of "default" providers. This results in a
+  * minor change to the public libipmeta API. Users will need to remove the
+  * "set_default" argument to the ipmeta_enable_provider function.
+
+ -- Alistair King <software@caida.org>  Sat, 21 Sep 2019 12:06:42 -0700
+
 libipmeta2 (2.0.0) unstable; urgency=medium
 
   * First release in the v2 series of libipmeta.

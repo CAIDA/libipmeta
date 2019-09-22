@@ -90,8 +90,7 @@ void ipmeta_free(ipmeta_t *ipmeta)
 }
 
 int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
-                           const char *options,
-                           ipmeta_provider_default_t set_default)
+                           const char *options)
 {
   char *local_args = NULL;
   char *process_argv[MAXOPTS];
@@ -99,8 +98,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
   int process_argc = 0;
   int rc;
 
-  ipmeta_log(__func__, "enabling provider (%s)%s", provider->name,
-             set_default == IPMETA_PROVIDER_DEFAULT_YES ? " (default)" : "");
+  ipmeta_log(__func__, "enabling provider (%s)", provider->name);
 
   /* first we need to parse the options */
   if (options != NULL && (len = strlen(options)) > 0) {
@@ -109,8 +107,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
   }
 
   /* we just need to pass this along to the provider framework */
-  rc = ipmeta_provider_init(ipmeta, provider, process_argc, process_argv,
-                            set_default);
+  rc = ipmeta_provider_init(ipmeta, provider, process_argc, process_argv);
 
   if (local_args != NULL) {
     free(local_args);
@@ -118,12 +115,6 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
 
   ipmeta->all_provmask |= (1 << (provider->id - 1));
   return rc;
-}
-
-ipmeta_provider_t *ipmeta_get_default_provider(ipmeta_t *ipmeta)
-{
-  assert(ipmeta != NULL);
-  return ipmeta->provider_default;
 }
 
 inline ipmeta_provider_t *ipmeta_get_provider_by_id(ipmeta_t *ipmeta,

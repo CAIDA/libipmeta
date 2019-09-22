@@ -294,8 +294,7 @@ int main(int argc, char **argv)
       goto quit;
     }
 
-    if (ipmeta_enable_provider(ipmeta, provider, provider_arg_ptr,
-                               IPMETA_PROVIDER_DEFAULT_NO) != 0) {
+    if (ipmeta_enable_provider(ipmeta, provider, provider_arg_ptr) != 0) {
       fprintf(stderr, "ERROR: Could not enable plugin %s\n", providers[i]);
       usage(argv[0]);
       goto quit;

@@ -67,7 +67,7 @@ static void lookup(char *addr_str, iow_t *outfile)
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);
 
-  printf("HELLO\n"); 
+  //printf("HELLO\n"); 
 
   /* extract the mask from the prefix */
   if ((mask_str = strchr(addr_str, '/')) != NULL) {
@@ -319,9 +319,9 @@ int main(int argc, char **argv)
   if (headers_enabled != 0) {
     if (enabled_providers_cnt > 1) {
       if (outfile != NULL) {
+        wandio_printf(outfile, "provider|");
         //TODO added - To remove later
         fprintf(stdout, "provider|");
-        wandio_printf(outfile, "provider|");
       } else {
         fprintf(stdout, "provider|");
       }

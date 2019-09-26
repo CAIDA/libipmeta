@@ -67,6 +67,8 @@ static void lookup(char *addr_str, iow_t *outfile)
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);
 
+  printf("HELLO\n"); 
+
   /* extract the mask from the prefix */
   if ((mask_str = strchr(addr_str, '/')) != NULL) {
     *mask_str = '\0';

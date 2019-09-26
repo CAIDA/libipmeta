@@ -63,7 +63,7 @@ static void lookup(char *addr_str, iow_t *outfile)
   uint32_t addr;
   uint8_t mask;
   int i;
-  
+
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);
 
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
       if (outfile != NULL) {
         wandio_printf(outfile, "provider|");
         // TODO added - To remove later
-        //fprintf(stdout, "provider|");
+        fprintf(stdout, "provider|");
       } else {
         fprintf(stdout, "provider|");
       }

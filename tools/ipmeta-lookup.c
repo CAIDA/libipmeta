@@ -221,6 +221,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "libipmeta version %d.%d.%d\n", LIBIPMETA_MAJOR_VERSION,
               LIBIPMETA_MID_VERSION, LIBIPMETA_MINOR_VERSION);
       usage(argv[0]);
+      // quit is a label where we free the memory from all initializations. 
       goto quit;
       break;
 
@@ -230,6 +231,7 @@ int main(int argc, char **argv)
     }
   }
 
+  // Determining the data structure based on the users inputs. 
   if (ds_name != NULL) {
     if (strcasecmp(ds_name, "bigarray") == 0) {
       dstype = IPMETA_DS_BIGARRAY;

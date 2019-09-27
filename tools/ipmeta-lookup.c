@@ -322,7 +322,7 @@ int main(int argc, char **argv)
     if (enabled_providers_cnt > 1) {
       if (outfile != NULL) {
         wandio_printf(outfile, "provider|");
-        //TODO added - To remove later
+        //TODO To remove later: prints out record headers even if file provided
         fprintf(stdout, "provider|");
       } else {
         fprintf(stdout, "provider|");

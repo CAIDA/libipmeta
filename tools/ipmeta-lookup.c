@@ -67,12 +67,15 @@ static void lookup(char *addr_str, iow_t *outfile)
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);
 
-  printf("HELLO AGAIN\n"); 
+  //TODO Remove the following line later
+  //printf("HELLO AGAIN\n"); 
 
   /* extract the mask from the prefix */
   if ((mask_str = strchr(addr_str, '/')) != NULL) {
     *mask_str = '\0';
     mask_str++;
+    //This function returns the converted integral number as an int value. 
+    //If no valid conversion could be performed, it returns zero.
     mask = atoi(mask_str);
   } else {
     mask = 32;
@@ -322,8 +325,8 @@ int main(int argc, char **argv)
     if (enabled_providers_cnt > 1) {
       if (outfile != NULL) {
         wandio_printf(outfile, "provider|");
-        //TODO To remove later: prints out record headers even if file provided
-        fprintf(stdout, "provider|");
+        //TODO Remove the following line later: prints out record headers even if file provided
+        //fprintf(stdout, "provider|");
       } else {
         fprintf(stdout, "provider|");
       }

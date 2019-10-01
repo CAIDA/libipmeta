@@ -39,7 +39,9 @@ libipmeta_providers_la_SOURCES = \
 	ipmeta_provider_pfx2as.c \
 	ipmeta_provider_pfx2as.h \
 	ipmeta_provider_maxmind.c \
-	ipmeta_provider_maxmind.h 
+	ipmeta_provider_maxmind.h \
+	ipmeta_provider_maxmind_v2.c \
+	ipmeta_provider_maxmind_v2.h 
 
 libipmeta_providers_la_LIBADD =
 

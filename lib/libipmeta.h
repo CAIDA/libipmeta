@@ -78,8 +78,11 @@ typedef enum ipmeta_provider_id {
   /** ASN data from CAIDA pfx2as */
   IPMETA_PROVIDER_PFX2AS = 3,
 
+  /** Geolocation data from Maxmind (Geo or GeoLite) */
+  IPMETA_PROVIDER_MAXMIND_v2 = 4,
+
   /** Highest numbered metadata provider ID */
-  IPMETA_PROVIDER_MAX = IPMETA_PROVIDER_PFX2AS,
+  IPMETA_PROVIDER_MAX = IPMETA_PROVIDER_MAXMIND_v2,
 
 } ipmeta_provider_id_t;
 

@@ -78,7 +78,7 @@ typedef enum ipmeta_provider_id {
   /** ASN data from CAIDA pfx2as */
   IPMETA_PROVIDER_PFX2AS = 3,
 
-  /** Geolocation data from Maxmind (Geo or GeoLite) */
+  /** Geolocation data from Maxmind (Geo or GeoLite) v2 */
   IPMETA_PROVIDER_MAXMIND_v2 = 4,
 
   /** Highest numbered metadata provider ID */
@@ -496,6 +496,25 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  * @return the number of elements in the array
  */
 int ipmeta_provider_maxmind_get_country_continent_list(
+  const char ***continents);
+
+/** Convenience function to retrieve a list of ISO 2 character country codes
+ *
+ * @param countries[out]   The provided pointer is updated to point to an
+ *                         array of 2 character country code strings
+ * @return the number of elements in the array
+ */
+int ipmeta_provider_maxmind_v2_get_iso2_list(const char ***countries);
+
+/** Convenience function to retrieve a list of 2 character continent codes in
+ * the same ordering as the countries returned by
+ * ipmeta_provider_maxmind_v2_get_iso2_list
+ *
+ * @param continents[out]   The provided pointer is updated to point to an
+ *                          array of 2 character continent code strings
+ * @return the number of elements in the array
+ */
+int ipmeta_provider_maxmind_v2_get_country_continent_list(
   const char ***continents);
 
 /** Information about a single Net Acuity region */

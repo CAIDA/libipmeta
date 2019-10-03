@@ -3,7 +3,7 @@ Section: libs
 Priority: optional
 Maintainer: CAIDA Software Maintainer <software@caida.org>
 Build-Depends: debhelper (>= 10), autotools-dev,
- libwandio1 (>=4.2.0)
+ libwandio1-dev (>=4.2.0)
 Standards-Version: 4.1.2
 Homepage: https://github.com/CAIDA/libipmeta
 

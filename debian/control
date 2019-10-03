@@ -41,7 +41,8 @@ Description: High-performance library for performing IP-metadata tagging
 Package: libipmeta2-dev
 Architecture: any
 Section: libdevel
-Depends: libipmeta2 (=${binary:Version}), ${misc:Depends}
+Depends: libipmeta2 (=${binary:Version}), libwandio1-dev (>=4.2.0),
+ ${misc:Depends}
 Description: Development environment for libipmeta2
  libIPMeta: High-performance library for performing IP-metadata tagging.
  Includes support for Maxmind and Net Acuity geolocation as well as

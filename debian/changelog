@@ -1,3 +1,9 @@
+libipmeta2 (2.1.0-2) unstable; urgency=medium
+
+  * Fix wandio build dependency
+
+ -- Alistair King <software@caida.org>  Thu, 03 Oct 2019 08:05:23 -0700
+
 libipmeta2 (2.1.0-1) unstable; urgency=medium
 
   * Fix wandio dependency for libipmeta-dev package

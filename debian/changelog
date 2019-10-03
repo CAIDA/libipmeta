@@ -1,3 +1,9 @@
+libipmeta2 (2.1.0-1) unstable; urgency=medium
+
+  * Fix wandio dependency for libipmeta-dev package
+
+ -- Alistair King <software@caida.org>  Thu, 03 Oct 2019 07:30:27 -0700
+
 libipmeta2 (2.1.0) unstable; urgency=medium
 
   * This release removes the concept of "default" providers. This results in a

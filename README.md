@@ -61,12 +61,19 @@ You may test that wandio works by running `$ wandiocat http://google.com`
 
 #### Step 2. Install `libipmeta` via clone (initializing submodules)
 
+First, make sure you have automake, autoconf and libtool installed on your
+system (e.g. `sudo apt-get install autoconf automake libtool` on
+Debian/Ubuntu).
+
+Then run the following commands in sequence:
+
 ```
 $ git clone https://github.com/CAIDA/libipmeta.git
 $ cd libipmeta
 $ git submodule init
 $ git submodule update
-$ ./build_latest.sh
+$ ./autogen.sh
+$ ./configure
 $ sudo make install
 $ sudo ldconfig
 ```

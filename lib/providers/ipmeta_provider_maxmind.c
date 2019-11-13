@@ -423,7 +423,6 @@ static void parse_maxmind_location_row(int c, void *data)
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
   /* done processing the line */
-
   /* increment the current line */
   state->current_line++;
   /* reset the current column */

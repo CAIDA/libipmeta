@@ -189,6 +189,39 @@ typedef struct ipmeta_record {
   /** Number of IDs in the Polygon IDs array */
   int polygon_ids_cnt;
 
+  /*** New variables added due to the integration of Maxmind_v2 ***/
+
+  /* -- ADD NEW FIELDS BELOW HERE -- */
+
+  /** LOCATIONS */
+  /** 2 char local code - GeoIP2 Col 1 */
+  char locale_code[2];
+
+  /** String which contains the country name - GeoIP2 Col 5 */
+  char *country;
+
+  /** String which contains the timezone - GeoIP2 Col 12 */
+  char *timezone;
+
+  /** Integer stating whether the IP is in EU or not */
+  int in_eu;
+
+  /** BLOCKS */
+  /** Geoname id */
+  uint32_t geonameid;
+
+  /** CCGeonameID */
+  uint32_t ccgeonameid;
+
+  /** is proxy ? */
+  int proxy;
+
+  /** is sattelite provider? */
+  int satprov;
+
+  /** accuracy */
+  uint32_t accuracy;
+
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
   /** The next record in the list */

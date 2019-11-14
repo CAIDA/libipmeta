@@ -144,7 +144,7 @@ typedef enum blocks_cols {
   BLOCKS_COL_ACCURACY = 9,
 
   /** Total number of columns in blocks table */
-  BLOCKS_COL_COUNT = 9
+  BLOCKS_COL_COUNT = 10
 } blocks_cols_t;
 
 /** The number of header rows in the maxmind_v2 CSV files */
@@ -567,8 +567,10 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   ipmeta_record_t *tmp = &(state->tmp_record);
   char *tok = (char *)s;
   char *end;
-  char *e;
+  char *mask_str;
   char *test;
+
+  fprintf(stderr, "%s %s %s", "=> PARSING BLOCK CELLS ", tok, "\n");
 
   // fprintf(stdout, "=> HELLO, PARSING BLOCKS CELLS\n");
 
@@ -579,10 +581,11 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   switch (state->current_column) {
   case BLOCKS_COL_NETWORK:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_NETWORK", "\n", "\n");
     /* block network: Added code here: OK with change. */
     // if (strchr(tok, '/')) {
-    e = strchr(tok, '/');
-    int pos = (int)(e - tok);
+    //mask_str = strchr(tok, '/');
+    //int pos = (int)(mask_str - tok);
     //  memcpy(state->network.addr, tok, pos + 1);
     //  // We can also use
     //  // strncpy(state->network.addr, tok, pos);
@@ -590,37 +593,59 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     //  strncpy(state->network.masklen, tok + pos + 1, 2);
     // }
 
+
     /* extract the mask from the prefix */
-    if ((e = strchr(tok, '/')) != NULL) {
-      *e = '\0';
-      e++;
-      state->block_lower.masklen = atoi(e);
+    if ((mask_str = strchr(tok, '/')) != NULL) {
+      *mask_str = '\0';
+      mask_str++;
+      state->block_lower.masklen = atoi(mask_str);
     } else {
       state->block_lower.masklen = 32;
     }
-    state->block_lower.addr = inet_addr(strncpy(test, tok, pos));
 
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
-      state->parser.status = CSV_EUSER;
+    //fprintf(stderr, "before %d %s %s \n", pos, tok, mask_str);
+    //state->block_lower.addr = inet_addr(strncpy(test, tok, pos));
+    //state->block_lower.addr = inet_addr(tok);
+    if  (inet_addr(tok) != INADDR_NONE){
+      state->block_lower.addr = inet_addr(tok);
     }
+    else{
+        ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
+        state->parser.status = CSV_EUSER;
+    }
+
+    fprintf(stderr,"BEFORE HERE %d \n", state->block_lower.addr);
+
+    //if (end == tok || *end != '\0' || errno == ERANGE) {
+      //ipmeta_log(__func__, "Invalid Start IP Value (%d)", tok);
+    //  state->parser.status = CSV_EUSER;
+    //}
+    fprintf(stderr, "after HERE %d \n", state->block_lower.addr);
     break;
 
     // Geoname ID: OK with change
   case BLOCKS_COL_GEONAMEID:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_GEONAMEID", "\n", "\n");
+
+    //Q: If ID is NULL, how do we return?  line 5.145.149.142/32
+    if (tok != NULL){
     tmp->geonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
       state->parser.status = CSV_EUSER;
     }
+    }
     break;
 
     // Registered country geoname ID: OK with change
   case BLOCKS_COL_CCGEONAMEID:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_CCGEONAMEID", "\n", "\n");
+    if (tok != NULL){
     tmp->ccgeonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
       state->parser.status = CSV_EUSER;
+    }
     }
     break;
 
@@ -629,42 +654,56 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_PROXY:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_PROXY", "\n", "\n");
     /* postal code: OK with change */
     tmp->proxy = atoi(strndup(tok, strlen(tok)));
     break;
 
   case BLOCKS_COL_SATTELLITEPROV:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_SATTELLITEPROV", "\n", "\n");
     /* sattelite provider? */
+    if (tok != NULL){
     tmp->satprov = atoi(strndup(tok, strlen(tok)));
+    }
     break;
 
   case BLOCKS_COL_POSTAL:
+    fprintf(stderr, "%s %s %s %s", "=> Column BLOCKS_COL_POSTAL", tok, "\n", "\n");
     /* postal code */
-    tmp->post_code = strndup(tok, strlen(tok));
+    if (tok != NULL){
+      tmp->post_code = strndup(tok, strlen(tok));
+    }
     break;
 
   case BLOCKS_COL_LAT:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LAT", "\n", "\n");
     /* latitude */
     // fprintf(stdout, "HELLO, HELLO, HELLO\n");
+    if (tok != NULL){
     tmp->latitude = strtof(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
+    }
     break;
 
   case BLOCKS_COL_LONG:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LONG", "\n", "\n");
     /* longitude */
+    if (tok != NULL){
     tmp->longitude = strtof(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
+    }
     break;
 
   case BLOCKS_COL_ACCURACY:
+    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_ACCURACY", "\n", "\n");
     /* accuracy: OK with this change. */
     if (tok != NULL) {
       tmp->accuracy = strtol(tok, &end, 10);

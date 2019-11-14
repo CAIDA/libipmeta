@@ -128,6 +128,8 @@ typedef enum blocks_cols {
   BLOCKS_COL_GEONAMEID = 1,
   /** Registered Country Geoname ID */
   BLOCKS_COL_CCGEONAMEID = 2,
+  /** Column 3 is not used */
+  BLOCKS_COL_REPRESENTED_CCGEONAME_ID = 3,
   /** Int 0 or 1 is_proxy? */
   BLOCKS_COL_PROXY = 4,
   /** Int 0 or 1 is_proxy? */
@@ -620,6 +622,10 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
       ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
       state->parser.status = CSV_EUSER;
     }
+    break;
+
+  case BLOCKS_COL_REPRESENTED_CCGEONAME_ID:
+    /* skip column */
     break;
 
   case BLOCKS_COL_PROXY:

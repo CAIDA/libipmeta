@@ -100,6 +100,13 @@ typedef enum locations_cols {
   LOCATION_COL_CC = 4,
   /** Country String */
   LOCATION_COL_COUNTRY = 5,
+  /** Column 6-9 are not parsed: 6 and 7 could be useful city_code and City_name
+   */
+  LOCATION_COL_ISO1_CODE = 6,
+  LOCATION_COL_ISO1_NAME = 7,
+
+  LOCATION_COL_ISO2_CODE = 8,
+  LOCATION_COL_ISO2_NAME = 9,
   /** City String */
   LOCATION_COL_CITY = 10,
   /** Metro Code */
@@ -110,7 +117,7 @@ typedef enum locations_cols {
   LOCATION_COL_IN_EU = 13,
 
   /** Total number of columns in locations table */
-  LOCATION_COL_COUNT = 10
+  LOCATION_COL_COUNT = 14
 } locations_cols_t;
 
 /** The columns in the maxmind_v2 locations CSV file */
@@ -260,9 +267,6 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 /* Parse a maxmind_v2 location cell */
 static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
 {
-
-  fprintf(stderr, "%s ", "=>  TOP OF parse_maxmind_v2_location_cell \n");
-
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
   ipmeta_record_t *tmp = &(state->tmp_record);
@@ -346,20 +350,31 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     }
     break;
 
+    // case LOCATION_COL_CC:
+    //  /* country code: OK with my changes */
+    //  fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
+    //  if (tok == NULL || strlen(tok) != 2) {
+    //    ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
+    //    state->parser.status = CSV_EUSER;
+    //    return;
+    //  }
+    //  if (tok[0] == '-' && tok[1] == '-') {
+    //    tok[0] = '?';
+    //    tok[1] = '?';
+    //  }
+    //  // state->cntry_code = (tok[0] << 8) | tok[1];
+    //  memcpy(tmp->country_code, tok, 2);
+    //  break;
+
   case LOCATION_COL_CC:
-    /* country code: OK with my changes */
     fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
-    if (tok == NULL || strlen(tok) != 2) {
-      ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+    if (tok != NULL) {
+      if (tok[0] == '-' && tok[1] == '-') {
+        tok[0] = '?';
+        tok[1] = '?';
+      }
+      memcpy(tmp->country_code, tok, 2);
     }
-    if (tok[0] == '-' && tok[1] == '-') {
-      tok[0] = '?';
-      tok[1] = '?';
-    }
-    // state->cntry_code = (tok[0] << 8) | tok[1];
-    memcpy(tmp->country_code, tok, 2);
     break;
 
   case LOCATION_COL_COUNTRY:
@@ -368,6 +383,13 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     if (tok != NULL) {
       tmp->country = strndup(tok, strlen(tok));
     }
+    break;
+
+  case LOCATION_COL_ISO1_CODE:
+  case LOCATION_COL_ISO1_NAME:
+  case LOCATION_COL_ISO2_CODE:
+  case LOCATION_COL_ISO2_NAME:
+    /* skip column */
     break;
 
   case LOCATION_COL_CITY:
@@ -519,6 +541,8 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
       return -1;
     }
   }
+
+  fprintf(stderr, "%s", "END FIRST PARSING \n");
 
   if (csv_fini(&(state->parser), parse_maxmind_v2_location_cell,
                parse_maxmind_v2_location_row, provider) != 0) {

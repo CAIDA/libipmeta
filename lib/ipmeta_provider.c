@@ -118,14 +118,12 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta)
       ipmeta_log(__func__, "could not malloc ipmeta_provider_t");
       return -1;
     }
-    fprintf(stdout, "HELLO, provider - file ipmeta_provider.c\n");
 
     /* get the core provider details (id, name) from the provider plugin */
     memcpy(provider, provider_alloc_functions[i](), sizeof(ipmeta_provider_t));
 
     /* poke it into ipmeta */
     ipmeta->providers[i - 1] = provider;
-    fprintf(stdout, "%s\n", ipmeta->providers[i - 1]->name);
   }
 
   return 0;

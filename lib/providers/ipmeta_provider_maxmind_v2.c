@@ -79,8 +79,9 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   // uint16_t cntry_code;
   // uint16_t loc_code;
   // uint16_t cont_code;
-  ip_prefix_t block_lower;
-  ip_prefix_t block_upper;
+  //ip_prefix_t block_lower;
+  //ip_prefix_t block_upper;
+  ip_prefix_t block_network;
 
   /* hash that maps from country code to continent code */
   khash_t(u16u16) * country_continent;
@@ -100,8 +101,7 @@ typedef enum locations_cols {
   LOCATION_COL_CC = 4,
   /** Country String */
   LOCATION_COL_COUNTRY = 5,
-  /** Column 6-9 are not parsed: 6 and 7 could be useful city_code and City_name
-   */
+  /** Columns 6-9 not parsed: 6 and 7 could be useful city_code and City_name */
   LOCATION_COL_ISO1_CODE = 6,
   LOCATION_COL_ISO1_NAME = 7,
 
@@ -148,7 +148,7 @@ typedef enum blocks_cols {
 } blocks_cols_t;
 
 /** The number of header rows in the maxmind_v2 CSV files */
-#define HEADER_ROW_CNT 2
+#define HEADER_ROW_CNT 1
 
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
@@ -276,16 +276,14 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
 
   char *end;
 
-  fprintf(stderr, "%s %s %s", "=> PARSING LOCATIONS CELLS ", tok, "\n");
-
+  //fprintf(stderr, "%s %s %s", "=> PARSING LOCATIONS CELLS ", tok, "\n");
   /* skip the first two lines */
   /** TOCHECK CAN WE REDUCE THIS TO ONLY ONE LINE ?? */
   if (state->current_line < HEADER_ROW_CNT) {
-    // if (state->current_line < 3) {
     return;
   }
 
-  /*
+/*
 corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
             state->current_line,
             state->current_column,
@@ -294,8 +292,8 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   switch (state->current_column) {
   case LOCATION_COL_ID:
-    /* init this record: OK with my changes */
-    fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_ID", "\n", "\n");
+    /* init this record */
+    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_ID", "\n", "\n");
     tmp->id = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
@@ -305,9 +303,8 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   case LOCATION_COL_LOCALCODE:
-    /* country code: OK with my changes */
-    fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_LOCALCODE", "\n",
-            "\n");
+    /* country code */
+    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_LOCALCODE", "\n", "\n");
     if (tok == NULL || strlen(tok) != 2) {
       ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -318,7 +315,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
       tok[1] = '?';
     }
     // state->loc_code = (tok[0] << 8) | tok[1];
-
     // int item = strtol(tok, NULL, 10);
     // if (item != 0) {
     memcpy(tmp->locale_code, tok, 2);
@@ -327,8 +323,7 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_CONTINENTCODE:
     /* continent/region code: OK with my changes */
-    fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CONTINENTCODE", "\n",
-            "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CONTINENTCODE", "\n", "\n");
     if (tok == NULL || strlen(tok) != 2) {
       ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -344,7 +339,7 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_REGION:
     /* region string: OK with my changes */
-    fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_REGION", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_REGION", "\n", "\n");
     if (tok != NULL && (tmp->region = strdup(tok)) == NULL) {
       ipmeta_log(__func__, "Region code copy failed (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -352,24 +347,8 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     }
     break;
 
-    // case LOCATION_COL_CC:
-    //  /* country code: OK with my changes */
-    //  fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
-    //  if (tok == NULL || strlen(tok) != 2) {
-    //    ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
-    //    state->parser.status = CSV_EUSER;
-    //    return;
-    //  }
-    //  if (tok[0] == '-' && tok[1] == '-') {
-    //    tok[0] = '?';
-    //    tok[1] = '?';
-    //  }
-    //  // state->cntry_code = (tok[0] << 8) | tok[1];
-    //  memcpy(tmp->country_code, tok, 2);
-    //  break;
-
   case LOCATION_COL_CC:
-    fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
     if (tok != NULL) {
       if (tok[0] == '-' && tok[1] == '-') {
         tok[0] = '?';
@@ -380,8 +359,8 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   case LOCATION_COL_COUNTRY:
-    /* country: OK with this change */
-    fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_COUNTRY", "\n", "\n");
+    /* country */
+    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_COUNTRY", "\n", "\n");
     if (tok != NULL) {
       tmp->country = strndup(tok, strlen(tok));
     }
@@ -395,16 +374,16 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   case LOCATION_COL_CITY:
-    /* city: OK with this.*/
-    fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_CITY", "\n", "\n");
+    /* city */
+    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_CITY", "\n", "\n");
     if (tok != NULL) {
       tmp->city = strndup(tok, strlen(tok));
     }
     break;
 
   case LOCATION_COL_METRO:
-    /* metro code: OK with this.*/
-    fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_METRO", "\n", "\n");
+    /* metro code*/
+    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_METRO", "\n", "\n");
     if (tok != NULL) {
       tmp->metro_code = strtol(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
@@ -416,8 +395,8 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   case LOCATION_COL_TIMEZONE:
-    /* Timezone: OK with this change. */
-    fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_TIMEZONE", "\n", "\n");
+    /* Timezone */
+    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_TIMEZONE", "\n", "\n");
     if (tok != NULL) {
       tmp->timezone = strndup(tok, strlen(tok));
     }
@@ -425,7 +404,7 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_IN_EU:
     /* In EU or not */
-    fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_IN_EU", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_IN_EU", "\n", "\n");
     if (tok != NULL) {
       tmp->in_eu = strtol(tok, &end, 10);
       // hesitated to use the below.
@@ -434,8 +413,7 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   default:
-    fprintf(stderr, "%s %s %s", "=> Column not found, Getting through DEFAULT",
-            "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column not found, Getting through DEFAULT", "\n", "\n");
     ipmeta_log(__func__, "Invalid maxmind_v2 Location Column (%d:%d)",
                state->current_line, state->current_column);
     state->parser.status = CSV_EUSER;
@@ -544,8 +522,6 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
     }
   }
 
-  fprintf(stderr, "%s", "END FIRST PARSING \n");
-
   if (csv_fini(&(state->parser), parse_maxmind_v2_location_cell,
                parse_maxmind_v2_location_row, provider) != 0) {
     ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
@@ -570,9 +546,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   char *mask_str;
   char *test;
 
-  fprintf(stderr, "%s %s %s", "=> PARSING BLOCK CELLS ", tok, "\n");
-
-  // fprintf(stdout, "=> HELLO, PARSING BLOCKS CELLS\n");
+  //fprintf(stderr, "%s %s %s", "=> PARSING BLOCK CELLS ", tok, "\n");
 
   /* skip the first lines */
   if (state->current_line < HEADER_ROW_CNT) {
@@ -581,52 +555,28 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   switch (state->current_column) {
   case BLOCKS_COL_NETWORK:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_NETWORK", "\n", "\n");
-    /* block network: Added code here: OK with change. */
-    // if (strchr(tok, '/')) {
-    //mask_str = strchr(tok, '/');
-    //int pos = (int)(mask_str - tok);
-    //  memcpy(state->network.addr, tok, pos + 1);
-    //  // We can also use
-    //  // strncpy(state->network.addr, tok, pos);
-    //  // will copy 2 bytes into dest from tok starting at index post+1.
-    //  strncpy(state->network.masklen, tok + pos + 1, 2);
-    // }
-
-
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_NETWORK", "\n", "\n");
     /* extract the mask from the prefix */
     if ((mask_str = strchr(tok, '/')) != NULL) {
       *mask_str = '\0';
       mask_str++;
-      state->block_lower.masklen = atoi(mask_str);
+      state->block_network.masklen = atoi(mask_str);
     } else {
-      state->block_lower.masklen = 32;
+      state->block_network.masklen = 32;
     }
 
     //fprintf(stderr, "before %d %s %s \n", pos, tok, mask_str);
     //state->block_lower.addr = inet_addr(strncpy(test, tok, pos));
-    //state->block_lower.addr = inet_addr(tok);
-    if  (inet_addr(tok) != INADDR_NONE){
-      state->block_lower.addr = inet_addr(tok);
-    }
-    else{
+    state->block_network.addr = inet_addr(tok);
+    if  (state->block_network.addr == INADDR_NONE){
         ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
         state->parser.status = CSV_EUSER;
     }
-
-    fprintf(stderr,"BEFORE HERE %d \n", state->block_lower.addr);
-
-    //if (end == tok || *end != '\0' || errno == ERANGE) {
-      //ipmeta_log(__func__, "Invalid Start IP Value (%d)", tok);
-    //  state->parser.status = CSV_EUSER;
-    //}
-    fprintf(stderr, "after HERE %d \n", state->block_lower.addr);
     break;
 
     // Geoname ID: OK with change
   case BLOCKS_COL_GEONAMEID:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_GEONAMEID", "\n", "\n");
-
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_GEONAMEID", "\n", "\n");
     //Q: If ID is NULL, how do we return?  line 5.145.149.142/32
     if (tok != NULL){
     tmp->geonameid = strtol(tok, &end, 10);
@@ -639,7 +589,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
     // Registered country geoname ID: OK with change
   case BLOCKS_COL_CCGEONAMEID:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_CCGEONAMEID", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_CCGEONAMEID", "\n", "\n");
     if (tok != NULL){
     tmp->ccgeonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -654,13 +604,13 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_PROXY:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_PROXY", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_PROXY", "\n", "\n");
     /* postal code: OK with change */
     tmp->proxy = atoi(strndup(tok, strlen(tok)));
     break;
 
   case BLOCKS_COL_SATTELLITEPROV:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_SATTELLITEPROV", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_SATTELLITEPROV", "\n", "\n");
     /* sattelite provider? */
     if (tok != NULL){
     tmp->satprov = atoi(strndup(tok, strlen(tok)));
@@ -668,7 +618,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_POSTAL:
-    fprintf(stderr, "%s %s %s %s", "=> Column BLOCKS_COL_POSTAL", tok, "\n", "\n");
+    //fprintf(stderr, "%s %s %s %s", "=> Column BLOCKS_COL_POSTAL", tok, "\n", "\n");
     /* postal code */
     if (tok != NULL){
       tmp->post_code = strndup(tok, strlen(tok));
@@ -676,9 +626,8 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_LAT:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LAT", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LAT", "\n", "\n");
     /* latitude */
-    // fprintf(stdout, "HELLO, HELLO, HELLO\n");
     if (tok != NULL){
     tmp->latitude = strtof(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -690,7 +639,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_LONG:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LONG", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LONG", "\n", "\n");
     /* longitude */
     if (tok != NULL){
     tmp->longitude = strtof(tok, &end);
@@ -703,7 +652,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_ACCURACY:
-    fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_ACCURACY", "\n", "\n");
+    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_ACCURACY", "\n", "\n");
     /* accuracy: OK with this change. */
     if (tok != NULL) {
       tmp->accuracy = strtol(tok, &end, 10);
@@ -755,20 +704,6 @@ static void parse_blocks_row(int c, void *data)
   // Is used to diagnostic information to be written to stdout.
   assert(tmp->geonameid > 0);
 
-  /* convert the range to prefixes */
-  /* Q: (see file ip_utils.c) I am not sure if ip_range_to_prefix(ip_prefix_t
-     lower, ip_prefix_t upper,
-                       ip_prefix_list_t **pfx_list) would get lower.addr  under
-     the format X.X.X.X */
-
-  if (ip_range_to_prefix(state->block_lower, state->block_lower, &pfx_list) !=
-      0) {
-    ipmeta_log(__func__, "ERROR: Could not convert range to pfxs");
-    state->parser.status = CSV_EUSER;
-    return;
-  }
-  assert(pfx_list != NULL);
-
   /* get the record from the provider */
   if ((record = ipmeta_provider_get_record(provider, tmp->geonameid)) == NULL) {
     ipmeta_log(__func__, "ERROR: Missing record for location %d",
@@ -778,22 +713,14 @@ static void parse_blocks_row(int c, void *data)
   }
 
   /* iterate over and add each prefix to the trie */
-  while (pfx_list != NULL) {
-    if (ipmeta_provider_associate_record(provider, htonl(pfx_list->prefix.addr),
-                                         pfx_list->prefix.masklen,
+    if (ipmeta_provider_associate_record(provider, state->block_network.addr,
+                                         state->block_network.masklen,
                                          record) != 0) {
       ipmeta_log(__func__, "ERROR: Failed to associate record");
       state->parser.status = CSV_EUSER;
       return;
     }
-
-    /* store this node so we can free it */
-    temp = pfx_list;
-    /* move on to the next pfx */
-    pfx_list = pfx_list->next;
-    /* free this node (saves us walking the list twice) */
-    free(temp);
-  }
+  
 
   /* increment the current line */
   state->current_line++;
@@ -811,7 +738,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   /* reset the state variables before we start: OK with the changes below */
   state->current_column = 0;
   state->current_line = 0;
-  state->block_lower.masklen = 32;
+  state->block_network.masklen = 32;
   // state->block_upper.masklen = 32;
 
   /* options for the csv parser */

@@ -51,7 +51,7 @@
 
 #define BUFFER_LEN 1024
 
-KHASH_INIT(u16u16, uint16_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_INIT(locTemp_rcd, uint32_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /** The default file name for the locations file */
 #define LOCATIONS_FILE_NAME "GeoLiteCity-Location.csv.gz"
@@ -79,7 +79,7 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   ip_prefix_t block_network;
 
   /* hash that maps from country code to continent code */
-  khash_t(u16u16) * country_continent;
+  khash_t(locTemp_rcd) *loc_block;
 } ipmeta_provider_maxmind_v2_state_t;
 
 /** Columns in the maxmind_v2 locations CSV file */
@@ -1062,308 +1062,6 @@ static const char *country_name[] = {
 };
 #endif
 
-static const char *country_continent[] = {
-  "??",
-  "AS",
-  "EU",
-  "EU",
-  "AS",
-  "AS",
-  "NA",
-  "NA",
-  "EU",
-  "AS",
-  "NA",
-  "AF",
-  "AN",
-  "SA",
-  "OC",
-  "EU",
-  "OC",
-  "NA",
-  "AS",
-  "EU",
-  "NA",
-  "AS",
-  "EU",
-  "AF",
-  "EU",
-  "AS",
-  "AF",
-  "AF",
-  "NA",
-  "AS",
-  "SA",
-  "SA",
-  "NA",
-  "AS",
-  "AN",
-  "AF",
-  "EU",
-  "NA",
-  "NA",
-  "AS",
-  "AF",
-  "AF",
-  "AF",
-  "EU",
-  "AF",
-  "OC",
-  "SA",
-  "AF",
-  "AS",
-  "SA",
-  "NA",
-  "NA",
-  "AF",
-  "AS",
-  "AS",
-  "EU",
-  "EU",
-  "AF",
-  "EU",
-  "NA",
-  "NA",
-  "AF",
-  "SA",
-  "EU",
-  "AF",
-  "AF",
-  "AF",
-  "EU",
-  "AF",
-  "EU",
-  "OC",
-  "SA",
-  "OC",
-  "EU",
-  "EU",
-  "NA",
-  "AF",
-  "EU",
-  "NA",
-  "AS",
-  "SA",
-  "AF",
-  "EU",
-  "NA",
-  "AF",
-  "AF",
-  "NA",
-  "AF",
-  "EU",
-  "AN",
-  "NA",
-  "OC",
-  "AF",
-  "SA",
-  "AS",
-  "AN",
-  "NA",
-  "EU",
-  "NA",
-  "EU",
-  "AS",
-  "EU",
-  "AS",
-  "AS",
-  "AS",
-  "AS",
-  "AS",
-  "EU",
-  "EU",
-  "NA",
-  "AS",
-  "AS",
-  "AF",
-  "AS",
-  "AS",
-  "OC",
-  "AF",
-  "NA",
-  "AS",
-  "AS",
-  "AS",
-  "NA",
-  "AS",
-  "AS",
-  "AS",
-  "NA",
-  "EU",
-  "AS",
-  "AF",
-  "AF",
-  "EU",
-  "EU",
-  "EU",
-  "AF",
-  "AF",
-  "EU",
-  "EU",
-  "AF",
-  "OC",
-  "EU",
-  "AF",
-  "AS",
-  "AS",
-  "AS",
-  "OC",
-  "NA",
-  "AF",
-  "NA",
-  "EU",
-  "AF",
-  "AS",
-  "AF",
-  "NA",
-  "AS",
-  "AF",
-  "AF",
-  "OC",
-  "AF",
-  "OC",
-  "AF",
-  "NA",
-  "EU",
-  "EU",
-  "AS",
-  "OC",
-  "OC",
-  "OC",
-  "AS",
-  "NA",
-  "SA",
-  "OC",
-  "OC",
-  "AS",
-  "AS",
-  "EU",
-  "NA",
-  "OC",
-  "NA",
-  "AS",
-  "EU",
-  "OC",
-  "SA",
-  "AS",
-  "AF",
-  "EU",
-  "EU",
-  "AF",
-  "AS",
-  "OC",
-  "AF",
-  "AF",
-  "EU",
-  "AS",
-  "AF",
-  "EU",
-  "EU",
-  "EU",
-  "AF",
-  "EU",
-  "AF",
-  "AF",
-  "SA",
-  "AF",
-  "NA",
-  "AS",
-  "AF",
-  "NA",
-  "AF",
-  "AN",
-  "AF",
-  "AS",
-  "AS",
-  "OC",
-  "AS",
-  "AF",
-  "OC",
-  "AS",
-  "EU",
-  "NA",
-  "OC",
-  "AS",
-  "AF",
-  "EU",
-  "AF",
-  "OC",
-  "NA",
-  "SA",
-  "AS",
-  "EU",
-  "NA",
-  "SA",
-  "NA",
-  "NA",
-  "AS",
-  "OC",
-  "OC",
-  "OC",
-  "AS",
-  "AF",
-  "EU",
-  "AF",
-  "AF",
-  "EU",
-  "AF",
-  "??",
-  "??",
-  "??",
-  "EU",
-  "EU",
-  "EU",
-  "EU",
-  "NA",
-  "NA",
-  "NA",
-  "AF",
-  /* see above about AN */
-  "NA",
-};
-
-#define COUNTRY_CNT                                                            \
-  ((unsigned)(sizeof(country_code_iso2) / sizeof(country_code_iso2[0])))
-
-#if 0
-static const char *get_iso2(int country_id)
-{
-  assert(country_id < COUNTRY_CNT);
-  return country_code_iso2[country_id];
-}
-#endif
-
-#if 0
-static const char *get_iso3(int country_id)
-{
-  assert(country_id < COUNTRY_CNT);
-  return country_code_iso3[country_id];
-}
-
-static int get_iso3_list(const char ***countries)
-{
-  *countries = country_code_iso3;
-  return COUNTRY_CNT;
-}
-
-static const char *get_country_name(int country_id)
-{
-  assert(country_id < COUNTRY_CNT);
-  return country_name[country_id];
-}
-
-static int get_country_name_list(const char ***countries)
-{
-  *countries = country_name;
-  return COUNTRY_CNT;
-}
-
-static const char *get_continent(int country_id)
-{
-  assert(country_id < COUNTRY_CNT);
-  return country_continent[country_id];
-}
-#endif
 
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
@@ -1458,9 +1156,9 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
-    if (state->country_continent != NULL) {
-      kh_destroy(u16u16, state->country_continent);
-      state->country_continent = NULL;
+    if (state->loc_block != NULL) {
+      kh_destroy(locTemp_rcd, state->loc_block);
+      state->loc_block = NULL;
     }
 
     ipmeta_provider_free_state(provider);
@@ -1484,17 +1182,4 @@ int ipmeta_provider_maxmind_v2_lookup_single(ipmeta_provider_t *provider,
   return ipmeta_provider_lookup_record_single(provider, addr, found);
 }
 
-/* ========== HELPER FUNCTIONS ========== */
 
-int ipmeta_provider_maxmind_v2_get_iso2_list(const char ***countries)
-{
-  *countries = country_code_iso2;
-  return COUNTRY_CNT;
-}
-
-int ipmeta_provider_maxmind_v2_get_country_continent_list(
-  const char ***continents)
-{
-  *continents = country_continent;
-  return COUNTRY_CNT;
-}

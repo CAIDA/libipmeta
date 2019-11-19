@@ -220,8 +220,6 @@ typedef struct ipmeta_record {
   /** accuracy */
   uint32_t accuracy;
 
-  /* -- ADD NEW FIELDS ABOVE HERE -- */
-
   /** The next record in the list */
   struct ipmeta_record *next;
 

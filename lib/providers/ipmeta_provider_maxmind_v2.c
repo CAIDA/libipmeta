@@ -532,8 +532,9 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     }
     break;
 
-    // Registered country geoname ID: OK with change
+    
   case BLOCKS_COL_CCGEONAMEID:
+    /* Registered country geoname ID */
     if (tok != NULL){
     tmp->ccgeonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -591,7 +592,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_ACCURACY:
-    /* accuracy: OK with this change. */
+    /* accuracy */
     if (tok != NULL) {
       tmp->accuracy = strtol(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {

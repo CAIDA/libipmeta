@@ -189,9 +189,7 @@ typedef struct ipmeta_record {
   /** Number of IDs in the Polygon IDs array */
   int polygon_ids_cnt;
 
-  /*** New variables added due to the integration of Maxmind_v2 ***/
-
-  /* -- ADD NEW FIELDS BELOW HERE -- */
+  /** New variables added for Maxmind_v2 **/
 
   /** LOCATIONS */
   /** 2 char local code - GeoIP2 Col 1 */

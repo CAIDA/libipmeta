@@ -76,18 +76,13 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   int current_line;
   int current_column;
   ipmeta_record_t tmp_record;
-  // uint16_t cntry_code;
-  // uint16_t loc_code;
-  // uint16_t cont_code;
-  //ip_prefix_t block_lower;
-  //ip_prefix_t block_upper;
   ip_prefix_t block_network;
 
   /* hash that maps from country code to continent code */
   khash_t(u16u16) * country_continent;
 } ipmeta_provider_maxmind_v2_state_t;
 
-/** The columns in the maxmind_v2 locations CSV file */
+/** Columns in the maxmind_v2 locations CSV file */
 typedef enum locations_cols {
   /** ID */
   LOCATION_COL_ID = 0,
@@ -276,24 +271,15 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
 
   char *end;
 
-  //fprintf(stderr, "%s %s %s", "=> PARSING LOCATIONS CELLS ", tok, "\n");
-  /* skip the first two lines */
-  /** TOCHECK CAN WE REDUCE THIS TO ONLY ONE LINE ?? */
+  /* skip the first line */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
 
-/*
-corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
-            state->current_line,
-            state->current_column,
-            tok);
-*/
 
   switch (state->current_column) {
   case LOCATION_COL_ID:
     /* init this record */
-    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_ID", "\n", "\n");
     tmp->id = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
@@ -304,7 +290,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_LOCALCODE:
     /* country code */
-    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_LOCALCODE", "\n", "\n");
     if (tok == NULL || strlen(tok) != 2) {
       ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -314,16 +299,11 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
       tok[0] = '?';
       tok[1] = '?';
     }
-    // state->loc_code = (tok[0] << 8) | tok[1];
-    // int item = strtol(tok, NULL, 10);
-    // if (item != 0) {
     memcpy(tmp->locale_code, tok, 2);
-    //}
     break;
 
   case LOCATION_COL_CONTINENTCODE:
-    /* continent/region code: OK with my changes */
-    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CONTINENTCODE", "\n", "\n");
+    /* continent/region code */
     if (tok == NULL || strlen(tok) != 2) {
       ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -333,13 +313,11 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
       tok[0] = '?';
       tok[1] = '?';
     }
-    // state->cont_code = (tok[0] << 8) | tok[1];
     memcpy(tmp->continent_code, tok, 2);
     break;
 
   case LOCATION_COL_REGION:
     /* region string: OK with my changes */
-    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_REGION", "\n", "\n");
     if (tok != NULL && (tmp->region = strdup(tok)) == NULL) {
       ipmeta_log(__func__, "Region code copy failed (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -348,7 +326,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
     break;
 
   case LOCATION_COL_CC:
-    //fprintf(stderr, "%s %s %s", "=> Column  LOCATION_COL_CC", "\n", "\n");
     if (tok != NULL) {
       if (tok[0] == '-' && tok[1] == '-') {
         tok[0] = '?';
@@ -360,7 +337,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_COUNTRY:
     /* country */
-    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_COUNTRY", "\n", "\n");
     if (tok != NULL) {
       tmp->country = strndup(tok, strlen(tok));
     }
@@ -375,7 +351,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_CITY:
     /* city */
-    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_CITY", "\n", "\n");
     if (tok != NULL) {
       tmp->city = strndup(tok, strlen(tok));
     }
@@ -383,7 +358,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_METRO:
     /* metro code*/
-    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_METRO", "\n", "\n");
     if (tok != NULL) {
       tmp->metro_code = strtol(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
@@ -396,7 +370,6 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_TIMEZONE:
     /* Timezone */
-    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_TIMEZONE", "\n", "\n");
     if (tok != NULL) {
       tmp->timezone = strndup(tok, strlen(tok));
     }
@@ -404,23 +377,18 @@ corsaro_log(__func__, corsaro, "row: %d, column: %d, tok: %s",
 
   case LOCATION_COL_IN_EU:
     /* In EU or not */
-    //fprintf(stderr, "%s %s %s", "=> Column LOCATION_COL_IN_EU", "\n", "\n");
     if (tok != NULL) {
       tmp->in_eu = strtol(tok, &end, 10);
-      // hesitated to use the below.
-      // tmp->in_eu = strndup(tok, strlen(tok));
     }
     break;
 
   default:
-    //fprintf(stderr, "%s %s %s", "=> Column not found, Getting through DEFAULT", "\n", "\n");
     ipmeta_log(__func__, "Invalid maxmind_v2 Location Column (%d:%d)",
                state->current_line, state->current_column);
     state->parser.status = CSV_EUSER;
     return;
     break;
   }
-
   /* move on to the next column */
   state->current_column++;
 }
@@ -450,23 +418,6 @@ static void parse_maxmind_v2_location_row(int c, void *data)
     state->parser.status = CSV_EUSER;
     return;
   }
-
-  /* look up the continent code */
-  /*if ((khiter = kh_get(u16u16, state->country_continent, state->cntry_code))
-  == kh_end(state->country_continent)) { ipmeta_log(__func__, "ERROR: Invalid
-  country code (%s) (%x)", state->tmp_record.country_code, state->cntry_code);
-    state->parser.status = CSV_EUSER;
-    return;
-  }*
-
-  tmp_continent = kh_value(state->country_continent, khiter);
-  state->tmp_record.continent_code[0] = (tmp_continent & 0xFF00) >> 8;
-  state->tmp_record.continent_code[1] = (tmp_continent & 0x00FF);*/
-
-  /*
-  ipmeta_log(__func__, NULL, "looking up %s (%x) got %x",
-              tmp.country_code, cntry_code, tmp.continent_code);
-  */
 
   if ((record = ipmeta_provider_init_record(provider, state->tmp_record.id)) ==
       NULL) {
@@ -503,7 +454,7 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
   state->current_column = 0;
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-  // state->cntry_code = 0;
+
 
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
@@ -546,8 +497,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   char *mask_str;
   char *test;
 
-  //fprintf(stderr, "%s %s %s", "=> PARSING BLOCK CELLS ", tok, "\n");
-
   /* skip the first lines */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
@@ -555,7 +504,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   switch (state->current_column) {
   case BLOCKS_COL_NETWORK:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_NETWORK", "\n", "\n");
     /* extract the mask from the prefix */
     if ((mask_str = strchr(tok, '/')) != NULL) {
       *mask_str = '\0';
@@ -565,8 +513,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
       state->block_network.masklen = 32;
     }
 
-    //fprintf(stderr, "before %d %s %s \n", pos, tok, mask_str);
-    //state->block_lower.addr = inet_addr(strncpy(test, tok, pos));
     state->block_network.addr = inet_addr(tok);
     if  (state->block_network.addr == INADDR_NONE){
         ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
@@ -574,10 +520,9 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     }
     break;
 
-    // Geoname ID: OK with change
+    
   case BLOCKS_COL_GEONAMEID:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_GEONAMEID", "\n", "\n");
-    //Q: If ID is NULL, how do we return?  line 5.145.149.142/32
+  /* Geoname ID*/
     if (tok != NULL){
     tmp->geonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -589,7 +534,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
     // Registered country geoname ID: OK with change
   case BLOCKS_COL_CCGEONAMEID:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_CCGEONAMEID", "\n", "\n");
     if (tok != NULL){
     tmp->ccgeonameid = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -604,13 +548,11 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_PROXY:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_PROXY", "\n", "\n");
     /* postal code: OK with change */
     tmp->proxy = atoi(strndup(tok, strlen(tok)));
     break;
 
   case BLOCKS_COL_SATTELLITEPROV:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_SATTELLITEPROV", "\n", "\n");
     /* sattelite provider? */
     if (tok != NULL){
     tmp->satprov = atoi(strndup(tok, strlen(tok)));
@@ -618,7 +560,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_POSTAL:
-    //fprintf(stderr, "%s %s %s %s", "=> Column BLOCKS_COL_POSTAL", tok, "\n", "\n");
     /* postal code */
     if (tok != NULL){
       tmp->post_code = strndup(tok, strlen(tok));
@@ -626,7 +567,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_LAT:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LAT", "\n", "\n");
     /* latitude */
     if (tok != NULL){
     tmp->latitude = strtof(tok, &end);
@@ -639,7 +579,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_LONG:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_LONG", "\n", "\n");
     /* longitude */
     if (tok != NULL){
     tmp->longitude = strtof(tok, &end);
@@ -652,7 +591,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_ACCURACY:
-    //fprintf(stderr, "%s %s %s", "=> Column BLOCKS_COL_ACCURACY", "\n", "\n");
     /* accuracy: OK with this change. */
     if (tok != NULL) {
       tmp->accuracy = strtol(tok, &end, 10);
@@ -739,7 +677,6 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   state->current_column = 0;
   state->current_line = 0;
   state->block_network.masklen = 32;
-  // state->block_upper.masklen = 32;
 
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
@@ -1440,12 +1377,9 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
   ipmeta_provider_maxmind_v2_state_t *state;
   io_t *file = NULL;
 
-  int country_cnt;
-  /*int continent_cnt;*/
   const char **countries;
   const char **continents;
-  // uint16_t cntry_code = 0;
-  // uint16_t cont_code = 0;
+
   int i;
   khiter_t khiter;
   int khret;
@@ -1464,21 +1398,6 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
   }
 
   assert(state->locations_file != NULL && state->blocks_file != NULL);
-
-  /* populate the country2continent hash */
-  /**state->country_continent = kh_init(u16u16);
-  country_cnt = ipmeta_provider_maxmind_v2_get_iso2_list(&countries);
-  ipmeta_provider_maxmind_v2_get_country_continent_list(&continents);
-  //assert(country_cnt == continent_cnt);
-  for (i = 0; i < country_cnt; i++) {
-    cntry_code = (countries[i][0] << 8) | countries[i][1];
-    cont_code = (continents[i][0] << 8) | continents[i][1];
-
-    // create a mapping for this country
-    khiter = kh_put(u16u16, state->country_continent, cntry_code, &khret);
-    kh_value(state->country_continent, khiter) = cont_code;
-  }
-  */
 
   /* open the locations file */
   if ((file = wandio_create(state->locations_file)) == NULL) {

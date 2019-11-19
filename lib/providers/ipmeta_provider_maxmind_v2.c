@@ -51,7 +51,7 @@
 
 #define BUFFER_LEN 1024
 
-KHASH_INIT(locTemp_rcd, uint32_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_INIT(loctemp_rcd, uint32_t, ipmeta_record_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
 /** The default file name for the locations file */
 #define LOCATIONS_FILE_NAME "GeoLiteCity-Location.csv.gz"
@@ -78,8 +78,8 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   ipmeta_record_t tmp_record;
   ip_prefix_t block_network;
 
-  /* hash that maps from country code to continent code */
-  khash_t(locTemp_rcd) *loc_block;
+  /* hash that maps geonameid to locations */
+  khash_t(loctemp_rcd) *locations;
 } ipmeta_provider_maxmind_v2_state_t;
 
 /** Columns in the maxmind_v2 locations CSV file */
@@ -1096,6 +1096,9 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
     return -1;
   }
 
+  /* populate the locations hash */
+  state->locations = kh_init(loctemp_rcd);
+
   assert(state->locations_file != NULL && state->blocks_file != NULL);
 
   /* open the locations file */
@@ -1156,9 +1159,10 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
-    if (state->loc_block != NULL) {
-      kh_destroy(locTemp_rcd, state->loc_block);
-      state->loc_block = NULL;
+    /* destroy hash table locations */
+    if (state->locations != NULL) {
+      kh_destroy(loctemp_rcd, state->locations);
+      state->locations = NULL;
     }
 
     ipmeta_provider_free_state(provider);

@@ -401,6 +401,7 @@ static void parse_maxmind_v2_location_row(int c, void *data)
   ipmeta_record_t *record;
   uint16_t tmp_continent;
   khiter_t khiter;
+  int khret;
 
   /* skip the first two lines */
   if (state->current_line < HEADER_ROW_CNT) {
@@ -430,6 +431,12 @@ static void parse_maxmind_v2_location_row(int c, void *data)
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
   /* done processing the line */
+
+  /* create a mapping for this location line */
+  khiter = kh_put(loctemp_rcd, state->locations, state->tmp_record.id, &khret);
+  memcpy(&(kh_value(state->locations, khiter)), &(state->tmp_record), sizeof(ipmeta_record_t));
+  //kh_value(state->locations, khiter) = memcpy(record, *tmp, sizeof(ipmeta_record_t));
+
 
   /* increment the current line */
   state->current_line++;
@@ -1096,7 +1103,7 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
     return -1;
   }
 
-  /* populate the locations hash */
+  /* Initialize the locations hash */
   state->locations = kh_init(loctemp_rcd);
 
   assert(state->locations_file != NULL && state->blocks_file != NULL);

@@ -205,12 +205,6 @@ typedef struct ipmeta_record {
   int in_eu;
 
   /** BLOCKS */
-  /** Geoname id */
-  uint32_t geonameid;
-
-  /** CCGeonameID */
-  uint32_t ccgeonameid;
-
   /** is proxy ? */
   int proxy;
 

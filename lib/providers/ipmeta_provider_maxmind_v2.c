@@ -100,6 +100,7 @@ typedef enum locations_cols {
   LOCATION_COL_ISO1_CODE = 6,
   LOCATION_COL_ISO1_NAME = 7,
 
+
   LOCATION_COL_ISO2_CODE = 8,
   LOCATION_COL_ISO2_NAME = 9,
   /** City String */
@@ -328,6 +329,7 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_CC:
+    /* country code */
     if (tok != NULL) {
       if (tok[0] == '-' && tok[1] == '-') {
         tok[0] = '?';
@@ -345,7 +347,20 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_ISO1_CODE:
+    /* skip column */
+    break;
+
   case LOCATION_COL_ISO1_NAME:
+      /* subdivision name string */
+    if (tok != NULL) {
+      if ((tmp->sub_name = strdup(tok)) == NULL) {
+      ipmeta_log(__func__, "Region code copy failed (%s)", tok);
+      state->parser.status = CSV_EUSER;
+      return;
+      }
+    }
+    break;
+
   case LOCATION_COL_ISO2_CODE:
   case LOCATION_COL_ISO2_NAME:
     /* skip column */
@@ -541,7 +556,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
       state->parser.status = CSV_EUSER;
     }
     }
-    //skipped
     break;
 
   case BLOCKS_COL_REPRESENTED_CCGEONAME_ID:
@@ -549,7 +563,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_PROXY:
-    /* postal code: OK with change */
+    /* proxy*/
     tmp->proxy = atoi(strndup(tok, strlen(tok)));
     break;
 
@@ -621,17 +635,14 @@ static void parse_blocks_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
-  // tmp == block record
+  /* Initializing block record*/
   ipmeta_record_t *block_record = &(state->tmp_record);
-
-  // the pointer to the final record
+  /* the pointer to the final record */
   ipmeta_record_t *record = NULL;
-
-  //location record
+  /*location record */
   ipmeta_record_t *loc_record = NULL;
-
   khiter_t khiter;
-  ////int khret;
+
 
   if (state->current_line < HEADER_ROW_CNT) {
     state->current_line++;
@@ -680,6 +691,8 @@ if (block_record->id != 0){
   }
   }
 
+  /* It is essential to duplicate blocks so that we do not end up with a free 
+  non-allocated memory case. */
   if (loc_record->city != NULL){
     if((record->city= strdup(loc_record->city)) == NULL) {
       ipmeta_log(__func__, "ERROR: Failed to duplicate region");
@@ -687,16 +700,23 @@ if (block_record->id != 0){
   }
   
   if (loc_record->timezone != NULL){
-  if((record->timezone = strdup(loc_record->timezone)) == NULL) {
-    ipmeta_log(__func__, "ERROR: Failed to duplicate post_code");
-  }
+    if((record->timezone = strdup(loc_record->timezone)) == NULL) {
+    ipmeta_log(__func__, "ERROR: Failed to duplicate timezone");
+    }
   }
 
   if (loc_record->country!= NULL){
-  if((record->country = strdup(loc_record->country)) == NULL) {
-    ipmeta_log(__func__, "ERROR: Failed to duplicate post_code");
+    if((record->country = strdup(loc_record->country)) == NULL) {
+      ipmeta_log(__func__, "ERROR: Failed to duplicate country");
+    }
   }
+
+  if (loc_record->sub_name!= NULL){
+    if((record->sub_name = strdup(loc_record->sub_name)) == NULL) {
+      ipmeta_log(__func__, "ERROR: Failed to duplicate sub_name");
+    }
   }
+
 }
 
   // Fill in the last part from the block record
@@ -708,9 +728,6 @@ if (block_record->id != 0){
   record->proxy = block_record->proxy;
   record->source = provider->id;
 
-  // TODO: put the rest later
-
-  
   /* iterate over and add each prefix to the trie */
     if (ipmeta_provider_associate_record(provider, state->block_network.addr,
                                          state->block_network.masklen,

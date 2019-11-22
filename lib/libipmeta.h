@@ -195,8 +195,12 @@ typedef struct ipmeta_record {
   /** 2 char local code - GeoIP2 Col 1 */
   char locale_code[2];
 
+
   /** String which contains the country name - GeoIP2 Col 5 */
   char *country;
+
+  /** String which contains the subdivision 1 name - GeoIP2 Col 7 */
+  char *sub_name;
 
   /** String which contains the timezone - GeoIP2 Col 12 */
   char *timezone;

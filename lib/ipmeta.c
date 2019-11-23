@@ -358,7 +358,8 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
     function(file,                                                             \
              "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR \
                SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR     \
-                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR "\n",       \
+                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR             \
+                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR  "\n",       \
              ip_str, num_ips);                                                 \
   } while (0)
 
@@ -368,14 +369,19 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
              "%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR          \
              "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR       \
              "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR "%" PRIu32 SEPARATOR \
-             "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR,         \
+             "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR         \
+              "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR                \
+             "%d" SEPARATOR "%d" SEPARATOR "%d" SEPARATOR "%d" ,      \
              ip_str, num_ips, record->id, record->country_code,                \
              record->continent_code, record->region,                           \
              (record->city == NULL ? "" : record->city),                       \
              (record->post_code == NULL ? "" : record->post_code),             \
              record->latitude, record->longitude, record->metro_code,          \
              record->area_code, record->region_code,                           \
-             (record->conn_speed == NULL ? "" : record->conn_speed));          \
+             (record->conn_speed == NULL ? "" : record->conn_speed),      \
+              record->locale_code, record->timezone,                            \
+              (record->sub_name == NULL ? "" : record->sub_name), record->in_eu, \
+             record->proxy, record->satprov, record->accuracy);                \
     for (i = 0; i < record->polygon_ids_cnt; i++) {                            \
       function(file, "%" PRIu32, record->polygon_ids[i]);                      \
       if (i < record->polygon_ids_cnt - 1)                                     \
@@ -416,7 +422,10 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
                    "metro-code" SEPARATOR "area-code" SEPARATOR                \
                    "region-code" SEPARATOR "connection-speed" SEPARATOR        \
                    "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"        \
-                   "\n");                                                      \
+                   SEPARATOR  "local_code" SEPARATOR   \
+                   "timezone" SEPARATOR  "sub_name" SEPARATOR                  \
+                   "in_eu" SEPARATOR "is_anonymous_proxy" SEPARATOR           \
+                    "is_satellite_provider" SEPARATOR "accuracy" "\n");                                                     \
   } while (0)
 
 void ipmeta_dump_record_header()

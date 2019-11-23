@@ -100,7 +100,6 @@ typedef enum locations_cols {
   LOCATION_COL_ISO1_CODE = 6,
   LOCATION_COL_ISO1_NAME = 7,
 
-
   LOCATION_COL_ISO2_CODE = 8,
   LOCATION_COL_ISO2_NAME = 9,
   /** City String */
@@ -468,7 +467,6 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
-
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
                 CSV_EMPTY_IS_NULL;
@@ -532,7 +530,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     }
     break;
 
-    
   case BLOCKS_COL_GEONAMEID:
   /* Geoname ID*/
     if (tok != NULL){
@@ -545,7 +542,6 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     }
     break;
 
-    
   case BLOCKS_COL_CCGEONAMEID:
     /* Registered country geoname ID */
     if (tok != NULL && tmp->id == 0){
@@ -745,8 +741,6 @@ if (block_record->id != 0){
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 }
 
-
-
 /** Read a blocks file  */
 static int read_blocks(ipmeta_provider_t *provider, io_t *file)
 {
@@ -855,7 +849,6 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
   wandio_destroy(file);
 
   /* ready to rock n roll */
-
   return 0;
 
 err:

@@ -875,7 +875,7 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
-    free(&(state->tmp_record))
+    free(&(state->tmp_record));
 
     /* destroy hash table locations */
     if (state->locations != NULL) {

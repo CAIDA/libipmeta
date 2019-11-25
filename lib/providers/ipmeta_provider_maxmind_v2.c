@@ -779,8 +779,6 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
     return -1;
   }
 
-  free(&(state->parser));
-
   csv_free(&(state->parser));
 
   return 0;

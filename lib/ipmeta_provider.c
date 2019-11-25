@@ -106,9 +106,6 @@ static void free_record(ipmeta_record_t *record)
   free(record->timezone);
   record->timezone = NULL;
 
-  free(record->city);
-  record->city = NULL;
-
   free(record);
   return;
 }

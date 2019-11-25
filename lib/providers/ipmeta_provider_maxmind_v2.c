@@ -493,6 +493,8 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
     return -1;
   }
 
+  csv_free(&(state->tmp_record));
+
   csv_free(&(state->parser));
 
   return 0;

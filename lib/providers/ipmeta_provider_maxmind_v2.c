@@ -96,8 +96,9 @@ typedef enum locations_cols {
   LOCATION_COL_CC = 4,
   /** Country String */
   LOCATION_COL_COUNTRY = 5,
-  /** Columns 6-9 not parsed: 6 and 7 could be useful city_code and City_name */
+  /** Columns 6 and 8-9 not parsed */
   LOCATION_COL_ISO1_CODE = 6,
+  /** City_name */
   LOCATION_COL_ISO1_NAME = 7,
 
   LOCATION_COL_ISO2_CODE = 8,

@@ -190,11 +190,10 @@ typedef struct ipmeta_record {
   int polygon_ids_cnt;
 
   /** New variables added for Maxmind_v2 **/
-
+  
   /** LOCATIONS */
   /** 2 char local code - GeoIP2 Col 1 */
   char locale_code[2];
-
 
   /** String which contains the country name - GeoIP2 Col 5 */
   char *country;
@@ -216,7 +215,7 @@ typedef struct ipmeta_record {
   int satprov;
 
   /** accuracy */
-  uint32_t accuracy;
+  int accuracy;
 
   /** The next record in the list */
   struct ipmeta_record *next;

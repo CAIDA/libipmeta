@@ -779,6 +779,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
     return -1;
   }
 
+  free(&(state->parser));
 
   csv_free(&(state->parser));
 
@@ -875,6 +876,7 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
+    
     free(&(state->tmp_record));
 
     /* destroy hash table locations */

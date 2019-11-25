@@ -740,13 +740,6 @@ if (block_record->id != 0){
   state->current_column = 0;
  /* empty block record before continuing */ 
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-
-  /* free memory */
-  free(loc_record->timezone);
-  free(loc_record->city);
-  free(loc_record->country);
-  free(loc_record->sub_name);
-
 }
 
 /** Read a blocks file  */
@@ -785,6 +778,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
                csv_strerror(csv_error(&(state->parser))));
     return -1;
   }
+
 
   csv_free(&(state->parser));
 
@@ -881,7 +875,7 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
-    //free(&(state->tmp_record))
+    free(&(state->tmp_record))
 
     /* destroy hash table locations */
     if (state->locations != NULL) {

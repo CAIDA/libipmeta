@@ -97,6 +97,18 @@ static void free_record(ipmeta_record_t *record)
   record->asn = NULL;
   record->asn_cnt = 0;
 
+  free(record->sub_name);
+  record->sub_name = NULL;
+
+  free(record->country);
+  record->country = NULL;
+
+  free(record->timezone);
+  record->timezone = NULL;
+
+  free(record->city);
+  record->city = NULL;
+
   free(record);
   return;
 }

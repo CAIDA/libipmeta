@@ -493,8 +493,6 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
     return -1;
   }
 
-  free(&(state));
-
   csv_free(&(state->parser));
 
   return 0;
@@ -800,6 +798,7 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
 {
   ipmeta_provider_maxmind_v2_state_t *state;
   io_t *file = NULL;
+  
 
   /* allocate our state */
   if ((state = malloc_zero(sizeof(ipmeta_provider_maxmind_v2_state_t))) ==
@@ -864,6 +863,9 @@ err:
 
 void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
 {
+  ipmeta_record_t *rec_ptr = NULL;
+  khiter_t i;
+
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
   if (state != NULL) {
     if (state->locations_file != NULL) {
@@ -876,8 +878,19 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
+  
     /* destroy hash table locations */
     if (state->locations != NULL) {
+
+        /* free the memory of each elment in the record */
+        for (i = kh_begin(state->locations); i != kh_end(state->locations); ++i) {
+          if (kh_exist(state->locations, i)) {
+             *rec_ptr = kh_value(state->locations, i);
+             ipmeta_record_clear(rec_ptr);
+            rec_ptr++;
+          }
+        }
+
       kh_destroy(loctemp_rcd, state->locations);
       state->locations = NULL;
     }

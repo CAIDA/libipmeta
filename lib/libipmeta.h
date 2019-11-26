@@ -190,7 +190,7 @@ typedef struct ipmeta_record {
   int polygon_ids_cnt;
 
   /** New variables added for Maxmind_v2 **/
-  
+
   /** LOCATIONS */
   /** 2 char local code - GeoIP2 Col 1 */
   char locale_code[2];
@@ -338,6 +338,13 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  * ipmeta_is_provider_enabled to check.
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
+
+/* Comment Rod*/
+void ipmeta_record_clear (ipmeta_record_t *record);
+
+/* Comment Rod*/
+void ipmeta_record_free (ipmeta_record_t *record);
+
 
 /** Initialize a new record set instance
  *

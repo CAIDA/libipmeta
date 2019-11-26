@@ -72,6 +72,7 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   ipmeta_provider_maxmind_v2_alloc,
 };
 
+/* Desctructor */
 static void free_record(ipmeta_record_t *record)
 {
   if (record == NULL) {

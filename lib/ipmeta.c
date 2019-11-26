@@ -194,6 +194,57 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
+
+void ipmeta_record_clear (ipmeta_record_t *record)
+{
+  if (record == NULL) {
+    return;
+  }
+
+  free(record->region);
+  record->region = NULL;
+
+  free(record->city);
+  record->city = NULL;
+
+  free(record->post_code);
+  record->post_code = NULL;
+
+  free(record->conn_speed);
+  record->conn_speed = NULL;
+
+  free(record->polygon_ids);
+  record->polygon_ids = NULL;
+
+  free(record->asn);
+  record->asn = NULL;
+  record->asn_cnt = 0;
+
+  free(record->sub_name);
+  record->sub_name = NULL;
+
+  free(record->country);
+  record->country = NULL;
+
+  free(record->timezone);
+  record->timezone = NULL;
+
+}
+
+
+/* Destructor */
+void ipmeta_record_free (ipmeta_record_t *record)
+{
+  if (record == NULL) {
+    return;
+  }
+
+  ipmeta_record_clear (record);
+
+  free(record);
+  return;
+}
+
 ipmeta_record_set_t *ipmeta_record_set_init()
 {
   ipmeta_record_set_t *record_set;
@@ -359,7 +410,7 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
              "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR \
                SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR     \
                  SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR             \
-                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR  "\n",       \
+                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR  "\n",                \
              ip_str, num_ips);                                                 \
   } while (0)
 

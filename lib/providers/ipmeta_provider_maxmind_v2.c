@@ -580,6 +580,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
       assert(tmp->post_code==NULL);
     }
     break;
+    
 
   case BLOCKS_COL_LAT:
     /* latitude */

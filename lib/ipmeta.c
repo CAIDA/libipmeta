@@ -200,7 +200,6 @@ void ipmeta_record_clear (ipmeta_record_t *record)
   if (record == NULL) {
     return;
   }
-
   free(record->region);
   record->region = NULL;
 
@@ -228,7 +227,6 @@ void ipmeta_record_clear (ipmeta_record_t *record)
 
   free(record->timezone);
   record->timezone = NULL;
-
 }
 
 

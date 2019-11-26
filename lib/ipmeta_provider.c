@@ -72,44 +72,6 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   ipmeta_provider_maxmind_v2_alloc,
 };
 
-/* Desctructor */
-static void free_record(ipmeta_record_t *record)
-{
-  if (record == NULL) {
-    return;
-  }
-
-  free(record->region);
-  record->region = NULL;
-
-  free(record->city);
-  record->city = NULL;
-
-  free(record->post_code);
-  record->post_code = NULL;
-
-  free(record->conn_speed);
-  record->conn_speed = NULL;
-
-  free(record->polygon_ids);
-  record->polygon_ids = NULL;
-
-  free(record->asn);
-  record->asn = NULL;
-  record->asn_cnt = 0;
-
-  free(record->sub_name);
-  record->sub_name = NULL;
-
-  free(record->country);
-  record->country = NULL;
-
-  free(record->timezone);
-  record->timezone = NULL;
-
-  free(record);
-  return;
-}
 
 /* --- Public functions below here -- */
 
@@ -198,7 +160,7 @@ void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
     /* free the records hash */
     if (provider->all_records != NULL) {
       /* this is where the records are free'd */
-      kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
+      kh_free_vals(ipmeta_rechash, provider->all_records, ipmeta_record_free);
       kh_destroy(ipmeta_rechash, provider->all_records);
       provider->all_records = NULL;
     }

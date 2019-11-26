@@ -885,9 +885,8 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
         /* free the memory of each elment in the record */
         for (i = kh_begin(state->locations); i != kh_end(state->locations); ++i) {
           if (kh_exist(state->locations, i)) {
-             *rec_ptr = kh_value(state->locations, i);
+             rec_ptr = &(kh_value(state->locations, i));
              ipmeta_record_clear(rec_ptr);
-            rec_ptr++;
           }
         }
 

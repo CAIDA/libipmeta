@@ -561,13 +561,13 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   case BLOCKS_COL_PROXY:
     /* proxy*/
-    tmp->proxy = atoi(strndup(tok, strlen(tok)));
+    tmp->proxy = atoi(tok);
     break;
 
   case BLOCKS_COL_SATTELLITEPROV:
     /* sattelite provider? */
     if (tok != NULL){
-    tmp->satprov = atoi(strndup(tok, strlen(tok)));
+    tmp->satprov = atoi(tok);
     }
     break;
 

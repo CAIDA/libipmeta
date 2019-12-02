@@ -339,10 +339,10 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
-/* Comment Rod*/
+/* Destructor that frees every column of record whenever record is not NULL*/
 void ipmeta_record_clear (ipmeta_record_t *record);
 
-/* Comment Rod*/
+/* Destructor that calls ipmeta_record_clear and then frees record. */
 void ipmeta_record_free (ipmeta_record_t *record);
 
 

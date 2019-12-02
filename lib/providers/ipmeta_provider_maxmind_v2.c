@@ -714,7 +714,6 @@ if (block_record->id != 0){
       ipmeta_log(__func__, "ERROR: Failed to duplicate sub_name");
     }
   }
-
 }
 
   /* Fill in the values for the remaining  keys of the block record */
@@ -784,7 +783,6 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
 
   return 0;
 }
-
 
 
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
@@ -879,7 +877,6 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
       state->blocks_file = NULL;
     }
 
-  
     /* destroy hash table locations */
     if (state->locations != NULL) {
 

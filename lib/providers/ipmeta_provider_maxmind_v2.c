@@ -124,11 +124,11 @@ typedef enum blocks_cols {
   BLOCKS_COL_GEONAMEID = 1,
   /** Registered Country Geoname ID */
   BLOCKS_COL_CCGEONAMEID = 2,
-  /** Column 3 is not used */
+  /** Column 3 is not parsed */
   BLOCKS_COL_REPRESENTED_CCGEONAME_ID = 3,
-  /** Int 0 or 1 is_proxy? */
+  /** Int 0 or 1 is proxy? */
   BLOCKS_COL_PROXY = 4,
-  /** Int 0 or 1 is_proxy? */
+  /** Int 0 or 1 is satellite provider? */
   BLOCKS_COL_SATTELLITEPROV = 5,
   /** Postal Code String */
   BLOCKS_COL_POSTAL = 6,
@@ -560,7 +560,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     break;
 
   case BLOCKS_COL_PROXY:
-    /* proxy*/
+    /* proxy? */
     tmp->proxy = atoi(tok);
     break;
 
@@ -717,7 +717,7 @@ if (block_record->id != 0){
 
 }
 
-  // Fill in the last part from the block record
+  /* Fill in the values for the remaining  keys of the block record */
   record->latitude = block_record->latitude;
   record->longitude = block_record->longitude;
   record->accuracy = block_record->accuracy;
@@ -915,5 +915,3 @@ int ipmeta_provider_maxmind_v2_lookup_single(ipmeta_provider_t *provider,
   /* just call the lookup helper func in provider manager */
   return ipmeta_provider_lookup_record_single(provider, addr, found);
 }
-
-

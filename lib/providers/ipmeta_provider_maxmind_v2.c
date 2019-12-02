@@ -78,7 +78,7 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   ipmeta_record_t tmp_record;
   ip_prefix_t block_network;
 
-  /* hash that maps geonameid to locations */
+  /* hash table that maps geonameid to locations */
   khash_t(loctemp_rcd) *locations;
 } ipmeta_provider_maxmind_v2_state_t;
 
@@ -96,11 +96,11 @@ typedef enum locations_cols {
   LOCATION_COL_CC = 4,
   /** Country String */
   LOCATION_COL_COUNTRY = 5,
-  /** Columns 6 and 8-9 not parsed */
+  /** Columns 6 is not parsed */
   LOCATION_COL_ISO1_CODE = 6,
   /** City_name */
   LOCATION_COL_ISO1_NAME = 7,
-
+  /** Columns 8-9 not parsed */
   LOCATION_COL_ISO2_CODE = 8,
   LOCATION_COL_ISO2_NAME = 9,
   /** City String */
@@ -118,9 +118,9 @@ typedef enum locations_cols {
 
 /** The columns in the maxmind_v2 locations CSV file */
 typedef enum blocks_cols {
-  /** Network  -- Added */
+  /** Network */
   BLOCKS_COL_NETWORK = 0,
-  /** Geoname ID -- Added */
+  /** Geoname ID */
   BLOCKS_COL_GEONAMEID = 1,
   /** Registered Country Geoname ID */
   BLOCKS_COL_CCGEONAMEID = 2,
@@ -580,7 +580,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
       assert(tmp->post_code==NULL);
     }
     break;
-    
+
 
   case BLOCKS_COL_LAT:
     /* latitude */

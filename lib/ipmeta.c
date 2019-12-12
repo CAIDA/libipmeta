@@ -194,8 +194,7 @@ ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta)
   return ipmeta->providers;
 }
 
-
-void ipmeta_record_clear (ipmeta_record_t *record)
+void ipmeta_record_clear(ipmeta_record_t *record)
 {
   if (record == NULL) {
     return;
@@ -229,15 +228,14 @@ void ipmeta_record_clear (ipmeta_record_t *record)
   record->timezone = NULL;
 }
 
-
 /* Destructor */
-void ipmeta_record_free (ipmeta_record_t *record)
+void ipmeta_record_free(ipmeta_record_t *record)
 {
   if (record == NULL) {
     return;
   }
 
-  ipmeta_record_clear (record);
+  ipmeta_record_clear(record);
 
   free(record);
   return;
@@ -404,33 +402,30 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
 
 #define PRINT_EMPTY_RECORD(function, file, ip_str, num_ips)                    \
   do {                                                                         \
-    function(file,                                                             \
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR \
-               SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR     \
-                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR             \
-                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR  "\n",                \
-             ip_str, num_ips);                                                 \
+    function(                                                                  \
+      file,                                                                    \
+      "%s" SEPARATOR                                                           \
+      "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR   \
+        SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR  \
+          SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR "\n",    \
+      ip_str, num_ips);                                                        \
   } while (0)
 
 #define PRINT_RECORD(function, file, record, ip_str, num_ips)                  \
   do {                                                                         \
     function(file,                                                             \
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR          \
-             "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR       \
-             "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR "%" PRIu32 SEPARATOR \
-             "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR         \
-              "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR                     \
-             "%d" SEPARATOR "%d" SEPARATOR "%d" SEPARATOR "%d" ,               \
+             ("%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR         \
+              "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR      \
+              "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR                     \
+              "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR   \
+              "%s" SEPARATOR),                                                 \
              ip_str, num_ips, record->id, record->country_code,                \
              record->continent_code, record->region,                           \
              (record->city == NULL ? "" : record->city),                       \
              (record->post_code == NULL ? "" : record->post_code),             \
              record->latitude, record->longitude, record->metro_code,          \
              record->area_code, record->region_code,                           \
-             (record->conn_speed == NULL ? "" : record->conn_speed),           \
-              record->locale_code, record->timezone,                           \
-              (record->sub_name == NULL ? "" : record->sub_name),             \
-              record->in_eu, record->proxy, record->satprov, record->accuracy);  \
+             (record->conn_speed == NULL ? "" : record->conn_speed));          \
     for (i = 0; i < record->polygon_ids_cnt; i++) {                            \
       function(file, "%" PRIu32, record->polygon_ids[i]);                      \
       if (i < record->polygon_ids_cnt - 1)                                     \
@@ -443,10 +438,20 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
         if (i < record->asn_cnt - 1)                                           \
           function(file, "_");                                                 \
       }                                                                        \
-      function(file, "|%" PRIu32 "\n", record->asn_ip_cnt);                    \
+      function(file, "|%" PRIu32, record->asn_ip_cnt);                         \
     } else {                                                                   \
-      function(file, "|\n");                                                   \
+      /* 1 | corresponding to asn */                                           \
+      function(file, "|");                                                     \
+      /* 1 | corresponding to asn_ip_cnt */                                    \
+      function(file, "|");                                                     \
     }                                                                          \
+    function(file,                                                             \
+             ("%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%d" SEPARATOR      \
+              "%d" SEPARATOR "%d" SEPARATOR "%d"),                             \
+             record->locale_code, record->timezone,                            \
+             (record->sub_name == NULL ? "" : record->sub_name),               \
+             record->in_eu, record->proxy, record->satprov, record->accuracy); \
+    function(file, "|\n");                                                     \
   } while (0)
 
 void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
@@ -464,17 +469,18 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
 
 #define PRINT_RECORD_HEADER(function, file)                                    \
   do {                                                                         \
-    function(file, "ip-prefix" SEPARATOR "num-ips" SEPARATOR "id" SEPARATOR    \
-                   "country-code" SEPARATOR "continent-code" SEPARATOR         \
-                   "region" SEPARATOR "city" SEPARATOR "post-code" SEPARATOR   \
-                   "latitude" SEPARATOR "longitude" SEPARATOR                  \
-                   "metro-code" SEPARATOR "area-code" SEPARATOR                \
-                   "region-code" SEPARATOR "connection-speed" SEPARATOR        \
-                   "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"        \
-                   SEPARATOR  "local_code" SEPARATOR                           \
-                   "timezone" SEPARATOR  "sub_name" SEPARATOR                  \
-                   "in_eu" SEPARATOR "is_anonymous_proxy" SEPARATOR            \
-                    "is_satellite_provider" SEPARATOR "accuracy" "\n");                                                     \
+    function(file,                                                             \
+             "ip-prefix" SEPARATOR "num-ips" SEPARATOR "id" SEPARATOR          \
+             "country-code" SEPARATOR "continent-code" SEPARATOR               \
+             "region" SEPARATOR "city" SEPARATOR "post-code" SEPARATOR         \
+             "latitude" SEPARATOR "longitude" SEPARATOR "metro-code" SEPARATOR \
+             "area-code" SEPARATOR "region-code" SEPARATOR                     \
+             "connection-speed" SEPARATOR "polygon-ids" SEPARATOR              \
+             "asn" SEPARATOR "asn-ip-cnt" SEPARATOR "local_code" SEPARATOR     \
+             "timezone" SEPARATOR "sub_name" SEPARATOR "in_eu" SEPARATOR       \
+             "is_anonymous_proxy" SEPARATOR "is_satellite_provider" SEPARATOR  \
+             "accuracy"                                                        \
+             "\n");                                                            \
   } while (0)
 
 void ipmeta_dump_record_header()

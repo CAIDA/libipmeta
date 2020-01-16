@@ -96,7 +96,9 @@ static void lookup(char *addr_str, iow_t *outfile)
         ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
       ipmeta_dump_record_set_by_provider(records, orig_str, i + 1);
     } else {
-      wandio_printf(outfile, "%s|", ipmeta_get_provider_by_id(ipmeta, i + 1));
+      wandio_printf(
+        outfile, "%s|",
+        ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
       ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
     }
   }

@@ -1,3 +1,9 @@
+libipmeta2 (2.1.1) unstable; urgency=medium
+
+  * Fix minor bug in ipmeta-lookup tool
+
+ -- Alistair King <software@caida.org>  Thu, 16 Jan 2020 10:48:09 -0800
+
 libipmeta2 (2.1.0-2) unstable; urgency=medium
 
   * Fix wandio build dependency

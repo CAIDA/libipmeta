@@ -24,7 +24,7 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipmeta], [2.1.1], [software@caida.org])
+AC_INIT([libipmeta], [2.1.2], [software@caida.org])
 AM_INIT_AUTOMAKE([foreign])
 
 # The following define the version numbers for the libtool-created library

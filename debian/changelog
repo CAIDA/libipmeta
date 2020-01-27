@@ -1,3 +1,9 @@
+libipmeta2 (2.1.2) unstable; urgency=medium
+
+  * Fix bug where ASNs were printed as signed integers
+
+ -- Alistair King <software@caida.org>  Mon, 27 Jan 2020 09:58:10 -0800
+
 libipmeta2 (2.1.1) unstable; urgency=medium
 
   * Fix minor bug in ipmeta-lookup tool

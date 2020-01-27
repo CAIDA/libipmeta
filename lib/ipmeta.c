@@ -384,7 +384,7 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
     function(file, "|");                                                       \
     if (record->asn_cnt > 0) {                                                 \
       for (i = 0; i < record->asn_cnt; i++) {                                  \
-        function(file, "%d", record->asn[i]);                                  \
+        function(file, "%" PRIu32, record->asn[i]);                            \
         if (i < record->asn_cnt - 1)                                           \
           function(file, "_");                                                 \
       }                                                                        \

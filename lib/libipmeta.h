@@ -189,29 +189,27 @@ typedef struct ipmeta_record {
   /** Number of IDs in the Polygon IDs array */
   int polygon_ids_cnt;
 
-  /** New variables added for Maxmind_v2 **/
-
-  /** LOCATIONS */
-  /** 2 char local code - GeoIP2 Col 1 */
+  /** 2 char local code - available in GeoIP2 Col 1 */
   char locale_code[2];
 
-  /** String which contains the country name - GeoIP2 Col 5 */
+  /** String - country name - available in GeoIP2 Col 5 */
   char *country;
 
-  /** String which contains the subdivision 1 name - GeoIP2 Col 7 */
+  /** String - sub-region-code - available in GeoIP2 file Col 7 */
   char *sub_name;
 
-  /** String which contains the timezone - GeoIP2 Col 12 */
+  /** String containing the timezone - available in GeoIP2 Col 12 */
   char *timezone;
 
-  /** Integer stating whether the IP is in EU or not */
+  /** Integer (1 or 0) specifying whether or not the IP is located in EU. */
   int in_eu;
 
-  /** BLOCKS */
-  /** is proxy ? */
+  /** Integer (1 or 0) specifying whether or not the IP  corresponds to a proxy
+   */
   int proxy;
 
-  /** is sattelite provider? */
+  /** Integer (1 or 0) specifying whether or not the IP corresponds to that of a
+   * satellite provider? */
   int satprov;
 
   /** accuracy */
@@ -340,11 +338,10 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
 /* Destructor that frees every column of record whenever record is not NULL*/
-void ipmeta_record_clear (ipmeta_record_t *record);
+void ipmeta_record_clear(ipmeta_record_t *record);
 
 /* Destructor that calls ipmeta_record_clear and then frees record. */
-void ipmeta_record_free (ipmeta_record_t *record);
-
+void ipmeta_record_free(ipmeta_record_t *record);
 
 /** Initialize a new record set instance
  *
@@ -530,14 +527,6 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  */
 int ipmeta_provider_maxmind_get_country_continent_list(
   const char ***continents);
-
-/** Convenience function to retrieve a list of ISO 2 character country codes
- *
- * @param countries[out]   The provided pointer is updated to point to an
- *                         array of 2 character country code strings
- * @return the number of elements in the array
- */
-int ipmeta_provider_maxmind_v2_get_iso2_list(const char ***countries);
 
 /** Convenience function to retrieve a list of 2 character continent codes in
  * the same ordering as the countries returned by

@@ -200,35 +200,26 @@ void ipmeta_record_clear(ipmeta_record_t *record)
     return;
   }
   free(record->region);
-  record->region = NULL;
 
   free(record->city);
-  record->city = NULL;
 
   free(record->post_code);
-  record->post_code = NULL;
 
   free(record->conn_speed);
-  record->conn_speed = NULL;
 
   free(record->polygon_ids);
-  record->polygon_ids = NULL;
 
   free(record->asn);
-  record->asn = NULL;
-  record->asn_cnt = 0;
 
   free(record->sub_name);
-  record->sub_name = NULL;
 
   free(record->country);
-  record->country = NULL;
 
   free(record->timezone);
-  record->timezone = NULL;
+
+  memset(record, 0, 1);
 }
 
-/* Destructor */
 void ipmeta_record_free(ipmeta_record_t *record)
 {
   if (record == NULL) {
@@ -438,12 +429,11 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
         if (i < record->asn_cnt - 1)                                           \
           function(file, "_");                                                 \
       }                                                                        \
-      function(file, "|%" PRIu32, record->asn_ip_cnt);                         \
+      function(file, "|%" PRIu32 " ", record->asn_ip_cnt);                     \
+                                                                               \
     } else {                                                                   \
       /* 1 | corresponding to asn */                                           \
-      function(file, "|");                                                     \
-      /* 1 | corresponding to asn_ip_cnt */                                    \
-      function(file, "|");                                                     \
+      function(file, "||");                                                    \
     }                                                                          \
     function(file,                                                             \
              ("%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%d" SEPARATOR      \
@@ -476,10 +466,10 @@ void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
              "latitude" SEPARATOR "longitude" SEPARATOR "metro-code" SEPARATOR \
              "area-code" SEPARATOR "region-code" SEPARATOR                     \
              "connection-speed" SEPARATOR "polygon-ids" SEPARATOR              \
-             "asn" SEPARATOR "asn-ip-cnt" SEPARATOR "local_code" SEPARATOR     \
-             "timezone" SEPARATOR "sub_name" SEPARATOR "in_eu" SEPARATOR       \
-             "is_anonymous_proxy" SEPARATOR "is_satellite_provider" SEPARATOR  \
-             "accuracy"                                                        \
+             "asn" SEPARATOR "asn-ip-cnt" SEPARATOR "locale-code" SEPARATOR    \
+             "timezone" SEPARATOR "sub-region-code" SEPARATOR                  \
+             "in-eu" SEPARATOR "is-anonymous-proxy" SEPARATOR                  \
+             "is-satellite-provider" SEPARATOR "accuracy"                      \
              "\n");                                                            \
   } while (0)
 

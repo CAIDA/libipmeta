@@ -51,7 +51,8 @@
 
 #define BUFFER_LEN 1024
 
-KHASH_INIT(loctemp_rcd, uint32_t, ipmeta_record_t, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_INIT(loctemp_rcd, uint32_t, ipmeta_record_t, 1, kh_int_hash_func,
+           kh_int_hash_equal)
 
 /** The default file name for the locations file */
 #define LOCATIONS_FILE_NAME "GeoLiteCity-Location.csv.gz"
@@ -75,11 +76,12 @@ typedef struct ipmeta_provider_maxmind_v2_state {
   struct csv_parser parser;
   int current_line;
   int current_column;
+  /* create a temporary record */
   ipmeta_record_t tmp_record;
   ip_prefix_t block_network;
 
-  /* hash table that maps geonameid to locations */
-  khash_t(loctemp_rcd) *locations;
+  /* create a hash table that maps geonameid to locations */
+  khash_t(loctemp_rcd) * locations;
 } ipmeta_provider_maxmind_v2_state_t;
 
 /** Columns in the maxmind_v2 locations CSV file */
@@ -87,7 +89,7 @@ typedef enum locations_cols {
   /** ID */
   LOCATION_COL_ID = 0,
   /** 2 char local code */
-  LOCATION_COL_LOCALCODE = 1,
+  LOCATION_COL_LOCALECODE = 1,
   /** 2 Char Continent/Region Code */
   LOCATION_COL_CONTINENTCODE = 2,
   /** Region/Continent String */
@@ -258,7 +260,6 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     usage(provider);
     return -1;
   }
-
   return 0;
 }
 
@@ -269,14 +270,11 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
   ipmeta_record_t *tmp = &(state->tmp_record);
   char *tok = (char *)s;
-
   char *end;
-
   /* skip the first line */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
-
 
   switch (state->current_column) {
   case LOCATION_COL_ID:
@@ -289,16 +287,12 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
     }
     break;
 
-  case LOCATION_COL_LOCALCODE:
+  case LOCATION_COL_LOCALECODE:
     /* country code */
     if (tok == NULL || strlen(tok) != 2) {
       ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
       state->parser.status = CSV_EUSER;
       return;
-    }
-    if (tok[0] == '-' && tok[1] == '-') {
-      tok[0] = '?';
-      tok[1] = '?';
     }
     memcpy(tmp->locale_code, tok, 2);
     break;
@@ -306,7 +300,7 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
   case LOCATION_COL_CONTINENTCODE:
     /* continent/region code */
     if (tok == NULL || strlen(tok) != 2) {
-      ipmeta_log(__func__, "Invalid Locale Code (%s)", tok);
+      ipmeta_log(__func__, "Invalid  Continent Code (%s)", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -321,16 +315,22 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
     /* region string */
     if (tok != NULL) {
       if ((tmp->region = strdup(tok)) == NULL) {
-      ipmeta_log(__func__, "Region code copy failed (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+        ipmeta_log(__func__, "Region code copy failed (%s)", tok);
+        state->parser.status = CSV_EUSER;
+        return;
       }
     }
     break;
 
   case LOCATION_COL_CC:
     /* country code */
-    if (tok != NULL) {
+    /* Generates an error for cases where CC = NULL, so I commented it */
+    // if (tok == NULL || strlen(tok) != 2) {
+    //  ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
+    //  state->parser.status = CSV_EUSER;
+    //  return;
+    //}
+    if (tok != NULL && strlen(tok) == 2) {
       if (tok[0] == '-' && tok[1] == '-') {
         tok[0] = '?';
         tok[1] = '?';
@@ -351,12 +351,12 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_ISO1_NAME:
-      /* subdivision name string */
+    /* subdivision name string */
     if (tok != NULL) {
       if ((tmp->sub_name = strdup(tok)) == NULL) {
-      ipmeta_log(__func__, "Region code copy failed (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+        ipmeta_log(__func__, "Region code copy failed (%s)", tok);
+        state->parser.status = CSV_EUSER;
+        return;
       }
     }
     break;
@@ -415,7 +415,6 @@ static void parse_maxmind_v2_location_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
-  //ipmeta_record_t *record;
   khiter_t khiter;
   int khret;
 
@@ -435,17 +434,14 @@ static void parse_maxmind_v2_location_row(int c, void *data)
     state->parser.status = CSV_EUSER;
     return;
   }
-
   /* done processing the line */
 
   assert(state->tmp_record.id > 0);
 
   /* create a mapping for this location line */
   khiter = kh_put(loctemp_rcd, state->locations, state->tmp_record.id, &khret);
-  memcpy(&(kh_value(state->locations, khiter)), &(state->tmp_record), sizeof(ipmeta_record_t));
-  //kh_value(state->locations, khiter) = memcpy(record, *tmp, sizeof(ipmeta_record_t));
-
-
+  memcpy(&(kh_value(state->locations, khiter)), &(state->tmp_record),
+         sizeof(ipmeta_record_t));
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
@@ -459,21 +455,17 @@ static void parse_maxmind_v2_location_row(int c, void *data)
 static int read_locations(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
-
   char buffer[BUFFER_LEN];
   int read = 0;
-
   /* reset the state variables before we start */
   state->current_column = 0;
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-
   /* options for the csv parser */
   int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
                 CSV_EMPTY_IS_NULL;
 
   csv_init(&(state->parser), options);
-
   while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
     if (csv_parse(&(state->parser), buffer, read,
                   parse_maxmind_v2_location_cell, parse_maxmind_v2_location_row,
@@ -484,7 +476,6 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
       return -1;
     }
   }
-
   if (csv_fini(&(state->parser), parse_maxmind_v2_location_cell,
                parse_maxmind_v2_location_row, provider) != 0) {
     ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
@@ -492,13 +483,11 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
                csv_strerror(csv_error(&(state->parser))));
     return -1;
   }
-
   csv_free(&(state->parser));
-
   return 0;
 }
 
-/** Parse a blocks cell */
+/** Parse a maxmind_v2 blocks cell */
 static void parse_blocks_cell(void *s, size_t i, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
@@ -523,35 +512,36 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     } else {
       state->block_network.masklen = 32;
     }
-
     state->block_network.addr = inet_addr(tok);
-    if  (state->block_network.addr == INADDR_NONE){
-        ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
-        state->parser.status = CSV_EUSER;
+    if (state->block_network.addr == INADDR_NONE) {
+      ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
+      state->parser.status = CSV_EUSER;
     }
     break;
 
   case BLOCKS_COL_GEONAMEID:
-  /* Geoname ID*/
-    if (tok != NULL){
+    /* Geoname ID*/
+    if (tok != NULL) {
       /* id */
-    tmp->id = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
-      state->parser.status = CSV_EUSER;
-    }
+      tmp->id = strtol(tok, &end, 10);
+      if (end == tok || *end != '\0' || errno == ERANGE) {
+        ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
+        state->parser.status = CSV_EUSER;
+      }
     }
     break;
 
+  /* In case tmp->id == 0 i.e. GEONAMEID is NULL, the id field is filled
+   * with the content of CCGEONAMEID rather than GEONAMEID. */
   case BLOCKS_COL_CCGEONAMEID:
     /* Registered country geoname ID */
-    if (tok != NULL && tmp->id == 0){
+    if (tok != NULL && tmp->id == 0) {
       /* id */
-    tmp->id = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
-      state->parser.status = CSV_EUSER;
-    }
+      tmp->id = strtol(tok, &end, 10);
+      if (end == tok || *end != '\0' || errno == ERANGE) {
+        ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
+        state->parser.status = CSV_EUSER;
+      }
     }
     break;
 
@@ -566,43 +556,39 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   case BLOCKS_COL_SATTELLITEPROV:
     /* sattelite provider? */
-    if (tok != NULL){
-    tmp->satprov = atoi(tok);
+    if (tok != NULL) {
+      tmp->satprov = atoi(tok);
     }
     break;
 
   case BLOCKS_COL_POSTAL:
     /* postal code */
-    if (tok != NULL){
+    if (tok != NULL) {
       tmp->post_code = strndup(tok, strlen(tok));
-    }
-    else{
-      assert(tmp->post_code==NULL);
     }
     break;
 
-
   case BLOCKS_COL_LAT:
     /* latitude */
-    if (tok != NULL){
-    tmp->latitude = strtof(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
-    }
+    if (tok != NULL) {
+      tmp->latitude = strtof(tok, &end);
+      if (end == tok || *end != '\0' || errno == ERANGE) {
+        ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
+        state->parser.status = CSV_EUSER;
+        return;
+      }
     }
     break;
 
   case BLOCKS_COL_LONG:
     /* longitude */
-    if (tok != NULL){
-    tmp->longitude = strtof(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
-    }
+    if (tok != NULL) {
+      tmp->longitude = strtof(tok, &end);
+      if (end == tok || *end != '\0' || errno == ERANGE) {
+        ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
+        state->parser.status = CSV_EUSER;
+        return;
+      }
     }
     break;
 
@@ -633,14 +619,13 @@ static void parse_blocks_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
-  /* Initializing block record*/
+  /* Defining a block record*/
   ipmeta_record_t *block_record = &(state->tmp_record);
   /* the pointer to the final record */
   ipmeta_record_t *record = NULL;
   /*location record */
   ipmeta_record_t *loc_record = NULL;
   khiter_t khiter;
-
 
   if (state->current_line < HEADER_ROW_CNT) {
     state->current_line++;
@@ -659,9 +644,10 @@ static void parse_blocks_row(int c, void *data)
     return;
   }
 
-/* At the end of each row, look up the locations row in the hash table */
-
-// We can only make one memcopy of the locations block into the final block 
+  /* In the following, we merge a location record into a new block record,
+   * because several locations (CC1, Cont1, pref1 - CC2, cont2, pref2 - CC3,
+   * cont3, pref3) can correspond to the same block (lat,
+   * long, accuracy); we thus use block_record->id as key of the final record */
   if ((record = ipmeta_provider_init_record(provider, state->current_line)) ==
       NULL) {
     ipmeta_log(__func__, "ERROR: Could not initialize meta record");
@@ -669,52 +655,44 @@ static void parse_blocks_row(int c, void *data)
     return;
   }
 
-if (block_record->id != 0){
-  if ((khiter = kh_get(loctemp_rcd, state->locations, block_record->id)) ==
-      kh_end(state->locations)) {
-    ipmeta_log(__func__, "ERROR: Invalid geoname id (%"PRIu32")",
-                block_record->id);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
-
-  // copy anything in the locations row into the temp record.
-  loc_record = &(kh_value(state->locations, khiter));
-  memcpy(record,loc_record, sizeof(ipmeta_record_t));
-
-  // Trying to duplicate the char values we avoid a free memory error.  
-  if (loc_record->region != NULL){
-  if((record->region = strdup(loc_record->region)) == NULL) {
-    ipmeta_log(__func__, "ERROR: Failed to duplicate region");
-  }
-  }
-
-  /* It is essential to duplicate blocks so that we do not end up with a free 
-  non-allocated memory case. */
-  if (loc_record->city != NULL){
-    if((record->city= strdup(loc_record->city)) == NULL) {
+  /* Check if the block_record has an id that is non-null, before trying to
+  match it to its corresponding location. This allows to keep Geoname_id as
+  a key in the hash table loctemp_rcd*/
+  if (block_record->id != 0) {
+    if ((khiter = kh_get(loctemp_rcd, state->locations, block_record->id)) ==
+        kh_end(state->locations)) {
+      ipmeta_log(__func__, "ERROR: Invalid geoname id (%" PRIu32 ")",
+                 block_record->id);
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+    /* copy anything in the locations row into the temp record. */
+    loc_record = &(kh_value(state->locations, khiter));
+    memcpy(record, loc_record, sizeof(ipmeta_record_t));
+    /* Duplicate fields in loc_record, get the pointer to the null terminated
+    byte thus obtained and push these into the block record to avoid a
+    non-allocated memory error. */
+    if (loc_record->region != NULL &&
+        (record->region = strdup(loc_record->region)) == NULL) {
       ipmeta_log(__func__, "ERROR: Failed to duplicate region");
     }
-  }
-  
-  if (loc_record->timezone != NULL){
-    if((record->timezone = strdup(loc_record->timezone)) == NULL) {
-    ipmeta_log(__func__, "ERROR: Failed to duplicate timezone");
+    if (loc_record->city != NULL &&
+        (record->city = strdup(loc_record->city)) == NULL) {
+      ipmeta_log(__func__, "ERROR: Failed to duplicate city");
     }
-  }
-
-  if (loc_record->country!= NULL){
-    if((record->country = strdup(loc_record->country)) == NULL) {
+    if (loc_record->timezone != NULL &&
+        (record->timezone = strdup(loc_record->timezone)) == NULL) {
+      ipmeta_log(__func__, "ERROR: Failed to duplicate timezone");
+    }
+    if (loc_record->country != NULL &&
+        (record->country = strdup(loc_record->country)) == NULL) {
       ipmeta_log(__func__, "ERROR: Failed to duplicate country");
     }
-  }
-
-  if (loc_record->sub_name!= NULL){
-    if((record->sub_name = strdup(loc_record->sub_name)) == NULL) {
+    if (loc_record->sub_name != NULL &&
+        (record->sub_name = strdup(loc_record->sub_name)) == NULL) {
       ipmeta_log(__func__, "ERROR: Failed to duplicate sub_name");
     }
   }
-}
 
   /* Fill in the values for the remaining  keys of the block record */
   record->latitude = block_record->latitude;
@@ -725,20 +703,20 @@ if (block_record->id != 0){
   record->proxy = block_record->proxy;
   record->source = provider->id;
 
-  /* iterate over and add each prefix to the trie */
-    if (ipmeta_provider_associate_record(provider, state->block_network.addr,
-                                         state->block_network.masklen,
-                                         record) != 0) {
-      ipmeta_log(__func__, "ERROR: Failed to associate record");
-      state->parser.status = CSV_EUSER;
-      return;
-    }
-  
+  /* Associate network address and prefix lenght to the right record.*/
+  if (ipmeta_provider_associate_record(provider, state->block_network.addr,
+                                       state->block_network.masklen,
+                                       record) != 0) {
+    ipmeta_log(__func__, "ERROR: Failed to associate record");
+    state->parser.status = CSV_EUSER;
+    return;
+  }
+
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
   state->current_column = 0;
- /* empty block record before continuing */ 
+  /* empty block record before continuing */
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 }
 
@@ -749,7 +727,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   char buffer[BUFFER_LEN];
   int read = 0;
 
-  /* reset the state variables before we start: OK with the changes below */
+  /* reset the state variables before we start*/
   state->current_column = 0;
   state->current_line = 0;
   state->block_network.masklen = 32;
@@ -770,7 +748,6 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
       return -1;
     }
   }
-
   if (csv_fini(&(state->parser), parse_blocks_cell, parse_blocks_row,
                provider) != 0) {
     ipmeta_log(__func__, "Error parsing maxmind_v2 Location file");
@@ -778,15 +755,11 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
                csv_strerror(csv_error(&(state->parser))));
     return -1;
   }
-
   csv_free(&(state->parser));
-
   return 0;
 }
 
-
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
-
 ipmeta_provider_t *ipmeta_provider_maxmind_v2_alloc()
 {
   return &ipmeta_provider_maxmind_v2;
@@ -797,8 +770,6 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
 {
   ipmeta_provider_maxmind_v2_state_t *state;
   io_t *file = NULL;
-  
-
   /* allocate our state */
   if ((state = malloc_zero(sizeof(ipmeta_provider_maxmind_v2_state_t))) ==
       NULL) {
@@ -806,49 +777,39 @@ int ipmeta_provider_maxmind_v2_init(ipmeta_provider_t *provider, int argc,
     return -1;
   }
   ipmeta_provider_register_state(provider, state);
-
   /* parse the command line args */
   if (parse_args(provider, argc, argv) != 0) {
     return -1;
   }
-
   /* Initialize the locations hash */
   state->locations = kh_init(loctemp_rcd);
-
   assert(state->locations_file != NULL && state->blocks_file != NULL);
-
   /* open the locations file */
   if ((file = wandio_create(state->locations_file)) == NULL) {
     ipmeta_log(__func__, "failed to open location file '%s'",
                state->locations_file);
     return -1;
   }
-
   /* populate the locations hash */
   if (read_locations(provider, file) != 0) {
     ipmeta_log(__func__, "failed to parse locations file");
     goto err;
   }
-
   /* close the locations file */
   wandio_destroy(file);
   file = NULL;
-
   /* open the blocks file */
   if ((file = wandio_create(state->blocks_file)) == NULL) {
     ipmeta_log(__func__, "failed to open blocks file '%s'", state->blocks_file);
     goto err;
   }
-
   /* populate the ds (by joining on the id in the hash) */
   if (read_blocks(provider, file) != 0) {
     ipmeta_log(__func__, "failed to parse blocks file");
     goto err;
   }
-
   /* close the blocks file */
   wandio_destroy(file);
-
   /* ready to rock n roll */
   return 0;
 
@@ -864,38 +825,37 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
 {
   ipmeta_record_t *rec_ptr = NULL;
   khiter_t i;
-
   ipmeta_provider_maxmind_v2_state_t *state = STATE(provider);
-  if (state != NULL) {
-    if (state->locations_file != NULL) {
-      free(state->locations_file);
-      state->locations_file = NULL;
-    }
-
-    if (state->blocks_file != NULL) {
-      free(state->blocks_file);
-      state->blocks_file = NULL;
-    }
-
-    /* destroy hash table locations */
-    if (state->locations != NULL) {
-
-        /* free the memory of each elment in the record */
-        for (i = kh_begin(state->locations); i != kh_end(state->locations); ++i) {
-          if (kh_exist(state->locations, i)) {
-             rec_ptr = &(kh_value(state->locations, i));
-             ipmeta_record_clear(rec_ptr);
-          }
-        }
-
-      kh_destroy(loctemp_rcd, state->locations);
-      state->locations = NULL;
-    }
-
-    ipmeta_provider_free_state(provider);
+  if (state == NULL) {
+    return;
   }
-  return;
+
+  // if (state != NULL) {
+  if (state->locations_file != NULL) {
+    free(state->locations_file);
+    state->locations_file = NULL;
+  }
+  if (state->blocks_file != NULL) {
+    free(state->blocks_file);
+    state->blocks_file = NULL;
+  }
+
+  /* destroy hash table locations */
+  if (state->locations != NULL) {
+    /* free the memory of each elment in the record */
+    for (i = kh_begin(state->locations); i != kh_end(state->locations); ++i) {
+      if (kh_exist(state->locations, i)) {
+        rec_ptr = &(kh_value(state->locations, i));
+        ipmeta_record_clear(rec_ptr);
+      }
+    }
+    kh_destroy(loctemp_rcd, state->locations);
+    state->locations = NULL;
+  }
+  ipmeta_provider_free_state(provider);
 }
+// return;
+//}
 
 int ipmeta_provider_maxmind_v2_lookup(ipmeta_provider_t *provider,
                                       uint32_t addr, uint8_t mask,

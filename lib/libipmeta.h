@@ -337,10 +337,19 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
-/* Destructor that frees every column of record whenever record is not NULL*/
+/** Clear function that frees every column of record whenever record is not NULL
+ * (including non-dynamic) fields
+ *
+ * @param ipmeta_record_t
+ * @return sets every fields of the records to NULL
+ */
 void ipmeta_record_clear(ipmeta_record_t *record);
 
-/* Destructor that calls ipmeta_record_clear and then frees record. */
+/** Destructor that calls ipmeta_record_clear and then frees record.
+ *
+ * @param ipmeta_record_t
+ * @return frees the allocated memory to the record sent in input.
+ */
 void ipmeta_record_free(ipmeta_record_t *record);
 
 /** Initialize a new record set instance
@@ -526,17 +535,6 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  * @return the number of elements in the array
  */
 int ipmeta_provider_maxmind_get_country_continent_list(
-  const char ***continents);
-
-/** Convenience function to retrieve a list of 2 character continent codes in
- * the same ordering as the countries returned by
- * ipmeta_provider_maxmind_v2_get_iso2_list
- *
- * @param continents[out]   The provided pointer is updated to point to an
- *                          array of 2 character continent code strings
- * @return the number of elements in the array
- */
-int ipmeta_provider_maxmind_v2_get_country_continent_list(
   const char ***continents);
 
 /** Information about a single Net Acuity region */

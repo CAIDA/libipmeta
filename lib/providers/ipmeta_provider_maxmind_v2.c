@@ -829,8 +829,6 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
   if (state == NULL) {
     return;
   }
-
-  // if (state != NULL) {
   if (state->locations_file != NULL) {
     free(state->locations_file);
     state->locations_file = NULL;
@@ -854,8 +852,6 @@ void ipmeta_provider_maxmind_v2_free(ipmeta_provider_t *provider)
   }
   ipmeta_provider_free_state(provider);
 }
-// return;
-//}
 
 int ipmeta_provider_maxmind_v2_lookup(ipmeta_provider_t *provider,
                                       uint32_t addr, uint8_t mask,

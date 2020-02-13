@@ -200,24 +200,16 @@ void ipmeta_record_clear(ipmeta_record_t *record)
     return;
   }
   free(record->region);
-
   free(record->city);
-
   free(record->post_code);
-
   free(record->conn_speed);
-
   free(record->polygon_ids);
-
   free(record->asn);
-
   free(record->sub_name);
-
   free(record->country);
-
   free(record->timezone);
 
-  memset(record, 0, 1);
+  memset(record, 0, sizeof(ipmeta_record_t));
 }
 
 void ipmeta_record_free(ipmeta_record_t *record)
@@ -247,7 +239,6 @@ ipmeta_record_set_t *ipmeta_record_set_init()
     return NULL;
   }
   ipmeta_record_set_clear(record_set);
-
   return record_set;
 }
 
@@ -256,7 +247,6 @@ void ipmeta_record_set_clear(ipmeta_record_set_t *record_set)
   if (record_set == NULL) {
     return;
   }
-
   record_set->n_recs = 0;
   record_set->_cursor = 0;
 }
@@ -270,14 +260,11 @@ void ipmeta_record_set_free(ipmeta_record_set_t **record_set_p)
 
   free(record_set->records);
   record_set->records = NULL;
-
   free(record_set->ip_cnts);
   record_set->ip_cnts = NULL;
-
   record_set->n_recs = 0;
   record_set->_cursor = 0;
   record_set->_alloc_size = 0;
-
   free(record_set);
   *record_set_p = NULL;
 }
@@ -294,11 +281,9 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
     /* No more records */
     return NULL;
   }
-
   if (num_ips != NULL) {
     *num_ips = record_set->ip_cnts[record_set->_cursor];
   }
-
   return record_set->records[record_set->_cursor++]; /* Advance head */
 }
 
@@ -432,7 +417,6 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
       function(file, "|%" PRIu32 " ", record->asn_ip_cnt);                     \
                                                                                \
     } else {                                                                   \
-      /* 1 | corresponding to asn */                                           \
       function(file, "||");                                                    \
     }                                                                          \
     function(file,                                                             \

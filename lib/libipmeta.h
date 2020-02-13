@@ -337,18 +337,17 @@ const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
  */
 ipmeta_provider_t **ipmeta_get_all_providers(ipmeta_t *ipmeta);
 
-/** Clear function that frees every column of record whenever record is not NULL
- * (including non-dynamic) fields
+/** Clear an existing record structure.
+ * Resets all values to zero, and frees any dynamically allocated memory.
  *
  * @param ipmeta_record_t
- * @return sets every fields of the records to NULL
+ * @return an array of providers objects
  */
 void ipmeta_record_clear(ipmeta_record_t *record);
 
 /** Destructor that calls ipmeta_record_clear and then frees record.
  *
  * @param ipmeta_record_t
- * @return frees the allocated memory to the record sent in input.
  */
 void ipmeta_record_free(ipmeta_record_t *record);
 

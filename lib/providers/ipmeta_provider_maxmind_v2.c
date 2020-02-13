@@ -324,12 +324,6 @@ static void parse_maxmind_v2_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_CC:
     /* country code */
-    /* Generates an error for cases where CC = NULL, so I commented it */
-    // if (tok == NULL || strlen(tok) != 2) {
-    //  ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
-    //  state->parser.status = CSV_EUSER;
-    //  return;
-    //}
     if (tok != NULL && strlen(tok) == 2) {
       if (tok[0] == '-' && tok[1] == '-') {
         tok[0] = '?';

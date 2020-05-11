@@ -142,10 +142,10 @@ int main(int argc, char **argv)
   int rc = -1;
   int i;
   int opt;
-  int prevoptind;
   /* we MUST not use any of the getopt global vars outside of arg parsing */
   /* this is because the plugins can use get opt to parse their config */
   int lastopt;
+  int error = 0;
 
   char *ip_file = NULL;
   io_t *file = NULL;
@@ -171,13 +171,7 @@ int main(int argc, char **argv)
   /* initialize the providers array to NULL first */
   memset(providers, 0, sizeof(char *) * IPMETA_PROVIDER_MAX);
 
-  while (prevoptind = optind,
-         (opt = getopt(argc, argv, ":D:c:f:o:p:hv?")) >= 0) {
-    if (optind == prevoptind + 2 && optarg && *optarg == '-' &&
-        *(optarg + 1) != '\0') {
-      opt = ':';
-      --optind;
-    }
+  while ((opt = getopt(argc, argv, "D:c:f:o:p:hv?")) >= 0) {
     switch (opt) {
     case 'c':
       compress_level = atoi(optarg);
@@ -203,23 +197,16 @@ int main(int argc, char **argv)
       providers[providers_cnt++] = strdup(optarg);
       break;
 
-    case ':':
-      fprintf(stderr, "ERROR: Missing option argument for -%c\n", optopt);
-      usage(argv[0]);
-      return -1;
-      break;
-
-    case '?':
     case 'v':
       fprintf(stderr, "libipmeta version %d.%d.%d\n", LIBIPMETA_MAJOR_VERSION,
               LIBIPMETA_MID_VERSION, LIBIPMETA_MINOR_VERSION);
-      usage(argv[0]);
       goto quit;
       break;
 
+    case '?':
     default:
-      usage(argv[0]);
-      goto quit;
+      error = 1;
+      break;
     }
   }
 
@@ -238,6 +225,11 @@ int main(int argc, char **argv)
   /* this must be called before usage is called */
   if ((ipmeta = ipmeta_init(dstype)) == NULL) {
     fprintf(stderr, "could not initialize libipmeta\n");
+    goto quit;
+  }
+
+  if (error) {
+    usage(argv[0]);
     goto quit;
   }
 

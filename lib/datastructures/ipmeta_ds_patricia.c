@@ -140,10 +140,10 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
 
     recfound = (ipmeta_record_t **)(node->data);
     for (i = 0; i < IPMETA_PROVIDER_MAX; i++) {
-      if ((1 << (i)&provmask) == 0) {
+      if (((1 << i) & provmask) == 0) {
         continue;
       }
-      if ((1 << (i) & *foundsofar) != 0) {
+      if (((1 << i) & *foundsofar) != 0) {
         continue;
       }
       if (recfound[i] == NULL) {

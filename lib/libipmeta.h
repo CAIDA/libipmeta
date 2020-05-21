@@ -354,6 +354,18 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
 ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
                                         uint32_t *num_ips);
 
+/** Write the given metadata record set to the given wandio file
+ *
+ * @param file          The wandio file to write to, or NULL for stdout
+ * @param format        as in printf() or wandio_printf()
+ *
+ * @return the number of characters printed, or a negative value for error.
+ *
+ * If file != NULL, this is equivalent to `wandio_printf(file, format, ...)`.
+ * If file == NULL, this is equivalent to `printf(format, ...)`.
+ */
+int64_t ipmeta_printf(iow_t *file, const char *format, ...);
+
 /** Dump the given metadata record set to stdout
  *
  * @param record_set    The record set to dump
@@ -380,7 +392,7 @@ void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
 /** Write the given metadata record set to the given wandio file
  *
  * @param record_set    The record set to dump
- * @param file          The wandio file to write to
+ * @param file          The wandio file to write to, or NULL for stdout
  * @param ip_str        The IP address/prefix string this record was looked up
  * for
  *
@@ -393,7 +405,7 @@ void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
  *  record set to a wandio file
  *
  * @param this          The record set to dump
- * @param file          The wandio file to write to
+ * @param file          The wandio file to write to, or NULL for stdout
  * @param ip_str        The IP address/prefix string this record was looked up
  * for
  * @param providerid	The id number of the provider to limit our output to
@@ -424,7 +436,7 @@ void ipmeta_dump_record_header(void);
 
 /** Write the given metadata record to the given wandio file
  *
- * @param file          The wandio file to write to
+ * @param file          The wandio file to write to, or NULL for stdout
  * @param record        The record to dump
  * @param ip_str        The IP address/prefix string this record was looked up
  * for
@@ -437,7 +449,7 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
 
 /** Write names of the fields in a record structure to the given wandio file
  *
- * @param file          The wandio file to write to
+ * @param file          The wandio file to write to, or NULL for stdout
  *
  * Each record field name is written in pipe-delimited format, and in the same
  * order as the contents are written out when using ipmeta_write_record.

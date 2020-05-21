@@ -298,12 +298,7 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
 
 void ipmeta_dump_record_set(ipmeta_record_set_t *record_set, char *ip_str)
 {
-  ipmeta_record_t *rec;
-  uint32_t num_ips;
-  ipmeta_record_set_rewind(record_set);
-  while ((rec = ipmeta_record_set_next(record_set, &num_ips))) {
-    ipmeta_dump_record(rec, ip_str, num_ips);
-  }
+  ipmeta_write_record_set(record_set, NULL, ip_str);
 }
 
 void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
@@ -320,19 +315,7 @@ void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
 void ipmeta_dump_record_set_by_provider(ipmeta_record_set_t *this, char *ip_str,
                                         int provid)
 {
-  ipmeta_record_t *rec;
-  uint32_t num_ips = 0;
-  ipmeta_record_set_rewind(this);
-  int dumped = 0;
-  while ((rec = ipmeta_record_set_next(this, &num_ips))) {
-    if (rec->source != provid)
-      continue;
-    ipmeta_dump_record(rec, ip_str, num_ips);
-    dumped++;
-  }
-  if (dumped == 0) {
-    ipmeta_dump_record(NULL, ip_str, num_ips);
-  }
+  ipmeta_write_record_set_by_provider(this, NULL, ip_str, provid);
 }
 
 void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
@@ -353,75 +336,24 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
   }
 }
 
-#define PRINT_EMPTY_RECORD(function, file, ip_str, num_ips)                    \
-  do {                                                                         \
-    function(file,                                                             \
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR \
-               SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR     \
-                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR "\n",       \
-             ip_str, num_ips);                                                 \
-  } while (0)
-
-#define PRINT_RECORD(function, file, record, ip_str, num_ips)                  \
-  do {                                                                         \
-    function(file,                                                             \
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR          \
-             "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR       \
-             "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR "%" PRIu32 SEPARATOR \
-             "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR,         \
-             ip_str, num_ips, record->id, record->country_code,                \
-             record->continent_code, record->region,                           \
-             (record->city == NULL ? "" : record->city),                       \
-             (record->post_code == NULL ? "" : record->post_code),             \
-             record->latitude, record->longitude, record->metro_code,          \
-             record->area_code, record->region_code,                           \
-             (record->conn_speed == NULL ? "" : record->conn_speed));          \
-    for (i = 0; i < record->polygon_ids_cnt; i++) {                            \
-      function(file, "%" PRIu32, record->polygon_ids[i]);                      \
-      if (i < record->polygon_ids_cnt - 1)                                     \
-        function(file, ",");                                                   \
-    }                                                                          \
-    function(file, "|");                                                       \
-    if (record->asn_cnt > 0) {                                                 \
-      for (i = 0; i < record->asn_cnt; i++) {                                  \
-        function(file, "%" PRIu32, record->asn[i]);                            \
-        if (i < record->asn_cnt - 1)                                           \
-          function(file, "_");                                                 \
-      }                                                                        \
-      function(file, "|%" PRIu32 "\n", record->asn_ip_cnt);                    \
-    } else {                                                                   \
-      function(file, "|\n");                                                   \
-    }                                                                          \
-  } while (0)
+int64_t ipmeta_printf(iow_t *file, const char *fmt, ...)
+{
+  va_list ap;
+  va_start(ap, fmt);
+  if (file)
+    return wandio_vprintf(file, fmt, ap);
+  else
+    return vprintf(fmt, ap);
+}
 
 void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
 {
-  int i;
-
-  if (record == NULL) {
-    /* dump an empty record */
-    PRINT_EMPTY_RECORD(fprintf, stdout, ip_str, num_ips);
-  } else {
-    PRINT_RECORD(fprintf, stdout, record, ip_str, num_ips);
-  }
-  return;
+  ipmeta_write_record(NULL, record, ip_str, num_ips);
 }
-
-#define PRINT_RECORD_HEADER(function, file)                                    \
-  do {                                                                         \
-    function(file, "ip-prefix" SEPARATOR "num-ips" SEPARATOR "id" SEPARATOR    \
-                   "country-code" SEPARATOR "continent-code" SEPARATOR         \
-                   "region" SEPARATOR "city" SEPARATOR "post-code" SEPARATOR   \
-                   "latitude" SEPARATOR "longitude" SEPARATOR                  \
-                   "metro-code" SEPARATOR "area-code" SEPARATOR                \
-                   "region-code" SEPARATOR "connection-speed" SEPARATOR        \
-                   "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"        \
-                   "\n");                                                      \
-  } while (0)
 
 void ipmeta_dump_record_header()
 {
-  PRINT_RECORD_HEADER(fprintf, stdout);
+  ipmeta_write_record_header(NULL);
 }
 
 void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
@@ -430,14 +362,52 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
   int i;
 
   if (record == NULL) {
-    PRINT_EMPTY_RECORD(wandio_printf, file, ip_str, num_ips);
+    ipmeta_printf(file,
+             "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR
+               SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR
+                 SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR "\n",
+             ip_str, num_ips);
   } else {
-    PRINT_RECORD(wandio_printf, file, record, ip_str, num_ips);
+    ipmeta_printf(file,
+             "%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR
+             "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR
+             "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR "%" PRIu32 SEPARATOR
+             "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR,
+             ip_str, num_ips, record->id, record->country_code,
+             record->continent_code, record->region,
+             (record->city == NULL ? "" : record->city),
+             (record->post_code == NULL ? "" : record->post_code),
+             record->latitude, record->longitude, record->metro_code,
+             record->area_code, record->region_code,
+             (record->conn_speed == NULL ? "" : record->conn_speed));
+    for (i = 0; i < record->polygon_ids_cnt; i++) {
+      ipmeta_printf(file, "%" PRIu32, record->polygon_ids[i]);
+      if (i < record->polygon_ids_cnt - 1)
+        ipmeta_printf(file, ",");
+    }
+    ipmeta_printf(file, "|");
+    if (record->asn_cnt > 0) {
+      for (i = 0; i < record->asn_cnt; i++) {
+        ipmeta_printf(file, "%" PRIu32, record->asn[i]);
+        if (i < record->asn_cnt - 1)
+          ipmeta_printf(file, "_");
+      }
+      ipmeta_printf(file, "|%" PRIu32 "\n", record->asn_ip_cnt);
+    } else {
+      ipmeta_printf(file, "|\n");
+    }
   }
   return;
 }
 
 void ipmeta_write_record_header(iow_t *file)
 {
-  PRINT_RECORD_HEADER(wandio_printf, file);
+  ipmeta_printf(file, "ip-prefix" SEPARATOR "num-ips" SEPARATOR "id" SEPARATOR
+                 "country-code" SEPARATOR "continent-code" SEPARATOR
+                 "region" SEPARATOR "city" SEPARATOR "post-code" SEPARATOR
+                 "latitude" SEPARATOR "longitude" SEPARATOR
+                 "metro-code" SEPARATOR "area-code" SEPARATOR
+                 "region-code" SEPARATOR "connection-speed" SEPARATOR
+                 "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"
+                 "\n");
 }

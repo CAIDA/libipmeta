@@ -90,17 +90,10 @@ static void lookup(char *addr_str, iow_t *outfile)
       continue;
     }
 
-    if (outfile == NULL) {
-      fprintf(
-        stdout, "%s|",
-        ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
-      ipmeta_dump_record_set_by_provider(records, orig_str, i + 1);
-    } else {
-      wandio_printf(
-        outfile, "%s|",
-        ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
-      ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
-    }
+    ipmeta_printf(
+      outfile, "%s|",
+      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
+    ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
   }
 
   return;
@@ -309,11 +302,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if (outfile != NULL) {
-      ipmeta_write_record_header(outfile);
-    } else {
-      ipmeta_dump_record_header();
-    }
+    ipmeta_write_record_header(outfile);
   }
 
   ipmeta_log(__func__, "processing ip file");

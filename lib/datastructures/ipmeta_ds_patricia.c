@@ -167,51 +167,37 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
 static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
                          uint32_t foundsofar, ipmeta_record_set_t *records)
 {
-  prefix_t subpfx_a;
-  prefix_t subpfx_b;
+  prefix_t subpfx;
   patricia_node_t *node = NULL;
   patricia_tree_t *trie = STATE(ds)->trie;
+  uint32_t sub_foundsofar;
 
-  // 1st CIDR half
-  subpfx_a.family = AF_INET;
-  subpfx_a.ref_count = 0;
-  subpfx_a.add.sin.s_addr = pfx.add.sin.s_addr;
-  subpfx_a.bitlen = pfx.bitlen + 1;
+  subpfx.family = AF_INET;
+  subpfx.ref_count = 0;
+  subpfx.bitlen = pfx.bitlen + 1;
 
-  node = patricia_search_exact(trie, &subpfx_a);
+  // try the two CIDR halves
+  for (int i = 0; i < 2; i++) {
+    subpfx.add.sin.s_addr = (i == 0) ? pfx.add.sin.s_addr :
+      pfx.add.sin.s_addr | htonl(1 << (32 - subpfx.bitlen));
 
-  uint32_t foundsofar_a = foundsofar;
-  if (node &&
-      extract_records_from_pnode(node, provmask, &foundsofar_a, records, 0) < 0) {
-    ipmeta_log(__func__, "error while extracting records for prefix");
-    return -1;
-  }
+    node = patricia_search_exact(trie, &subpfx);
 
-  if (foundsofar_a != provmask && subpfx_a.bitlen < 32) {
-    if (descend_ptree(ds, subpfx_a, provmask, foundsofar_a, records) < 0) {
-      return -1;
+    // count ancestors only, not siblings or their descendants
+    sub_foundsofar = foundsofar;
+
+    if (node) {
+      if (extract_records_from_pnode(node, provmask, &sub_foundsofar, records, 0) < 0) {
+        ipmeta_log(__func__, "error while extracting records for prefix");
+        return -1;
+      }
     }
-  }
 
-  // 2nd CIDR half
-  subpfx_b.family = AF_INET;
-  subpfx_b.ref_count = 0;
-  subpfx_b.bitlen = pfx.bitlen + 1;
-  subpfx_b.add.sin.s_addr =
-    htonl(ntohl(subpfx_a.add.sin.s_addr) + (1 << (32 - subpfx_a.bitlen)));
-
-  node = patricia_search_exact(trie, &subpfx_b);
-
-  uint32_t foundsofar_b = foundsofar;
-  if (node &&
-      extract_records_from_pnode(node, provmask, &foundsofar_b, records, 0) < 0) {
-    ipmeta_log(__func__, "error while extracting records for prefix");
-    return -1;
-  }
-
-  if (foundsofar_b != provmask && subpfx_b.bitlen < 32) {
-    if (descend_ptree(ds, subpfx_b, provmask, foundsofar_b, records) < 0) {
-      return -1;
+    // If we don't have answers for subpfx from all providers, try below subpfx
+    if (sub_foundsofar != provmask && subpfx.bitlen < 32) {
+      if (descend_ptree(ds, subpfx, provmask, sub_foundsofar, records) < 0) {
+        return -1;
+      }
     }
   }
 

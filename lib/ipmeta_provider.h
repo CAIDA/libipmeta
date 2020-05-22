@@ -188,7 +188,7 @@ int ipmeta_provider_alloc_all(ipmeta_t *ipmeta);
 /** Initialize a provider object
  *
  * @param ipmeta        The ipmeta object to initialize the provider for
- * @param provider_id   The unique ID of the metadata provider
+ * @param provider      A pointer to the metadata provider
  * @return the provider object created, NULL if an error occurred
  */
 int ipmeta_provider_init(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
@@ -251,7 +251,6 @@ ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
 
 /** Register a new prefix to record mapping for the given provider
  *
- * @param ipmeta        The ipmeta object associated with the provider
  * @param provider      The provider to register the mapping with
  * @param addr          The network byte-ordered component of the prefix
  * @param mask          The mask component of the prefix

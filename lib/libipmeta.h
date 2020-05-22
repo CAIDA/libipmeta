@@ -197,7 +197,7 @@ typedef struct ipmeta_record {
 
 /** Initialize a new libipmeta instance
  *
- * @param The name of the data structure to use for storing prefixes.
+ * @param dstype The type of the data structure to use for storing prefixes.
  *
  * @return the ipmeta instance created, NULL if an error occurs
  */
@@ -205,7 +205,7 @@ ipmeta_t *ipmeta_init(enum ipmeta_ds_id dstype);
 
 /** Free a libipmeta instance
  *
- * @param               The ipmeta instance to free
+ * @param ipmeta        The ipmeta instance to free
  */
 void ipmeta_free(ipmeta_t *ipmeta);
 
@@ -293,8 +293,8 @@ int ipmeta_get_provider_id(ipmeta_provider_t *provider);
 
 /** Get the provider name for the given ID
  *
- * @param id            The provider ID to retrieve the name for
- * @return the name of the provider, NULL if an invalid ID was provided
+ * @param provider      The provider to retrieve the name for
+ * @return the name of the provider
  */
 const char *ipmeta_get_provider_name(ipmeta_provider_t *provider);
 

@@ -98,9 +98,9 @@ struct ipmeta_ds {
   void *state;
 };
 
-/** Initialize the given datastructure and associate it with the given provider
+/** Initialize the specified datastructure
  *
- * @param provider      pointer to provider instance to associate ds with
+ * @param ds[out]       where to store the pointer to the datastructure
  * @param ds_id         id of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */
@@ -108,7 +108,7 @@ int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id);
 
 /** Search for a datastructure with the given name and then initialize it
  *
- * @param provider      pointer to provider instance to associate ds with
+ * @param ds[out]       where to store the pointer to the datastructure
  * @param name          name of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */

@@ -109,7 +109,7 @@ static void usage(const char *name)
           "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f "
           "iplist]|[ip1 ip2...ipN]\n"
           "       -c <level>    the compression level to use (default: %d)\n"
-          "       -d <struct>   data structure to use for storing prefixes\n"
+          "       -D <struct>   data structure to use for storing prefixes\n"
           "                     (default: patricia)\n"
           "       -f <iplist>   perform lookups on IP addresses listed in "
           "the given file\n"
@@ -204,10 +204,13 @@ int main(int argc, char **argv)
   }
 
   if (ds_name != NULL) {
+    // TODO: There should be a ipmeta_ds_name_to_type() function
     if (strcasecmp(ds_name, "bigarray") == 0) {
       dstype = IPMETA_DS_BIGARRAY;
     } else if (strcasecmp(ds_name, "patricia") == 0) {
       dstype = IPMETA_DS_PATRICIA;
+    } else if (strcasecmp(ds_name, "intervaltree") == 0) {
+      dstype = IPMETA_DS_INTERVALTREE;
     } else {
       fprintf(stderr,
               "unknown data structure type %s, falling back to default\n",

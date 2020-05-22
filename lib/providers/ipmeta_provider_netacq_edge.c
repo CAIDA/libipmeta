@@ -435,7 +435,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_LAT:
-    tmp->latitude = strtof(tok, &end);
+    tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -445,7 +445,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_LONG:
     /* longitude */
-    tmp->longitude = strtof(tok, &end);
+    tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -456,7 +456,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
   case LOCATION_COL_METRO:
     /* metro code - whatever the heck that is */
     if (tok != NULL) {
-      tmp->metro_code = strtol(tok, &end, 10);
+      tmp->metro_code = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE) {
         ipmeta_log(__func__, "Invalid Metro Value (%s)", tok);
         state->parser.status = CSV_EUSER;
@@ -517,7 +517,6 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
                state->current_line, state->current_column);
     state->parser.status = CSV_EUSER;
     return;
-    break;
   }
 
   /* move on to the next column */
@@ -1642,7 +1641,7 @@ static void na_to_polygon_free(ipmeta_provider_netacq_edge_state_t *state)
 
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
-ipmeta_provider_t *ipmeta_provider_netacq_edge_alloc()
+ipmeta_provider_t *ipmeta_provider_netacq_edge_alloc(void)
 {
   return &ipmeta_provider_netacq_edge;
 }

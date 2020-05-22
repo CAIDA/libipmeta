@@ -204,8 +204,8 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
   return 0;
 }
 
-int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
-                            ipmeta_record_set_t *records)
+static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
+    uint32_t provmask, ipmeta_record_set_t *records)
 {
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;

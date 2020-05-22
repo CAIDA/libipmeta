@@ -46,7 +46,7 @@
  * datastructure API
  */
 #define IPMETA_DS_GENERATE_PROTOS(datastructure)                               \
-  ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc();                            \
+  ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc(void);                        \
   int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);                       \
   void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
   int ipmeta_ds_##datastructure##_add_prefix(                                  \
@@ -121,6 +121,6 @@ int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name);
  *
  * @note it is the caller's responsibility to free the returned array
  */
-const char **ipmeta_ds_get_all();
+const char **ipmeta_ds_get_all(void);
 
 #endif /* __IPMETA_DS_H */

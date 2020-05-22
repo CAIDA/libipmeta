@@ -312,7 +312,7 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_LAT:
     /* latitude */
-    tmp->latitude = strtof(tok, &end);
+    tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -322,7 +322,7 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_LONG:
     /* longitude */
-    tmp->longitude = strtof(tok, &end);
+    tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
       state->parser.status = CSV_EUSER;
@@ -359,7 +359,6 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
                state->current_line, state->current_column);
     state->parser.status = CSV_EUSER;
     return;
-    break;
   }
 
   /* move on to the next column */

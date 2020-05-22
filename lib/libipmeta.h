@@ -354,6 +354,12 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
 ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
                                         uint32_t *num_ips);
 
+#ifdef __GNUC__
+#define ATTR_FORMAT_PRINTF(i,j) __attribute__((format(printf, i, j)))
+#else
+#define ATTR_FORMAT_PRINTF(i,j) /* empty */
+#endif
+
 /** Write the given metadata record set to the given wandio file
  *
  * @param file          The wandio file to write to, or NULL for stdout
@@ -364,7 +370,8 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
  * If file != NULL, this is equivalent to `wandio_printf(file, format, ...)`.
  * If file == NULL, this is equivalent to `printf(format, ...)`.
  */
-int64_t ipmeta_printf(iow_t *file, const char *format, ...);
+int64_t ipmeta_printf(iow_t *file, const char *format, ...)
+ATTR_FORMAT_PRINTF(2, 3);
 
 /** Dump the given metadata record set to stdout
  *
@@ -480,7 +487,8 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
  *
  * @{ */
 
-void ipmeta_log(const char *func, const char *format, ...);
+void ipmeta_log(const char *func, const char *format, ...)
+ATTR_FORMAT_PRINTF(2, 3);
 
 /** @} */
 

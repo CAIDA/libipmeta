@@ -48,12 +48,11 @@
 
 #define DEFAULT_COMPRESS_LEVEL 6
 
-ipmeta_t *ipmeta = NULL;
-uint32_t providermask = 0;
-ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
-char *provider_prefixes[IPMETA_PROVIDER_MAX];
-int enabled_providers_cnt = 0;
-ipmeta_record_set_t *records;
+static ipmeta_t *ipmeta = NULL;
+static uint32_t providermask = 0;
+static ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
+static int enabled_providers_cnt = 0;
+static ipmeta_record_set_t *records;
 
 static void lookup(char *addr_str, iow_t *outfile)
 {
@@ -194,7 +193,6 @@ int main(int argc, char **argv)
       fprintf(stderr, "libipmeta version %d.%d.%d\n", LIBIPMETA_MAJOR_VERSION,
               LIBIPMETA_MID_VERSION, LIBIPMETA_MINOR_VERSION);
       goto quit;
-      break;
 
     case '?':
     default:

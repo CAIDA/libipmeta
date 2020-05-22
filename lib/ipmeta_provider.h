@@ -48,7 +48,7 @@
  * provider API
  */
 #define IPMETA_PROVIDER_GENERATE_PROTOS(provname)                              \
-  ipmeta_provider_t *ipmeta_provider_##provname##_alloc();                     \
+  ipmeta_provider_t *ipmeta_provider_##provname##_alloc(void);                 \
   int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds, int argc,       \
                                         char **argv);                          \
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);               \

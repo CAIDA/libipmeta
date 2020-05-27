@@ -128,7 +128,8 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
                                              uint32_t provmask,
                                              uint32_t *foundsofar,
                                              ipmeta_record_set_t *found,
-                                             uint8_t ascendallowed)
+                                             uint8_t ascendallowed,
+                                             uint8_t masklen)
 {
   ipmeta_record_t **recfound;
   while (*foundsofar != provmask && node != NULL) {
@@ -149,8 +150,8 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
       if (recfound[i] == NULL) {
         continue;
       }
-      if (ipmeta_record_set_add_record(
-            found, recfound[i], (1 << (32 - node->prefix->bitlen))) != 0) {
+      int num_ips = (1 << (32 - masklen));
+      if (ipmeta_record_set_add_record(found, recfound[i], num_ips) != 0) {
         return -1;
       }
       *foundsofar |= (1 << (i));
@@ -187,7 +188,8 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
     sub_foundsofar = foundsofar;
 
     if (node) {
-      if (extract_records_from_pnode(node, provmask, &sub_foundsofar, records, 0) < 0) {
+      if (extract_records_from_pnode(node, provmask, &sub_foundsofar, records,
+            0, subpfx.bitlen) < 0) {
         ipmeta_log(__func__, "error while extracting records for prefix");
         return -1;
       }
@@ -217,10 +219,12 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
 
   node = patricia_search_best2(trie, &pfx, 1);
 
-  if (node &&
-      extract_records_from_pnode(node, provmask, &foundsofar, records, 1) < 0) {
-    ipmeta_log(__func__, "error while extracting records for prefix");
-    return -1;
+  if (node) {
+    if (extract_records_from_pnode(node, provmask, &foundsofar, records, 1,
+          pfx.bitlen) < 0) {
+      ipmeta_log(__func__, "error while extracting records for prefix");
+      return -1;
+    }
   }
 
   if (foundsofar != provmask && pfx.bitlen < 32) {
@@ -252,7 +256,7 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
 }
 
 int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
-                                            uint32_t providermask,
+                                            uint32_t provmask,
                                             ipmeta_record_set_t *found)
 {
   patricia_tree_t *trie = STATE(ds)->trie;
@@ -270,8 +274,7 @@ int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
     return 0;
   }
 
-  if (extract_records_from_pnode(node, providermask, &foundsofar, found, 1) <
-      0) {
+  if (extract_records_from_pnode(node, provmask, &foundsofar, found, 1, 32) < 0) {
     return -1;
   }
 

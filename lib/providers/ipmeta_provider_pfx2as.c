@@ -158,7 +158,7 @@ static int parse_asn(char *asn_str, uint32_t **asn_arr)
       return -1;
     }
 
-    /* check if this is a 32bit asn */
+    /* check if this is in ASDOT format */
     if ((period = strchr(tok, '.')) != NULL) {
       /* set this to a nul */
       *period = '\0';
@@ -230,7 +230,6 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       default:
         ipmeta_log(__func__, "invalid pfx2as file");
         return -1;
-        break;
       }
       tokc++;
     }
@@ -299,7 +298,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
 
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
-ipmeta_provider_t *ipmeta_provider_pfx2as_alloc()
+ipmeta_provider_t *ipmeta_provider_pfx2as_alloc(void)
 {
   return &ipmeta_provider_pfx2as;
 }

@@ -48,12 +48,11 @@
 
 #define DEFAULT_COMPRESS_LEVEL 6
 
-ipmeta_t *ipmeta = NULL;
-uint32_t providermask = 0;
-ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
-char *provider_prefixes[IPMETA_PROVIDER_MAX];
-int enabled_providers_cnt = 0;
-ipmeta_record_set_t *records;
+static ipmeta_t *ipmeta = NULL;
+static uint32_t providermask = 0;
+static ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
+static int enabled_providers_cnt = 0;
+static ipmeta_record_set_t *records;
 
 static void lookup(char *addr_str, iow_t *outfile)
 {
@@ -90,17 +89,10 @@ static void lookup(char *addr_str, iow_t *outfile)
       continue;
     }
 
-    if (outfile == NULL) {
-      fprintf(
-        stdout, "%s|",
-        ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
-      ipmeta_dump_record_set_by_provider(records, orig_str, i + 1);
-    } else {
-      wandio_printf(
-        outfile, "%s|",
-        ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
-      ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
-    }
+    ipmeta_printf(
+      outfile, "%s|",
+      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
+    ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
   }
 
   return;
@@ -116,7 +108,7 @@ static void usage(const char *name)
           "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f "
           "iplist]|[ip1 ip2...ipN]\n"
           "       -c <level>    the compression level to use (default: %d)\n"
-          "       -d <struct>   data structure to use for storing prefixes\n"
+          "       -D <struct>   data structure to use for storing prefixes\n"
           "                     (default: patricia)\n"
           "       -f <iplist>   perform lookups on IP addresses listed in "
           "the given file\n"
@@ -142,10 +134,10 @@ int main(int argc, char **argv)
   int rc = -1;
   int i;
   int opt;
-  int prevoptind;
   /* we MUST not use any of the getopt global vars outside of arg parsing */
   /* this is because the plugins can use get opt to parse their config */
   int lastopt;
+  int error = 0;
 
   char *ip_file = NULL;
   io_t *file = NULL;
@@ -171,13 +163,7 @@ int main(int argc, char **argv)
   /* initialize the providers array to NULL first */
   memset(providers, 0, sizeof(char *) * IPMETA_PROVIDER_MAX);
 
-  while (prevoptind = optind,
-         (opt = getopt(argc, argv, ":D:c:f:o:p:hv?")) >= 0) {
-    if (optind == prevoptind + 2 && optarg && *optarg == '-' &&
-        *(optarg + 1) != '\0') {
-      opt = ':';
-      --optind;
-    }
+  while ((opt = getopt(argc, argv, "D:c:f:o:p:hv?")) >= 0) {
     switch (opt) {
     case 'c':
       compress_level = atoi(optarg);
@@ -203,31 +189,26 @@ int main(int argc, char **argv)
       providers[providers_cnt++] = strdup(optarg);
       break;
 
-    case ':':
-      fprintf(stderr, "ERROR: Missing option argument for -%c\n", optopt);
-      usage(argv[0]);
-      return -1;
-      break;
-
-    case '?':
     case 'v':
       fprintf(stderr, "libipmeta version %d.%d.%d\n", LIBIPMETA_MAJOR_VERSION,
               LIBIPMETA_MID_VERSION, LIBIPMETA_MINOR_VERSION);
-      usage(argv[0]);
       goto quit;
-      break;
 
+    case '?':
     default:
-      usage(argv[0]);
-      goto quit;
+      error = 1;
+      break;
     }
   }
 
   if (ds_name != NULL) {
+    // TODO: There should be a ipmeta_ds_name_to_type() function
     if (strcasecmp(ds_name, "bigarray") == 0) {
       dstype = IPMETA_DS_BIGARRAY;
     } else if (strcasecmp(ds_name, "patricia") == 0) {
       dstype = IPMETA_DS_PATRICIA;
+    } else if (strcasecmp(ds_name, "intervaltree") == 0) {
+      dstype = IPMETA_DS_INTERVALTREE;
     } else {
       fprintf(stderr,
               "unknown data structure type %s, falling back to default\n",
@@ -238,6 +219,11 @@ int main(int argc, char **argv)
   /* this must be called before usage is called */
   if ((ipmeta = ipmeta_init(dstype)) == NULL) {
     fprintf(stderr, "could not initialize libipmeta\n");
+    goto quit;
+  }
+
+  if (error) {
+    usage(argv[0]);
     goto quit;
   }
 
@@ -317,11 +303,7 @@ int main(int argc, char **argv)
       }
     }
 
-    if (outfile != NULL) {
-      ipmeta_write_record_header(outfile);
-    } else {
-      ipmeta_dump_record_header();
-    }
+    ipmeta_write_record_header(outfile);
   }
 
   ipmeta_log(__func__, "processing ip file");

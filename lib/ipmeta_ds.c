@@ -36,7 +36,7 @@
 #include "ipmeta_provider.h"
 
 /** Convenience typedef for the alloc function type */
-typedef ipmeta_ds_t *(*ds_alloc_func_t)();
+typedef ipmeta_ds_t *(*ds_alloc_func_t)(void);
 
 /** Array of datastructure allocation functions.
  *
@@ -65,6 +65,7 @@ int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)
 
   /** init the ds */
   if ((*ds)->init(*ds) != 0) {
+    free(*ds);
     return -1;
   }
 

@@ -46,7 +46,7 @@
  * datastructure API
  */
 #define IPMETA_DS_GENERATE_PROTOS(datastructure)                               \
-  ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc();                            \
+  ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc(void);                        \
   int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);                       \
   void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
   int ipmeta_ds_##datastructure##_add_prefix(                                  \
@@ -98,9 +98,9 @@ struct ipmeta_ds {
   void *state;
 };
 
-/** Initialize the given datastructure and associate it with the given provider
+/** Initialize the specified datastructure
  *
- * @param provider      pointer to provider instance to associate ds with
+ * @param ds[out]       where to store the pointer to the datastructure
  * @param ds_id         id of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */
@@ -108,7 +108,7 @@ int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id);
 
 /** Search for a datastructure with the given name and then initialize it
  *
- * @param provider      pointer to provider instance to associate ds with
+ * @param ds[out]       where to store the pointer to the datastructure
  * @param name          name of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */
@@ -121,6 +121,6 @@ int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name);
  *
  * @note it is the caller's responsibility to free the returned array
  */
-const char **ipmeta_ds_get_all();
+const char **ipmeta_ds_get_all(void);
 
 #endif /* __IPMETA_DS_H */

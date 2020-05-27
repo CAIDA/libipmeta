@@ -55,7 +55,7 @@
 #include "ipmeta_provider_pfx2as.h"
 
 /** Convenience typedef for the provider alloc function type */
-typedef ipmeta_provider_t *(*provider_alloc_func_t)();
+typedef ipmeta_provider_t *(*provider_alloc_func_t)(void);
 
 /** Array of datastructure allocation functions.
  *

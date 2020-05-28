@@ -40,6 +40,7 @@
 #include <wandio.h>
 
 #include "libipmeta.h"
+#include "ipmeta_ds.h"
 #include "utils.h"
 #include "wandio_utils.h"
 
@@ -104,20 +105,27 @@ static void usage(const char *name)
   ipmeta_provider_t **providers = NULL;
   int i;
 
+  const char **dsnames = ipmeta_ds_get_all();
   fprintf(stderr,
           "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f "
           "iplist]|[ip1 ip2...ipN]\n"
           "       -c <level>    the compression level to use (default: %d)\n"
           "       -D <struct>   data structure to use for storing prefixes\n"
-          "                     (default: patricia)\n"
+          "                     (default: %s)\n"
+          "                     available datastructures:\n",
+          name, DEFAULT_COMPRESS_LEVEL, dsnames[IPMETA_DS_DEFAULT-1]);
+  for (i = 0; i < IPMETA_DS_MAX; i++) {
+    fprintf(stderr, "                      - %s\n", dsnames[i]);
+  }
+  free(dsnames);
+  fprintf(stderr,
           "       -f <iplist>   perform lookups on IP addresses listed in "
           "the given file\n"
           "       -h            write out a header row with field names\n"
           "       -o <outfile>  write results to the given file\n"
           "       -p <provider> enable the given provider,\n"
           "                     -p can be used multiple times\n"
-          "                     available providers:\n",
-          name, DEFAULT_COMPRESS_LEVEL);
+          "                     available providers:\n");
   /* get the available plugins from ipmeta */
   providers = ipmeta_get_all_providers(ipmeta);
 
@@ -157,7 +165,6 @@ int main(int argc, char **argv)
   int compress_level = DEFAULT_COMPRESS_LEVEL;
   char *outfile_name = NULL;
   iow_t *outfile = NULL;
-  char *ds_name = NULL;
   ipmeta_ds_id_t dstype = IPMETA_DS_DEFAULT;
 
   /* initialize the providers array to NULL first */
@@ -170,7 +177,11 @@ int main(int argc, char **argv)
       break;
 
     case 'D':
-      ds_name = optarg;
+      if ((dstype = ipmeta_ds_name_to_id(optarg)) == IPMETA_DS_NONE) {
+        fprintf(stderr, "unknown data structure type \"%s\"\n", optarg);
+        dstype = IPMETA_DS_DEFAULT;
+        error = 1;
+      }
       break;
 
     case 'f':
@@ -198,21 +209,6 @@ int main(int argc, char **argv)
     default:
       error = 1;
       break;
-    }
-  }
-
-  if (ds_name != NULL) {
-    // TODO: There should be a ipmeta_ds_name_to_type() function
-    if (strcasecmp(ds_name, "bigarray") == 0) {
-      dstype = IPMETA_DS_BIGARRAY;
-    } else if (strcasecmp(ds_name, "patricia") == 0) {
-      dstype = IPMETA_DS_PATRICIA;
-    } else if (strcasecmp(ds_name, "intervaltree") == 0) {
-      dstype = IPMETA_DS_INTERVALTREE;
-    } else {
-      fprintf(stderr,
-              "unknown data structure type %s, falling back to default\n",
-              ds_name);
     }
   }
 

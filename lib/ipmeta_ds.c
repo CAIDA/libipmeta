@@ -50,7 +50,11 @@ static const ds_alloc_func_t ds_alloc_functions[] = {
 int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)
 {
   assert(ARR_CNT(ds_alloc_functions) == IPMETA_DS_MAX + 1);
-  assert(ds_id > 0 && ds_id <= IPMETA_DS_MAX);
+  if (ds_id < 1 || ds_id > IPMETA_DS_MAX) {
+    ipmeta_log(__func__, "ds_id %d out of range [%d,%d]",
+        ds_id, 1, IPMETA_DS_MAX);
+    return -1;
+  }
 
   /* malloc some room for the datastructure */
   if ((*ds = malloc_zero(sizeof(ipmeta_ds_t))) == NULL) {
@@ -72,25 +76,24 @@ int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)
   return 0;
 }
 
-int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name)
+ipmeta_ds_id_t ipmeta_ds_name_to_id(const char *name)
 {
-  int i;
   ipmeta_ds_t *tmp_ds;
 
   /* call each of the ds alloc functions and look for a name that matches the
-     one we were given, then call the regular ds_init function for that ds */
+     one we were given */
 
-  for (i = 1; i < ARR_CNT(ds_alloc_functions); i++) {
+  for (unsigned i = 1; i < ARR_CNT(ds_alloc_functions); i++) {
     tmp_ds = ds_alloc_functions[i]();
     assert(tmp_ds != NULL);
 
     if (strcmp(tmp_ds->name, name) == 0) {
-      return ipmeta_ds_init(ds, i);
+      return i;
     }
   }
 
   /* no matching datastructure */
-  return -1;
+  return IPMETA_DS_NONE;
 }
 
 const char **ipmeta_ds_get_all()

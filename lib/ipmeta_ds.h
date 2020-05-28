@@ -106,21 +106,4 @@ struct ipmeta_ds {
  */
 int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id);
 
-/** Search for a datastructure with the given name and then initialize it
- *
- * @param ds[out]       where to store the pointer to the datastructure
- * @param name          name of the datastructure to initialize
- * @return 0 if initialization was successful, -1 otherwise
- */
-int ipmeta_ds_init_by_name(struct ipmeta_ds **ds, const char *name);
-
-/** Get an array of all available datastructure names
- *
- * @return an array of datastructure names. The array is guaranteed to have
- * length IPMETA_DS_MAX-1
- *
- * @note it is the caller's responsibility to free the returned array
- */
-const char **ipmeta_ds_get_all(void);
-
 #endif /* __IPMETA_DS_H */

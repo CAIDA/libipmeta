@@ -69,6 +69,7 @@ ipmeta_t *ipmeta_init(enum ipmeta_ds_id dstype)
     free(ipmeta);
     return NULL;
   }
+  ipmeta_log(__func__, "using datastore %s", ipmeta->datastore->name);
 
   return ipmeta;
 }

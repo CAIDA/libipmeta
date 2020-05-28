@@ -89,6 +89,8 @@ typedef enum ipmeta_provider_id {
  * corresponding entry added to the ds_alloc_functions array in ipmeta_ds.c
  */
 typedef enum ipmeta_ds_id {
+  IPMETA_DS_NONE = 0,
+
   /** Patricia Trie */
   IPMETA_DS_PATRICIA = 1,
 
@@ -208,6 +210,22 @@ ipmeta_t *ipmeta_init(enum ipmeta_ds_id dstype);
  * @param ipmeta        The ipmeta instance to free
  */
 void ipmeta_free(ipmeta_t *ipmeta);
+
+/** Look up a datastructure by name and return its id
+ *
+ * @param name          name of the datastructure to look up
+ * @return the id of the datastructure if successful, IPMETA_DS_NONE otherwise
+ */
+ipmeta_ds_id_t ipmeta_ds_name_to_id(const char *name);
+
+/** Get an array of all available datastructure names
+ *
+ * @return an array of datastructure names. The array is guaranteed to have
+ * length IPMETA_DS_MAX
+ *
+ * @note it is the caller's responsibility to free the returned array
+ */
+const char **ipmeta_ds_get_all(void);
 
 /** Enable the given provider unless it is already enabled
  *

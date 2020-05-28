@@ -50,7 +50,11 @@ static const ds_alloc_func_t ds_alloc_functions[] = {
 int ipmeta_ds_init(struct ipmeta_ds **ds, ipmeta_ds_id_t ds_id)
 {
   assert(ARR_CNT(ds_alloc_functions) == IPMETA_DS_MAX + 1);
-  assert(ds_id > 0 && ds_id <= IPMETA_DS_MAX);
+  if (ds_id < 1 || ds_id > IPMETA_DS_MAX) {
+    ipmeta_log(__func__, "ds_id %d out of range [%d,%d]",
+        ds_id, 1, IPMETA_DS_MAX);
+    return -1;
+  }
 
   /* malloc some room for the datastructure */
   if ((*ds = malloc_zero(sizeof(ipmeta_ds_t))) == NULL) {

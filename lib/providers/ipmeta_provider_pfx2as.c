@@ -198,7 +198,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
 
   int asn_id = 0;
   in_addr_t addr = 0;
-  uint8_t mask = 0;
+  uint8_t pfxlen = 0;
   uint32_t *asn = NULL;
   char *asn_str = NULL;
   int asn_cnt = 0;
@@ -217,8 +217,8 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
         break;
 
       case 1:
-        /* mask */
-        mask = atoi(tok);
+        /* pfxlen */
+        pfxlen = atoi(tok);
         break;
 
       case 2:
@@ -280,10 +280,10 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
     /* we will add this to the record and then use the total count for the asn
        to find the 'biggest' ASes */
     record->asn_ip_cnt +=
-      (ip_broadcast_addr(addr, mask) - ip_network_addr(addr, mask)) + 1;
+      (ip_broadcast_addr(addr, pfxlen) - ip_network_addr(addr, pfxlen)) + 1;
 
     /* by here record is the right asn record, associate it with this pfx */
-    if (ipmeta_provider_associate_record(provider, addr, mask, record) != 0) {
+    if (ipmeta_provider_associate_record(provider, addr, pfxlen, record) != 0) {
       ipmeta_log(__func__, "failed to associate record");
       return -1;
     }
@@ -366,10 +366,10 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
 }
 
 int ipmeta_provider_pfx2as_lookup(ipmeta_provider_t *provider, uint32_t addr,
-                                  uint8_t mask, ipmeta_record_set_t *records)
+                                  uint8_t pfxlen, ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_records(provider, addr, mask, records);
+  return ipmeta_provider_lookup_records(provider, addr, pfxlen, records);
 }
 
 int ipmeta_provider_pfx2as_lookup_single(ipmeta_provider_t *provider,

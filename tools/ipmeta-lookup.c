@@ -59,29 +59,29 @@ static void lookup(char *addr_str, iow_t *outfile)
 {
   char orig_str[BUFFER_LEN];
 
-  char *mask_str = addr_str;
+  char *pfxlen_str = addr_str;
   uint32_t addr;
-  uint8_t mask;
+  uint8_t pfxlen;
   int i;
 
   /* preserve the original string for dumping */
   strcpy(orig_str, addr_str);
 
-  /* extract the mask from the prefix */
-  if ((mask_str = strchr(addr_str, '/')) != NULL) {
-    *mask_str = '\0';
-    mask_str++;
-    mask = atoi(mask_str);
+  /* extract the pfxlen from the prefix */
+  if ((pfxlen_str = strchr(addr_str, '/')) != NULL) {
+    *pfxlen_str = '\0';
+    pfxlen_str++;
+    pfxlen = atoi(pfxlen_str);
   } else {
-    mask = 32;
+    pfxlen = 32;
   }
 
   addr = inet_addr(addr_str);
 
-  if (mask == 32) {
+  if (pfxlen == 32) {
     ipmeta_lookup_single(ipmeta, addr, providermask, records);
   } else {
-    ipmeta_lookup(ipmeta, addr, mask, providermask, records);
+    ipmeta_lookup(ipmeta, addr, pfxlen, providermask, records);
   }
 
   /* look it up using each provider */

@@ -53,7 +53,7 @@
                                         char **argv);                          \
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);               \
   int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,         \
-                                          uint32_t addr, uint8_t mask,         \
+                                          uint32_t addr, uint8_t pfxlen,       \
                                           ipmeta_record_set_t *records);       \
   int ipmeta_provider_##provname##_lookup_single(                              \
     ipmeta_provider_t *provider, uint32_t addr, ipmeta_record_set_t *found);
@@ -120,7 +120,7 @@ struct ipmeta_provider {
    * @param provider    The provider object to perform the lookup with
    * @param addr          The IPv4 network address part to lookup
    *                       (network byte ordering)
-   * @param mask        The IPv4 network mask defining the prefix length (0-32)
+   * @param pfxlen      The prefix length (0-32)
    * @param records     Pointer to a record set to use for matches
    * @return            The number of (matched) records in the result set
    *
@@ -129,7 +129,7 @@ struct ipmeta_provider {
    * datastructure, but this allows providers to do some arbitrary
    * pre/post-processing.
    */
-  int (*lookup)(struct ipmeta_provider *provider, uint32_t addr, uint8_t mask,
+  int (*lookup)(struct ipmeta_provider *provider, uint32_t addr, uint8_t pfxlen,
                 ipmeta_record_set_t *records);
 
   /** Look up the given single IP address using the given provider
@@ -253,13 +253,13 @@ ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
  *
  * @param provider      The provider to register the mapping with
  * @param addr          The network byte-ordered component of the prefix
- * @param mask          The mask component of the prefix
+ * @param pfxlen        The prefix length
  * @param record        The record to associate with the prefix
  * @return 0 if the prefix is successfully associated with the prefix, -1 if an
  * error occurs
  */
 int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
-                                     uint8_t mask, ipmeta_record_t *record);
+                                     uint8_t pfxlen, ipmeta_record_t *record);
 
 /** Retrieves the records that correspond to the given prefix from the
  * associated datastructure.
@@ -267,26 +267,26 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
  * @param provider      The provider to perform the lookup with
  * @param addr          The network address to retrieve the records for
  *                       (network byte ordering)
- * @param mask          The CIDR network mask component of the prefix
+ * @param pfxlen        The prefix length
  * @param records       A pointer to the record set structure where to return
  * the matches
  * @return              The number of (matched) records in the result set
  */
 int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t mask, ipmeta_record_set_t *records);
+                                   uint8_t pfxlen, ipmeta_record_set_t *records);
 
 /** Retrieves the records that correspond to the given prefix from the
  * associated datastructure.
  *
  * @param provider    The provider object to perform the lookup with
  * @param addr        The IPv4 network address part to retrieve records for
- * @param mask        The IPv4 network mask defining the prefix length (0-32)
+ * @param pfxlen      The prefix length
  * @param records     Pointer to a record set to use for matches
  * @return            The number of (matched) records in the result set
  *
  */
 int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t mask, ipmeta_record_set_t *records);
+                                   uint8_t pfxlen, ipmeta_record_set_t *records);
 
 /** Retrieves the one record that corresponds to the given single IP address
  * using the given provider

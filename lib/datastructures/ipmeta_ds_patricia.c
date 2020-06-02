@@ -94,7 +94,7 @@ void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
   return;
 }
 
-int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t mask,
+int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen,
                                   ipmeta_record_t *record)
 {
   assert(ds != NULL && ds->state != NULL);
@@ -108,7 +108,7 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t mask,
   trie_pfx.ref_count = 0;
   patricia_node_t *trie_node;
 
-  trie_pfx.bitlen = mask;
+  trie_pfx.bitlen = pfxlen;
   trie_pfx.add.sin.s_addr = addr;
   if ((trie_node = patricia_lookup(trie, &trie_pfx)) == NULL) {
     ipmeta_log(__func__, "failed to insert prefix in trie");
@@ -239,7 +239,7 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
 }
 
 int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t mask, uint32_t providermask,
+                                      uint8_t pfxlen, uint32_t providermask,
                                       ipmeta_record_set_t *records)
 {
   prefix_t pfx;
@@ -248,7 +248,7 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
   pfx.family = AF_INET;
   pfx.ref_count = 0;
   pfx.add.sin.s_addr = addr;
-  pfx.bitlen = mask;
+  pfx.bitlen = pfxlen;
 
   _patricia_prefix_lookup(ds, pfx, providermask, records);
 

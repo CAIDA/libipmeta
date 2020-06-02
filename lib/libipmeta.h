@@ -271,13 +271,13 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  * @param ipmeta        The ipmeta instance to use for the lookup
  * @param addr          The IPv4 network address part to lookup
  *                       (network byte ordering)
- * @param mask          The IPv4 network mask defining the prefix length (0>32)
+ * @param pfxlen        The prefix length (0-32)
  * @param provmask	A bitmask indicating which providers should be used.
  *                       Set to '0' to automatically use all active providers.
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
+int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
                   uint32_t provmask, ipmeta_record_set_t *records);
 
 /** Look up the given single IP address for a set of providers

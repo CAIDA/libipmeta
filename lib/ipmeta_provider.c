@@ -287,18 +287,18 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
 }
 
 int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
-                                     uint8_t mask, ipmeta_record_t *record)
+                                     uint8_t pfxlen, ipmeta_record_t *record)
 {
   assert(provider != NULL && record != NULL);
   assert(provider->ds != NULL);
 
-  return provider->ds->add_prefix(provider->ds, addr, mask, record);
+  return provider->ds->add_prefix(provider->ds, addr, pfxlen, record);
 }
 
 int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t mask, ipmeta_record_set_t *records)
+                                   uint8_t pfxlen, ipmeta_record_set_t *records)
 {
-  return provider->ds->lookup_records(provider->ds, addr, mask,
+  return provider->ds->lookup_records(provider->ds, addr, pfxlen,
                                       (1 << (provider->id - 1)), records);
 }
 

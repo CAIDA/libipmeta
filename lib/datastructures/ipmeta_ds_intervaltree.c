@@ -93,7 +93,7 @@ void ipmeta_ds_intervaltree_free(ipmeta_ds_t *ds)
 }
 
 int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t mask, ipmeta_record_t *record)
+                                      uint8_t pfxlen, ipmeta_record_t *record)
 {
 
   assert(ds != NULL && ds->state != NULL);
@@ -103,7 +103,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
   interval_t interval;
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + (1 << (32 - mask)) - 1;
+  interval.end = interval.start + (1 << (32 - pfxlen)) - 1;
   interval.data = record;
 
   if (STATE(ds)->providerid == 0) {
@@ -126,7 +126,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
 }
 
 int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
-                                          uint8_t mask, uint32_t providermask,
+                                          uint8_t pfxlen, uint32_t providermask,
                                           ipmeta_record_set_t *records)
 {
   interval_tree_t *tree = STATE(ds)->tree;
@@ -138,7 +138,7 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
   int i;
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + (1 << (32 - mask)) - 1;
+  interval.end = interval.start + (1 << (32 - pfxlen)) - 1;
   interval.data = NULL;
 
   matches = getOverlapping(tree, &interval, &num_matches);

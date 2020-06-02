@@ -50,9 +50,9 @@
   int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);                       \
   void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
   int ipmeta_ds_##datastructure##_add_prefix(                                  \
-    ipmeta_ds_t *ds, uint32_t addr, uint8_t mask, ipmeta_record_t *record);    \
+    ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, ipmeta_record_t *record);  \
   int ipmeta_ds_##datastructure##_lookup_records(                              \
-    ipmeta_ds_t *ds, uint32_t addr, uint8_t mask, uint32_t providermask,       \
+    ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, uint32_t providermask,     \
     ipmeta_record_set_t *records);                                             \
   int ipmeta_ds_##datastructure##_lookup_record_single(                        \
     ipmeta_ds_t *ds, uint32_t addr, uint32_t providermask,                     \
@@ -82,11 +82,11 @@ struct ipmeta_ds {
   void (*free)(struct ipmeta_ds *ds);
 
   /** Pointer to add prefix function */
-  int (*add_prefix)(struct ipmeta_ds *ds, uint32_t addr, uint8_t mask,
+  int (*add_prefix)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
                     struct ipmeta_record *record);
 
   /** Pointer to lookup records function */
-  int (*lookup_records)(struct ipmeta_ds *ds, uint32_t addr, uint8_t mask,
+  int (*lookup_records)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
                         uint32_t providermask, ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */

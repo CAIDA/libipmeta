@@ -126,14 +126,14 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 #define LOOKUPINDEX(addr, prov)                                                \
   (STATE(ds)->array[(addr * IPMETA_PROVIDER_MAX) + (prov - 1)])
 
-int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t mask,
+int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen,
                                   ipmeta_record_t *record)
 {
   assert(ds != NULL && STATE(ds) != NULL);
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
   ipmeta_record_t **recarray = NULL;
 
-  uint32_t first_addr = ntohl(addr) & (~0UL << (32 - mask));
+  uint32_t first_addr = ntohl(addr) & (~0UL << (32 - pfxlen));
   uint64_t i;
   uint32_t lookup_id;
   khiter_t khiter;
@@ -179,7 +179,7 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t mask,
   recarray[record->source - 1] = record;
   /* iterate over all ips in this prefix and point them to this index in the
      table */
-  for (i = first_addr; i < ((uint64_t)first_addr + (1 << (32 - mask))); i++) {
+  for (i = first_addr; i < ((uint64_t)first_addr + (1 << (32 - pfxlen))); i++) {
     LOOKUPINDEX(i, record->source) = lookup_id;
   }
 
@@ -187,12 +187,12 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t mask,
 }
 
 int ipmeta_ds_bigarray_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t mask, uint32_t providermask,
+                                      uint8_t pfxlen, uint32_t providermask,
                                       ipmeta_record_set_t *records)
 {
   assert(ds != NULL && ds->state != NULL);
 
-  uint64_t total_ips = 1 << (32 - mask);
+  uint64_t total_ips = 1 << (32 - pfxlen);
   uint64_t i;
   int j;
   ipmeta_record_t **recarray;

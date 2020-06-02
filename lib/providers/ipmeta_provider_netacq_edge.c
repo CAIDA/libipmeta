@@ -1902,11 +1902,11 @@ void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)
 }
 
 int ipmeta_provider_netacq_edge_lookup(ipmeta_provider_t *provider,
-                                       uint32_t addr, uint8_t mask,
+                                       uint32_t addr, uint8_t pfxlen,
                                        ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_records(provider, addr, mask, records);
+  return ipmeta_provider_lookup_records(provider, addr, pfxlen, records);
 }
 
 int ipmeta_provider_netacq_edge_lookup_single(ipmeta_provider_t *provider,

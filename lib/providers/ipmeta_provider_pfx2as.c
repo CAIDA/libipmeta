@@ -365,17 +365,17 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
   return;
 }
 
-int ipmeta_provider_pfx2as_lookup(ipmeta_provider_t *provider, uint32_t addr,
+int ipmeta_provider_pfx2as_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
                                   uint8_t pfxlen, ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_records(provider, addr, pfxlen, records);
+  return ipmeta_provider_lookup_pfx(provider, addr, pfxlen, records);
 }
 
-int ipmeta_provider_pfx2as_lookup_single(ipmeta_provider_t *provider,
+int ipmeta_provider_pfx2as_lookup_addr(ipmeta_provider_t *provider,
                                          uint32_t addr,
                                          ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record_single(provider, addr, found);
+  return ipmeta_provider_lookup_addr(provider, addr, found);
 }

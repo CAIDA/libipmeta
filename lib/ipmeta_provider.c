@@ -295,17 +295,17 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
   return provider->ds->add_prefix(provider->ds, addr, pfxlen, record);
 }
 
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
                                    uint8_t pfxlen, ipmeta_record_set_t *records)
 {
-  return provider->ds->lookup_records(provider->ds, addr, pfxlen,
+  return provider->ds->lookup_pfx(provider->ds, addr, pfxlen,
                                       (1 << (provider->id - 1)), records);
 }
 
-int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
+int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider,
                                          uint32_t addr,
                                          ipmeta_record_set_t *found)
 {
-  return provider->ds->lookup_record_single(provider->ds, addr,
+  return provider->ds->lookup_addr(provider->ds, addr,
                                             (1 << (provider->id - 1)), found);
 }

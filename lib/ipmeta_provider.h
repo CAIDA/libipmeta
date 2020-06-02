@@ -52,10 +52,10 @@
   int ipmeta_provider_##provname##_init(ipmeta_provider_t *ds, int argc,       \
                                         char **argv);                          \
   void ipmeta_provider_##provname##_free(ipmeta_provider_t *ds);               \
-  int ipmeta_provider_##provname##_lookup(ipmeta_provider_t *provider,         \
+  int ipmeta_provider_##provname##_lookup_pfx(ipmeta_provider_t *provider,     \
                                           uint32_t addr, uint8_t pfxlen,       \
                                           ipmeta_record_set_t *records);       \
-  int ipmeta_provider_##provname##_lookup_single(                              \
+  int ipmeta_provider_##provname##_lookup_addr(                              \
     ipmeta_provider_t *provider, uint32_t addr, ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
@@ -63,8 +63,8 @@
  */
 #define IPMETA_PROVIDER_GENERATE_PTRS(provname)                                \
   ipmeta_provider_##provname##_init, ipmeta_provider_##provname##_free,        \
-    ipmeta_provider_##provname##_lookup,                                       \
-    ipmeta_provider_##provname##_lookup_single, 0, NULL, NULL, NULL
+    ipmeta_provider_##provname##_lookup_pfx,                                   \
+    ipmeta_provider_##provname##_lookup_addr, 0, NULL, NULL, NULL
 
 /** Structure which represents a metadata provider */
 struct ipmeta_provider {
@@ -141,7 +141,7 @@ struct ipmeta_provider {
    *                       record in
    * @return A pointer to the matching record, or NULL if there were no matches
    */
-  int (*lookup_single)(ipmeta_provider_t *provider, uint32_t addr,
+  int (*lookup_addr)(ipmeta_provider_t *provider, uint32_t addr,
                        ipmeta_record_set_t *found);
 
   /** }@ */
@@ -272,7 +272,7 @@ int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
  * the matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
                                    uint8_t pfxlen, ipmeta_record_set_t *records);
 
 /** Retrieves the records that correspond to the given prefix from the
@@ -285,7 +285,7 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
  * @return            The number of (matched) records in the result set
  *
  */
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
+int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
                                    uint8_t pfxlen, ipmeta_record_set_t *records);
 
 /** Retrieves the one record that corresponds to the given single IP address
@@ -298,7 +298,7 @@ int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
  * @return The number of successful matches (typically 0 or 1), or -1 if an
  *         error occurs.
  */
-int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
+int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider,
                                          uint32_t addr,
                                          ipmeta_record_set_t *found);
 

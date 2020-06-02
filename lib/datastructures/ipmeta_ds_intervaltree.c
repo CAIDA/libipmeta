@@ -125,7 +125,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
   return 0;
 }
 
-int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
+int ipmeta_ds_intervaltree_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
                                           uint8_t pfxlen, uint32_t providermask,
                                           ipmeta_record_set_t *records)
 {
@@ -160,7 +160,7 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
   return records->n_recs;
 }
 
-int ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
+int ipmeta_ds_intervaltree_lookup_addr(ipmeta_ds_t *ds, uint32_t addr,
                                                 uint32_t providermask,
                                                 ipmeta_record_set_t *found)
 {

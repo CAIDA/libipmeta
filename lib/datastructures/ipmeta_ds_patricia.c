@@ -238,7 +238,7 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
   return 0;
 }
 
-int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
+int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
                                       uint8_t pfxlen, uint32_t providermask,
                                       ipmeta_record_set_t *records)
 {
@@ -255,7 +255,7 @@ int ipmeta_ds_patricia_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
   return records->n_recs;
 }
 
-int ipmeta_ds_patricia_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
+int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, uint32_t addr,
                                             uint32_t provmask,
                                             ipmeta_record_set_t *found)
 {

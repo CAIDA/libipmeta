@@ -51,10 +51,10 @@
   void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
   int ipmeta_ds_##datastructure##_add_prefix(                                  \
     ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, ipmeta_record_t *record);  \
-  int ipmeta_ds_##datastructure##_lookup_records(                              \
+  int ipmeta_ds_##datastructure##_lookup_pfx(                              \
     ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, uint32_t providermask,     \
     ipmeta_record_set_t *records);                                             \
-  int ipmeta_ds_##datastructure##_lookup_record_single(                        \
+  int ipmeta_ds_##datastructure##_lookup_addr(                        \
     ipmeta_ds_t *ds, uint32_t addr, uint32_t providermask,                     \
     ipmeta_record_set_t *found);
 
@@ -64,8 +64,8 @@
 #define IPMETA_DS_GENERATE_PTRS(datastructure)                                 \
   ipmeta_ds_##datastructure##_init, ipmeta_ds_##datastructure##_free,          \
     ipmeta_ds_##datastructure##_add_prefix,                                    \
-    ipmeta_ds_##datastructure##_lookup_records,                                \
-    ipmeta_ds_##datastructure##_lookup_record_single,
+    ipmeta_ds_##datastructure##_lookup_pfx,                                \
+    ipmeta_ds_##datastructure##_lookup_addr,
 
 /** Structure which represents a metadata datastructure */
 struct ipmeta_ds {
@@ -86,11 +86,11 @@ struct ipmeta_ds {
                     struct ipmeta_record *record);
 
   /** Pointer to lookup records function */
-  int (*lookup_records)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
+  int (*lookup_pfx)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
                         uint32_t providermask, ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */
-  int (*lookup_record_single)(struct ipmeta_ds *ds, uint32_t addr,
+  int (*lookup_addr)(struct ipmeta_ds *ds, uint32_t addr,
                               uint32_t providermask,
                               ipmeta_record_set_t *found);
 

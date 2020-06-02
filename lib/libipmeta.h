@@ -277,7 +277,7 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
+int ipmeta_lookup_pfx(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
                   uint32_t provmask, ipmeta_record_set_t *records);
 
 /** Look up the given single IP address for a set of providers
@@ -292,7 +292,7 @@ int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.
  */
-int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr, uint32_t providermask,
+int ipmeta_lookup_addr(ipmeta_t *ipmeta, uint32_t addr, uint32_t providermask,
                          ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already

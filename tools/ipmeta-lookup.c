@@ -79,9 +79,9 @@ static void lookup(char *addr_str, iow_t *outfile)
   addr = inet_addr(addr_str);
 
   if (pfxlen == 32) {
-    ipmeta_lookup_single(ipmeta, addr, providermask, records);
+    ipmeta_lookup_addr(ipmeta, addr, providermask, records);
   } else {
-    ipmeta_lookup(ipmeta, addr, pfxlen, providermask, records);
+    ipmeta_lookup_pfx(ipmeta, addr, pfxlen, providermask, records);
   }
 
   /* look it up using each provider */

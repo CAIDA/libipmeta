@@ -283,7 +283,8 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       (ip_broadcast_addr(addr, pfxlen) - ip_network_addr(addr, pfxlen)) + 1;
 
     /* by here record is the right asn record, associate it with this pfx */
-    if (ipmeta_provider_associate_record(provider, addr, pfxlen, record) != 0) {
+    if (ipmeta_provider_associate_record(provider, AF_INET, &addr, pfxlen,
+        record) != 0) {
       ipmeta_log(__func__, "failed to associate record");
       return -1;
     }
@@ -365,17 +366,16 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
   return;
 }
 
-int ipmeta_provider_pfx2as_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
-                                  uint8_t pfxlen, ipmeta_record_set_t *records)
+int ipmeta_provider_pfx2as_lookup_pfx(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_pfx(provider, addr, pfxlen, records);
+  return ipmeta_provider_lookup_pfx(provider, family, addrp, pfxlen, records);
 }
 
-int ipmeta_provider_pfx2as_lookup_addr(ipmeta_provider_t *provider,
-                                         uint32_t addr,
-                                         ipmeta_record_set_t *found)
+int ipmeta_provider_pfx2as_lookup_addr(ipmeta_provider_t *provider, int family,
+    void *addrp, ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_addr(provider, addr, found);
+  return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }

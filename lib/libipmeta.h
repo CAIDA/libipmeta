@@ -269,22 +269,24 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 /** Look up the given IP prefix using a set of known providers
  *
  * @param ipmeta        The ipmeta instance to use for the lookup
- * @param addr          The IPv4 network address part to lookup
- *                       (network byte ordering)
- * @param pfxlen        The prefix length (0-32)
+ * @param family        The address family (AF_INET or AF_INET6)
+ * @param addrp         Pointer to a struct in_addr or in6_addr containing the
+ *                      address to look up
+ * @param pfxlen        The prefix length (0-32 or 0-128)
  * @param provmask	A bitmask indicating which providers should be used.
  *                       Set to '0' to automatically use all active providers.
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup_pfx(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
+int ipmeta_lookup_pfx(ipmeta_t *ipmeta, int family, void *addrp, uint8_t pfxlen,
                   uint32_t provmask, ipmeta_record_set_t *records);
 
 /** Look up the given single IP address for a set of providers
  *
  * @param ipmeta        The ipmeta instance to use for the lookup
- * @param addr          The address to retrieve the record for
- *                       (network byte ordering)
+ * @param family        The address family (AF_INET or AF_INET6)
+ * @param addrp         Pointer to a struct in_addr or in6_addr containing the
+ *                      address to look up
  * @param providermask  A bitmask describing which providers to perform the
                          lookup with. Set to '0' to automatically use all
                          active providers.
@@ -292,8 +294,8 @@ int ipmeta_lookup_pfx(ipmeta_t *ipmeta, uint32_t addr, uint8_t pfxlen,
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.
  */
-int ipmeta_lookup_addr(ipmeta_t *ipmeta, uint32_t addr, uint32_t providermask,
-                         ipmeta_record_set_t *found);
+int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
+                       uint32_t providermask, ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already
  *

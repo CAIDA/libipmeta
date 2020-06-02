@@ -578,7 +578,8 @@ static void parse_blocks_row(int c, void *data)
 
   /* iterate over and add each prefix to the trie */
   while (pfx_list != NULL) {
-    if (ipmeta_provider_associate_record(provider, htonl(pfx_list->prefix.addr),
+    uint32_t addr = htonl(pfx_list->prefix.addr);
+    if (ipmeta_provider_associate_record(provider, AF_INET, &addr,
                                          pfx_list->prefix.masklen,
                                          record) != 0) {
       ipmeta_log(__func__, "ERROR: Failed to associate record");
@@ -1419,19 +1420,18 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
   return;
 }
 
-int ipmeta_provider_maxmind_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t pfxlen, ipmeta_record_set_t *records)
+int ipmeta_provider_maxmind_lookup_pfx(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_pfx(provider, addr, pfxlen, records);
+  return ipmeta_provider_lookup_pfx(provider, family, addrp, pfxlen, records);
 }
 
-int ipmeta_provider_maxmind_lookup_addr(ipmeta_provider_t *provider,
-                                          uint32_t addr,
-                                          ipmeta_record_set_t *found)
+int ipmeta_provider_maxmind_lookup_addr(ipmeta_provider_t *provider, int family,
+    void *addrp, ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_addr(provider, addr, found);
+  return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }
 
 /* ========== HELPER FUNCTIONS ========== */

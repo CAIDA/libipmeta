@@ -286,26 +286,25 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
   return rec_cnt;
 }
 
-int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
-                                     uint8_t pfxlen, ipmeta_record_t *record)
+int ipmeta_provider_associate_record(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_t *record)
 {
   assert(provider != NULL && record != NULL);
   assert(provider->ds != NULL);
 
-  return provider->ds->add_prefix(provider->ds, addr, pfxlen, record);
+  return provider->ds->add_prefix(provider->ds, family, addrp, pfxlen, record);
 }
 
-int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t pfxlen, ipmeta_record_set_t *records)
+int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_set_t *records)
 {
-  return provider->ds->lookup_pfx(provider->ds, addr, pfxlen,
-                                      (1 << (provider->id - 1)), records);
+  return provider->ds->lookup_pfx(provider->ds, family, addrp, pfxlen,
+                                  (1 << (provider->id - 1)), records);
 }
 
-int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider,
-                                         uint32_t addr,
-                                         ipmeta_record_set_t *found)
+int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider, int family,
+    void *addrp, ipmeta_record_set_t *found)
 {
-  return provider->ds->lookup_addr(provider->ds, addr,
-                                            (1 << (provider->id - 1)), found);
+  return provider->ds->lookup_addr(provider->ds, family, addrp,
+                                   (1 << (provider->id - 1)), found);
 }

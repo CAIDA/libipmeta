@@ -49,14 +49,13 @@
   ipmeta_ds_t *ipmeta_ds_##datastructure##_alloc(void);                        \
   int ipmeta_ds_##datastructure##_init(ipmeta_ds_t *ds);                       \
   void ipmeta_ds_##datastructure##_free(ipmeta_ds_t *ds);                      \
-  int ipmeta_ds_##datastructure##_add_prefix(                                  \
-    ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, ipmeta_record_t *record);  \
-  int ipmeta_ds_##datastructure##_lookup_pfx(                              \
-    ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen, uint32_t providermask,     \
+  int ipmeta_ds_##datastructure##_add_prefix(ipmeta_ds_t *ds, int family,      \
+    void *addrp, uint8_t pfxlen, ipmeta_record_t *record);                     \
+  int ipmeta_ds_##datastructure##_lookup_pfx(ipmeta_ds_t *ds, int family,      \
+    void *addrp, uint8_t pfxlen, uint32_t providermask,                        \
     ipmeta_record_set_t *records);                                             \
-  int ipmeta_ds_##datastructure##_lookup_addr(                        \
-    ipmeta_ds_t *ds, uint32_t addr, uint32_t providermask,                     \
-    ipmeta_record_set_t *found);
+  int ipmeta_ds_##datastructure##_lookup_addr(ipmeta_ds_t *ds, int family,     \
+    void *addrp, uint32_t providermask, ipmeta_record_set_t *found);
 
 /** Convenience macro that defines all the function pointers for the ipmeta
  * datastructure API
@@ -64,7 +63,7 @@
 #define IPMETA_DS_GENERATE_PTRS(datastructure)                                 \
   ipmeta_ds_##datastructure##_init, ipmeta_ds_##datastructure##_free,          \
     ipmeta_ds_##datastructure##_add_prefix,                                    \
-    ipmeta_ds_##datastructure##_lookup_pfx,                                \
+    ipmeta_ds_##datastructure##_lookup_pfx,                                    \
     ipmeta_ds_##datastructure##_lookup_addr,
 
 /** Structure which represents a metadata datastructure */
@@ -82,17 +81,17 @@ struct ipmeta_ds {
   void (*free)(struct ipmeta_ds *ds);
 
   /** Pointer to add prefix function */
-  int (*add_prefix)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
-                    struct ipmeta_record *record);
+  int (*add_prefix)(struct ipmeta_ds *ds, int family, void *addrp,
+                    uint8_t pfxlen, struct ipmeta_record *record);
 
   /** Pointer to lookup records function */
-  int (*lookup_pfx)(struct ipmeta_ds *ds, uint32_t addr, uint8_t pfxlen,
-                        uint32_t providermask, ipmeta_record_set_t *records);
+  int (*lookup_pfx)(struct ipmeta_ds *ds, int family, void *addrp,
+                    uint8_t pfxlen, uint32_t providermask,
+                    ipmeta_record_set_t *records);
 
   /** Pointer to lookup record single function */
-  int (*lookup_addr)(struct ipmeta_ds *ds, uint32_t addr,
-                              uint32_t providermask,
-                              ipmeta_record_set_t *found);
+  int (*lookup_addr)(struct ipmeta_ds *ds, int family, void *addrp,
+                     uint32_t providermask, ipmeta_record_set_t *found);
 
   /** Pointer to a instance-specific state object */
   void *state;

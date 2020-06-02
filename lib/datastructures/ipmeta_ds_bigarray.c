@@ -126,9 +126,15 @@ void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 #define LOOKUPINDEX(addr, prov)                                                \
   (STATE(ds)->array[(addr * IPMETA_PROVIDER_MAX) + (prov - 1)])
 
-int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen,
-                                  ipmeta_record_t *record)
+int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, int family, void *addrp,
+                                  uint8_t pfxlen, ipmeta_record_t *record)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "bigarray datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
+
   assert(ds != NULL && STATE(ds) != NULL);
   ipmeta_ds_bigarray_state_t *state = STATE(ds);
   ipmeta_record_t **recarray = NULL;
@@ -186,10 +192,15 @@ int ipmeta_ds_bigarray_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen
   return 0;
 }
 
-int ipmeta_ds_bigarray_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t pfxlen, uint32_t providermask,
-                                      ipmeta_record_set_t *records)
+int ipmeta_ds_bigarray_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
+                                  uint8_t pfxlen, uint32_t providermask,
+                                  ipmeta_record_set_t *records)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "bigarray datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
   assert(ds != NULL && ds->state != NULL);
 
   uint64_t total_ips = 1 << (32 - pfxlen);
@@ -215,10 +226,16 @@ int ipmeta_ds_bigarray_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
   return records->n_recs;
 }
 
-int ipmeta_ds_bigarray_lookup_addr(ipmeta_ds_t *ds, uint32_t addr,
-                                            uint32_t providermask,
-                                            ipmeta_record_set_t *found)
+int ipmeta_ds_bigarray_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
+                                   uint32_t providermask,
+                                   ipmeta_record_set_t *found)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "bigarray datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
+
   ipmeta_record_t **recarray;
   int i;
   uint64_t lookupind, arrayind;

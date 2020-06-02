@@ -94,13 +94,18 @@ void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
   return;
 }
 
-int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, uint32_t addr, uint8_t pfxlen,
+int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, int family, void *addrp, uint8_t pfxlen,
                                   ipmeta_record_t *record)
 {
   assert(ds != NULL && ds->state != NULL);
   patricia_tree_t *trie = STATE(ds)->trie;
   ipmeta_record_t **recarray = NULL;
   assert(trie != NULL);
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
 
   prefix_t trie_pfx;
   /** @todo make support IPv6 */
@@ -238,10 +243,14 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
   return 0;
 }
 
-int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t pfxlen, uint32_t providermask,
-                                      ipmeta_record_set_t *records)
+int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
+    uint8_t pfxlen, uint32_t providermask, ipmeta_record_set_t *records)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
   prefix_t pfx;
 
   /** @todo make support IPv6 */
@@ -255,10 +264,14 @@ int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, uint32_t addr,
   return records->n_recs;
 }
 
-int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, uint32_t addr,
-                                            uint32_t provmask,
-                                            ipmeta_record_set_t *found)
+int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
+    uint32_t provmask, ipmeta_record_set_t *found)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
   patricia_tree_t *trie = STATE(ds)->trie;
   patricia_node_t *node = NULL;
   prefix_t pfx;

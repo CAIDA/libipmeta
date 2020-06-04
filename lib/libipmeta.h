@@ -179,7 +179,7 @@ typedef struct ipmeta_record {
   int asn_cnt;
 
   /** Number of IP addresses that this ASN (or ASN group) 'owns' */
-  uint32_t asn_ip_cnt;
+  uint64_t asn_ip_cnt;
 
   /** Polygon IDs. Indexes SHOULD correspond to those in the polygon table list
       obtained from the provider */
@@ -363,7 +363,8 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
 /** Get the next record in the record set iterator
  *
  * @param record_set    The record set instance
- * @param[out] num_ips  Pointer to an int set to the number of matched IPs
+ * @param[out] num_ips  Pointer to an int which will be set to the number of
+ *                      matched IPv4 addresses or IPv6 /64 subnets
  *                      (optional)
  *
  * @return a pointer to the record
@@ -372,7 +373,7 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
  * records. Records can (and might) be repeated.
  */
 ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
-                                        uint32_t *num_ips);
+                                        uint64_t *num_ips);
 
 #ifdef __GNUC__
 #define ATTR_FORMAT_PRINTF(i,j) __attribute__((format(printf, i, j)))
@@ -445,14 +446,13 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up
- * for
- * @param num_ips       The number of IPs from the prefix that this record
- * applies to
+ * @param ip_str        The IP address/prefix string used to look up this record
+ * @param num_ips       The number of IPv4 addresses or IPv6 /64 subnets
+ *                      that this record applies to
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
-void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips);
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, uint64_t num_ips);
 
 /** Dump names of the fields in a record structure
  *
@@ -465,14 +465,15 @@ void ipmeta_dump_record_header(void);
  *
  * @param file          The wandio file to write to, or NULL for stdout
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up
- * for
+ * @param ip_str        The IP address/prefix string used to look up this record
+ * @param num_ips       The number of IPv4 addresses or IPv6 /64 subnets
+ *                      that this record applies to
  *
  * Each field in the record is written to the given file in pipe-delimited
  * format (prefixed with the IP string given)
  */
 void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
-                         int num_ips);
+                         uint64_t num_ips);
 
 /** Write names of the fields in a record structure to the given wandio file
  *

@@ -155,7 +155,7 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
       if (recfound[i] == NULL) {
         continue;
       }
-      int num_ips = (1 << (32 - masklen));
+      uint64_t num_ips = (1 << (32 - masklen));
       if (ipmeta_record_set_add_record(found, recfound[i], num_ips) != 0) {
         return -1;
       }

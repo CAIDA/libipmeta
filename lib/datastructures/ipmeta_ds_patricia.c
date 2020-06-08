@@ -40,8 +40,14 @@
 static ipmeta_ds_t ipmeta_ds_patricia = {
   IPMETA_DS_PATRICIA, DS_NAME, IPMETA_DS_GENERATE_PTRS(patricia) NULL};
 
+enum { IPV4_IDX, IPV6_IDX, NUM_IPV };
+
+#define family_to_idx(fam) ((fam) == AF_INET6)
+#define family_size(fam) \
+  ((fam) == AF_INET6 ? sizeof(struct in6_addr) : sizeof(struct in_addr))
+
 typedef struct ipmeta_ds_patricia_state {
-  patricia_tree_t *trie;
+  patricia_tree_t *trie[NUM_IPV];
 
 } ipmeta_ds_patricia_state_t;
 
@@ -61,9 +67,10 @@ int ipmeta_ds_patricia_init(ipmeta_ds_t *ds)
     return -1;
   }
 
-  /** @todo make support IPv6 */
-  STATE(ds)->trie = New_Patricia(32);
-  assert(STATE(ds)->trie != NULL);
+  STATE(ds)->trie[IPV4_IDX] = New_Patricia(32);
+  assert(STATE(ds)->trie[IPV4_IDX]);
+  STATE(ds)->trie[IPV6_IDX] = New_Patricia(128);
+  assert(STATE(ds)->trie[IPV6_IDX]);
 
   return 0;
 }
@@ -80,9 +87,11 @@ void ipmeta_ds_patricia_free(ipmeta_ds_t *ds)
   }
 
   if (STATE(ds) != NULL) {
-    if (STATE(ds)->trie != NULL) {
-      Destroy_Patricia(STATE(ds)->trie, free_prefix);
-      STATE(ds)->trie = NULL;
+    for (int i = 0; i < NUM_IPV; i++) {
+      if (STATE(ds)->trie[i] != NULL) {
+        Destroy_Patricia(STATE(ds)->trie[i], free_prefix);
+        STATE(ds)->trie[i] = NULL;
+      }
     }
 
     free(STATE(ds));
@@ -98,23 +107,18 @@ int ipmeta_ds_patricia_add_prefix(ipmeta_ds_t *ds, int family, void *addrp, uint
                                   ipmeta_record_t *record)
 {
   assert(ds != NULL && ds->state != NULL);
-  patricia_tree_t *trie = STATE(ds)->trie;
+  patricia_tree_t *trie = STATE(ds)->trie[family_to_idx(family)];
   ipmeta_record_t **recarray = NULL;
   assert(trie != NULL);
-  if (family != AF_INET) {
-    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
-    return -1;
-  }
-  uint32_t addr = *(uint32_t *)addrp;
 
   prefix_t trie_pfx;
-  /** @todo make support IPv6 */
-  trie_pfx.family = AF_INET;
+  trie_pfx.family = family;
   trie_pfx.ref_count = 0;
   patricia_node_t *trie_node;
 
   trie_pfx.bitlen = pfxlen;
-  trie_pfx.add.sin.s_addr = addr;
+  memcpy(&trie_pfx.add, addrp, family_size(family));
+
   if ((trie_node = patricia_lookup(trie, &trie_pfx)) == NULL) {
     ipmeta_log(__func__, "failed to insert prefix in trie");
     return -1;
@@ -155,7 +159,13 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
       if (recfound[i] == NULL) {
         continue;
       }
-      uint64_t num_ips = (1 << (32 - masklen));
+
+      // For IPv6, we count /64 subnets, not addresses.  Prefixes longer than
+      // /64 don't count.
+      int maxlen = (node->prefix->family == AF_INET6) ? 64 :
+        family_size(node->prefix->family) * 8;
+      uint64_t num_ips = (masklen <= maxlen) ? (1 << (maxlen - masklen)) : 0;
+
       if (ipmeta_record_set_add_record(found, recfound[i], num_ips) != 0) {
         return -1;
       }
@@ -170,22 +180,30 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
   return 0;
 }
 
+// Toggle nth bit of byte array starting at *p
+#define TOGGLEBIT(p, n)  (((uint8_t *)(p))[(n)/8] ^= (0x80 >> ((n) % 8)))
+
 static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
                          uint32_t foundsofar, ipmeta_record_set_t *records)
 {
   prefix_t subpfx;
   patricia_node_t *node = NULL;
-  patricia_tree_t *trie = STATE(ds)->trie;
+  patricia_tree_t *trie = STATE(ds)->trie[family_to_idx(pfx.family)];
   uint32_t sub_foundsofar;
 
-  subpfx.family = AF_INET;
+  subpfx.family = pfx.family;
   subpfx.ref_count = 0;
   subpfx.bitlen = pfx.bitlen + 1;
+  int size = family_size(pfx.family);
 
   // try the two CIDR halves
   for (int i = 0; i < 2; i++) {
-    subpfx.add.sin.s_addr = (i == 0) ? pfx.add.sin.s_addr :
-      pfx.add.sin.s_addr | htonl(1 << (32 - subpfx.bitlen));
+
+    if (i == 0) {
+      memcpy(&subpfx.add, &pfx.add, size);
+    } else {
+      TOGGLEBIT(&subpfx.add, pfx.bitlen);
+    }
 
     node = patricia_search_exact(trie, &subpfx);
 
@@ -201,7 +219,7 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
     }
 
     // If we don't have answers for subpfx from all providers, try below subpfx
-    if (sub_foundsofar != provmask && subpfx.bitlen < 32) {
+    if (sub_foundsofar != provmask && subpfx.bitlen < size * 8) {
       if (descend_ptree(ds, subpfx, provmask, sub_foundsofar, records) < 0) {
         return -1;
       }
@@ -214,7 +232,7 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
 static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
     uint32_t provmask, ipmeta_record_set_t *records)
 {
-  patricia_tree_t *trie = STATE(ds)->trie;
+  patricia_tree_t *trie = STATE(ds)->trie[family_to_idx(pfx.family)];
   patricia_node_t *node = NULL;
   uint32_t foundsofar = 0;
 
@@ -246,17 +264,11 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
 int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
     uint8_t pfxlen, uint32_t providermask, ipmeta_record_set_t *records)
 {
-  if (family != AF_INET) {
-    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
-    return -1;
-  }
-  uint32_t addr = *(uint32_t *)addrp;
   prefix_t pfx;
 
-  /** @todo make support IPv6 */
-  pfx.family = AF_INET;
+  pfx.family = family;
   pfx.ref_count = 0;
-  pfx.add.sin.s_addr = addr;
+  memcpy(&pfx.add, addrp, family_size(family));
   pfx.bitlen = pfxlen;
 
   _patricia_prefix_lookup(ds, pfx, providermask, records);
@@ -267,21 +279,15 @@ int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
 int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
     uint32_t provmask, ipmeta_record_set_t *found)
 {
-  if (family != AF_INET) {
-    ipmeta_log(__func__, "patricia datastructure only supports IPv4");
-    return -1;
-  }
-  uint32_t addr = *(uint32_t *)addrp;
-  patricia_tree_t *trie = STATE(ds)->trie;
+  patricia_tree_t *trie = STATE(ds)->trie[family_to_idx(family)];
   patricia_node_t *node = NULL;
   prefix_t pfx;
   uint32_t foundsofar = 0;
 
-  /** @todo make support IPv6 */
-  pfx.family = AF_INET;
+  pfx.family = family;
   pfx.ref_count = 0;
-  pfx.add.sin.s_addr = addr;
-  pfx.bitlen = 32;
+  memcpy(&pfx.add, addrp, family_size(family));
+  pfx.bitlen = family_size(family) * 8;
 
   if ((node = patricia_search_best2(trie, &pfx, 1)) == NULL) {
     return 0;

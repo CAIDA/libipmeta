@@ -30,10 +30,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wandio.h>
 
 #include "khash.h"
 #include "utils.h"
-#include "wandio_utils.h"
 #include "parse_cmd.h"
 
 #include "libipmeta_int.h"

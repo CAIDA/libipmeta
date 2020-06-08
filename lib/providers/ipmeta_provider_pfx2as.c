@@ -197,7 +197,11 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
   int tokc = 0;
 
   int asn_id = 0;
-  in_addr_t addr = 0;
+  int family = 0;
+  union {
+    struct in_addr v4;
+    struct in6_addr v6;
+  } addr;
   uint8_t pfxlen = 0;
   uint32_t *asn = NULL;
   char *asn_str = NULL;
@@ -213,7 +217,14 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       switch (tokc) {
       case 0:
         /* network */
-        addr = inet_addr(tok);
+        if (inet_pton(AF_INET, tok, &addr) == 1) {
+          family = AF_INET;
+        } else if (inet_pton(AF_INET6, tok, &addr) == 1) {
+          family = AF_INET6;
+        } else {
+          ipmeta_log(__func__, "invalid address in pfx2as file");
+          return -1;
+        }
         break;
 
       case 1:
@@ -279,11 +290,14 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
     /* how many IP addresses does this prefix cover ? */
     /* we will add this to the record and then use the total count for the asn
        to find the 'biggest' ASes */
-    record->asn_ip_cnt +=
-      (ip_broadcast_addr(addr, pfxlen) - ip_network_addr(addr, pfxlen)) + 1;
+    if (pfxlen <= 64) {
+      // For IPv6, we count /64 subnets, not addresses.  Prefixes longer than
+      // /64 don't count.
+      record->asn_ip_cnt += (uint64_t)1 << ((family == AF_INET ? 32 : 64) - pfxlen);
+    }
 
     /* by here record is the right asn record, associate it with this pfx */
-    if (ipmeta_provider_associate_record(provider, AF_INET, &addr, pfxlen,
+    if (ipmeta_provider_associate_record(provider, family, &addr, pfxlen,
         record) != 0) {
       ipmeta_log(__func__, "failed to associate record");
       return -1;

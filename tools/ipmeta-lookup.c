@@ -49,6 +49,8 @@
 
 #define DEFAULT_COMPRESS_LEVEL 6
 
+#define PFXLEN_UNSET 255
+
 static ipmeta_t *ipmeta = NULL;
 static uint32_t providermask = 0;
 static ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
@@ -60,8 +62,13 @@ static void lookup(char *addr_str, iow_t *outfile)
   char orig_str[BUFFER_LEN];
 
   char *pfxlen_str = addr_str;
-  uint32_t addr;
-  uint8_t pfxlen;
+  union {
+    struct in_addr v4;
+    struct in6_addr v6;
+  } addr;
+  int family;
+  uint8_t max_pfxlen;
+  uint8_t pfxlen = PFXLEN_UNSET;
   int i;
 
   /* preserve the original string for dumping */
@@ -73,15 +80,31 @@ static void lookup(char *addr_str, iow_t *outfile)
     pfxlen_str++;
     pfxlen = atoi(pfxlen_str);
   } else {
-    pfxlen = 32;
+    pfxlen = PFXLEN_UNSET;
   }
 
-  addr = inet_addr(addr_str);
-
-  if (pfxlen == 32) {
-    ipmeta_lookup_addr(ipmeta, AF_INET, &addr, providermask, records);
+  if (inet_pton(AF_INET, addr_str, &addr) == 1) {
+    family = AF_INET;
+    max_pfxlen = sizeof(struct in_addr) * 8;
+  } else if (inet_pton(AF_INET6, addr_str, &addr) == 1) {
+    family = AF_INET6;
+    max_pfxlen = sizeof(struct in6_addr) * 8;
   } else {
-    ipmeta_lookup_pfx(ipmeta, AF_INET, &addr, pfxlen, providermask, records);
+    fprintf(stderr, "ERROR: invalid address \"%s\"\n", addr_str);
+    return;
+  }
+
+  if (pfxlen == PFXLEN_UNSET) {
+    pfxlen = max_pfxlen;
+  } else if (pfxlen > max_pfxlen) {
+    fprintf(stderr, "ERROR: invalid prefix length /%s\n", pfxlen_str);
+    return;
+  }
+
+  if (pfxlen == max_pfxlen) {
+    ipmeta_lookup_addr(ipmeta, family, &addr, providermask, records);
+  } else {
+    ipmeta_lookup_pfx(ipmeta, family, &addr, pfxlen, providermask, records);
   }
 
   /* look it up using each provider */

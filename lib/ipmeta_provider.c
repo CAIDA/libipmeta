@@ -257,7 +257,7 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
 {
   ipmeta_record_t **rec_arr = NULL;
   ipmeta_record_t **rec_ptr = NULL;
-  int rec_cnt = kh_size(provider->all_records);
+  unsigned rec_cnt = kh_size(provider->all_records);
   khiter_t i;
 
   /* if there are no records in the array, don't bother */
@@ -283,7 +283,7 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
 
   /* return the array and the count */
   *records = rec_arr;
-  return rec_cnt;
+  return (int)rec_cnt;
 }
 
 int ipmeta_provider_associate_record(ipmeta_provider_t *provider, int family,

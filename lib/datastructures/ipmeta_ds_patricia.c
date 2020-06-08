@@ -194,7 +194,7 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
   subpfx.family = pfx.family;
   subpfx.ref_count = 0;
   subpfx.bitlen = pfx.bitlen + 1;
-  int size = family_size(pfx.family);
+  unsigned size = family_size(pfx.family);
 
   // try the two CIDR halves
   for (int i = 0; i < 2; i++) {
@@ -273,7 +273,7 @@ int ipmeta_ds_patricia_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
 
   _patricia_prefix_lookup(ds, pfx, providermask, records);
 
-  return records->n_recs;
+  return (int)records->n_recs;
 }
 
 int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
@@ -297,5 +297,5 @@ int ipmeta_ds_patricia_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
     return -1;
   }
 
-  return found->n_recs;
+  return (int)found->n_recs;
 }

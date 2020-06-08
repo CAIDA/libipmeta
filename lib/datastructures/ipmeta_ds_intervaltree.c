@@ -166,7 +166,7 @@ int ipmeta_ds_intervaltree_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
     }
   }
 
-  return records->n_recs;
+  return (int)records->n_recs;
 }
 
 int ipmeta_ds_intervaltree_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
@@ -199,5 +199,5 @@ int ipmeta_ds_intervaltree_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
     }
   }
 
-  return found->n_recs;
+  return (int)found->n_recs;
 }

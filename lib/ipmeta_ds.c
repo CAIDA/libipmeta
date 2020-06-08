@@ -99,14 +99,13 @@ ipmeta_ds_id_t ipmeta_ds_name_to_id(const char *name)
 const char **ipmeta_ds_get_all()
 {
   const char **names;
-  int i;
   ipmeta_ds_t *tmp_ds;
 
   if ((names = malloc(sizeof(char *) * IPMETA_DS_MAX)) == NULL) {
     return NULL;
   }
 
-  for (i = 1; i < ARR_CNT(ds_alloc_functions); i++) {
+  for (unsigned i = 1; i < ARR_CNT(ds_alloc_functions); i++) {
     tmp_ds = ds_alloc_functions[i]();
     assert(tmp_ds != NULL);
 

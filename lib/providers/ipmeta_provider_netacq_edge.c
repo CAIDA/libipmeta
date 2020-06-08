@@ -398,8 +398,8 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       tmp->country_code[1] = '?';
       /* continent code will be 0 */
     } else {
-      tmp->country_code[0] = toupper(tok[0]);
-      tmp->country_code[1] = toupper(tok[1]);
+      tmp->country_code[0] = (char)toupper(tok[0]);
+      tmp->country_code[1] = (char)toupper(tok[1]);
     }
     break;
 
@@ -827,7 +827,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
       if (tok[j] == '*') {
         tok[j] = '?';
       }
-      state->tmp_region.country_iso[j] = toupper(tok[j]);
+      state->tmp_region.country_iso[j] = (char)toupper(tok[j]);
     }
     state->tmp_region.country_iso[len] = '\0';
 
@@ -858,7 +858,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
       if (tok[j] == '*') {
         tok[j] = '?';
       }
-      state->tmp_region.region_iso[j] = toupper(tok[j]);
+      state->tmp_region.region_iso[j] = (char)toupper(tok[j]);
     }
     state->tmp_region.region_iso[len] = '\0';
     break;
@@ -1030,7 +1030,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
     } else {
       assert(strnlen(tok, 3) == 3);
       for (j = 0; j < 3; j++) {
-        state->tmp_country.iso3[j] = toupper(tok[j]);
+        state->tmp_country.iso3[j] = (char)toupper(tok[j]);
       }
     }
     state->tmp_country.iso3[3] = '\0';
@@ -1059,8 +1059,8 @@ static void parse_country_cell(void *s, size_t i, void *data)
     else if (tok[0] == '?') {
       state->tmp_country_ignore = 1;
     } else {
-      state->tmp_country.iso2[0] = toupper(tok[0]);
-      state->tmp_country.iso2[1] = toupper(tok[1]);
+      state->tmp_country.iso2[0] = (char)toupper(tok[0]);
+      state->tmp_country.iso2[1] = (char)toupper(tok[1]);
     }
     state->tmp_country.iso2[2] = '\0';
     break;
@@ -1119,8 +1119,8 @@ static void parse_country_cell(void *s, size_t i, void *data)
       tok[0] = 'o';
       tok[1] = 'c';
     }
-    state->tmp_country.continent[0] = toupper(tok[0]);
-    state->tmp_country.continent[1] = toupper(tok[1]);
+    state->tmp_country.continent[0] = (char)toupper(tok[0]);
+    state->tmp_country.continent[1] = (char)toupper(tok[1]);
     break;
 
   case COUNTRY_COL_CODE:

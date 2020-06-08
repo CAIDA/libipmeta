@@ -68,10 +68,10 @@ struct ipmeta_record_set {
 
   ipmeta_record_t **records;
   uint64_t *ip_cnts; // count of IPv4 addresses or IPv6 /64 subnets matched
-  int n_recs;
+  size_t n_recs;
 
-  int _cursor;
-  int _alloc_size;
+  size_t _cursor;
+  size_t _alloc_size;
 };
 
 /** @} */

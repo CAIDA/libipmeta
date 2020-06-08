@@ -52,7 +52,7 @@ typedef struct ipmeta_ds_bigarray_state {
   ipmeta_record_t ***lookup_table;
 
   /** Number of records in the lookup table */
-  int lookup_table_cnt;
+  uint32_t lookup_table_cnt;
 
   /** Mapping from IP address to uint32 lookup id (see lookup table) */
   uint32_t *array;
@@ -95,7 +95,7 @@ int ipmeta_ds_bigarray_init(ipmeta_ds_t *ds)
 
 void ipmeta_ds_bigarray_free(ipmeta_ds_t *ds)
 {
-  uint64_t i;
+  uint32_t i;
   if (ds == NULL) {
     return;
   }
@@ -223,7 +223,7 @@ int ipmeta_ds_bigarray_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
     }
   }
 
-  return records->n_recs;
+  return (int)records->n_recs;
 }
 
 int ipmeta_ds_bigarray_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
@@ -254,5 +254,5 @@ int ipmeta_ds_bigarray_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
       return -1;
     }
   }
-  return found->n_recs;
+  return (int)found->n_recs;
 }

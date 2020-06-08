@@ -127,7 +127,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 /** Parse an underscore-separated list of ASNs */
 static int parse_asn(char *asn_str, uint32_t **asn_arr)
 {
-  int asn_cnt = 0;
+  unsigned asn_cnt = 0;
   uint32_t *asn = NULL;
   char *tok = NULL;
   char *period = NULL;
@@ -162,17 +162,18 @@ static int parse_asn(char *asn_str, uint32_t **asn_arr)
       /* set this to a nul */
       *period = '\0';
       /* get the value of the first 16 bits and the second */
-      asn[asn_cnt] = (atoi(tok) << 16) | atoi(period + 1);
+      asn[asn_cnt] = ((uint32_t)strtoul(tok, NULL, 10) << 16) |
+        (uint32_t)strtoul(period + 1, NULL, 10);
     } else {
-      /* do a simple atoi and be done */
-      asn[asn_cnt] = atoi(tok);
+      /* do a simple strtoul and be done */
+      asn[asn_cnt] = (uint32_t)strtoul(tok, NULL, 10);
     }
     asn_cnt++;
   }
 
   /* return the array of asn values and the count */
   *asn_arr = asn;
-  return asn_cnt;
+  return (int)asn_cnt;
 }
 
 /** Free a string (for use with the map) */
@@ -195,7 +196,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
   char *tok = NULL;
   int tokc = 0;
 
-  int asn_id = 0;
+  uint32_t asn_id = 0;
   int family = 0;
   union {
     struct in_addr v4;

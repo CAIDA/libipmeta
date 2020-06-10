@@ -31,6 +31,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -56,7 +57,7 @@ static ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 static int enabled_providers_cnt = 0;
 static ipmeta_record_set_t *records;
 
-static void lookup(char *addr_str, iow_t *outfile)
+static int lookup(char *addr_str, iow_t *outfile)
 {
   char orig_str[BUFFER_LEN];
 
@@ -90,14 +91,14 @@ static void lookup(char *addr_str, iow_t *outfile)
     max_pfxlen = sizeof(struct in6_addr) * 8;
   } else {
     fprintf(stderr, "ERROR: invalid address \"%s\"\n", addr_str);
-    return;
+    return -1;
   }
 
   if (pfxlen == PFXLEN_UNSET) {
     pfxlen = max_pfxlen;
   } else if (pfxlen > max_pfxlen) {
     fprintf(stderr, "ERROR: invalid prefix length /%s\n", pfxlen_str);
-    return;
+    return -1;
   }
 
   if (pfxlen == max_pfxlen) {
@@ -118,7 +119,7 @@ static void lookup(char *addr_str, iow_t *outfile)
     ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
   }
 
-  return;
+  return 0;
 }
 
 static void usage(const char *name)
@@ -169,7 +170,7 @@ static void usage(const char *name)
 
 int main(int argc, char **argv)
 {
-  int rc = -1;
+  int rc = 1; // default to error
   int i;
   int opt;
   /* we MUST not use any of the getopt global vars outside of arg parsing */
@@ -269,14 +270,6 @@ int main(int argc, char **argv)
     goto quit;
   }
 
-  /* ensure there is either a ip file list, or some addresses on the cmd line */
-  if (ip_file == NULL && (lastopt >= argc)) {
-    fprintf(stderr, "ERROR: IP addresses must either be provided in a file "
-                    "(using -f), or directly\n\ton the command line\n");
-    usage(argv[0]);
-    goto quit;
-  }
-
   /* if we have been given a file to write to, open this now */
   if (outfile_name != NULL) {
     if ((outfile = wandio_wcreate(outfile_name,
@@ -310,14 +303,19 @@ int main(int argc, char **argv)
 
     if (ipmeta_enable_provider(ipmeta, provider, provider_arg_ptr) != 0) {
       fprintf(stderr, "ERROR: Could not enable plugin %s\n", providers[i]);
-      usage(argv[0]);
       goto quit;
     }
     providermask |= (1 << (ipmeta_get_provider_id(provider) - 1));
     enabled_providers[enabled_providers_cnt++] = provider;
   }
 
-  ipmeta_log(__func__, "dumping record headers");
+  /* ensure there is either a ip file list, or some addresses on the cmd line */
+  if (ip_file == NULL && (lastopt >= argc)) {
+    fprintf(stderr, "ERROR: IP addresses must either be provided in a file "
+                    "(using -f), or directly\n\ton the command line\n");
+    usage(argv[0]);
+    goto quit;
+  }
 
   /* dump out the record header first */
   if (headers_enabled != 0) {
@@ -328,46 +326,48 @@ int main(int argc, char **argv)
         fprintf(stdout, "provider|");
       }
     }
-
     ipmeta_write_record_header(outfile);
   }
 
-  ipmeta_log(__func__, "processing ip file");
+  rc = 0; // default to success
 
   /* try reading the file first */
   if (ip_file != NULL) {
+    ipmeta_log(__func__, "processing ip file %s", ip_file);
     /* open the file */
     if ((file = wandio_create(ip_file)) == NULL) {
-      fprintf(stderr, "ERROR: Could not open IP file (%s)\n", ip_file);
-      usage(argv[0]);
-      goto quit;
-    }
+      fprintf(stderr, "ERROR: Could not open input file %s: %s\n", ip_file,
+          strerror(errno));
+      rc = 1;
+    } else {
+      while (wandio_fgets(file, &buffer, BUFFER_LEN, 1) > 0) {
+        /* treat # as comment line, and ignore empty lines */
+        if (buffer[0] == '#' || buffer[0] == '\0') {
+          continue;
+        }
 
-    while (wandio_fgets(file, &buffer, BUFFER_LEN, 1) > 0) {
-      /* treat # as comment line, and ignore empty lines */
-      if (buffer[0] == '#' || buffer[0] == '\0') {
-        continue;
+        /* convenience to allow flowtuple files to be fed directly in */
+        if ((p = strchr(buffer, '|')) != NULL) {
+          *p = '\0';
+        }
+
+        if (lookup(buffer, outfile) != 0)
+          rc = 1;
       }
-
-      /* convenience to allow flowtuple files to be fed directly in */
-      if ((p = strchr(buffer, '|')) != NULL) {
-        *p = '\0';
-      }
-
-      lookup(buffer, outfile);
     }
   }
 
-  ipmeta_log(__func__, "processing ips on command line");
+  if (lastopt < argc) {
+    ipmeta_log(__func__, "processing ips on command line");
 
-  /* now try looking up addresses given on the command line */
-  for (i = lastopt; i < argc; i++) {
-    lookup(argv[i], outfile);
+    /* now try looking up addresses given on the command line */
+    for (i = lastopt; i < argc; i++) {
+      if (lookup(argv[i], outfile) != 0)
+        rc = 1;
+    }
   }
 
   ipmeta_log(__func__, "done");
-
-  rc = 0;
 
 quit:
   for (i = 0; i < providers_cnt; i++) {

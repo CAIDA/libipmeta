@@ -214,7 +214,8 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
 
   ipmeta_record_t *record;
 
-  while (wandio_fgets(file, &buffer, BUFFER_LEN, 1) > 0) {
+  int64_t nread;
+  while ((nread = wandio_fgets(file, &buffer, BUFFER_LEN, 1)) > 0) {
     rowp = buffer;
     tokc = 0;
 
@@ -307,6 +308,10 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       ipmeta_log(__func__, "failed to associate record");
       return -1;
     }
+  }
+  if (nread < 0) {
+    ipmeta_log(__func__, "Error reading pfx2as file");
+    return -1;
   }
 
   /* free our asn_table hash */

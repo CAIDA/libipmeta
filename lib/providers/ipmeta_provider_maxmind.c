@@ -470,6 +470,10 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
       return -1;
     }
   }
+  if (read < 0) {
+    ipmeta_log(__func__, "Error reading Location file");
+    return -1;
+  }
 
   if (csv_fini(&(state->parser), parse_maxmind_location_cell,
                parse_maxmind_location_row, provider) != 0) {
@@ -635,6 +639,10 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
                  csv_strerror(csv_error(&(state->parser))));
       return -1;
     }
+  }
+  if (read < 0) {
+    ipmeta_log(__func__, "Error reading Blocks file");
+    return -1;
   }
 
   if (csv_fini(&(state->parser), parse_blocks_cell, parse_blocks_row,

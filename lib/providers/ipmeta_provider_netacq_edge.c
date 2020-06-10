@@ -374,6 +374,10 @@ static int read_netacq_edge_file(ipmeta_provider_t *provider, io_t *file,
       return -1;
     }
   }
+  if (read < 0) {
+    ipmeta_log(__func__, "Error reading %s file", label);
+    return -1;
+  }
 
   if (csv_fini(&(state->parser), parse_cell, parse_row, provider) != 0) {
     ipmeta_log(__func__, "Error parsing %s %s file", provider->name, label);

@@ -127,36 +127,44 @@ static void usage(const char *name)
   ipmeta_provider_t **providers = NULL;
   int i;
 
+  // skip directory part of name
+  const char *p;
+  while ((p = strchr(name, '/')))
+    name = p + 1;
+
   const char **dsnames = ipmeta_ds_get_all();
   fprintf(stderr,
-          "usage: %s [-h] -p provider [-p provider] [-o outfile] [-f "
-          "iplist]|[ip1 ip2...ipN]\n"
-          "       -c <level>    the compression level to use (default: %d)\n"
-          "       -D <struct>   data structure to use for storing prefixes\n"
-          "                     (default: %s)\n"
-          "                     available datastructures:\n",
-          name, DEFAULT_COMPRESS_LEVEL, dsnames[IPMETA_DS_DEFAULT-1]);
-  for (i = 0; i < IPMETA_DS_MAX; i++) {
-    fprintf(stderr, "                      - %s\n", dsnames[i]);
-  }
-  free(dsnames);
-  fprintf(stderr,
-          "       -f <iplist>   perform lookups on IP addresses listed in "
-          "the given file\n"
-          "       -h            write out a header row with field names\n"
-          "       -o <outfile>  write results to the given file\n"
-          "       -p <provider> enable the given provider,\n"
-          "                     -p can be used multiple times\n"
-          "                     available providers:\n");
+      "usage: %s {-p provider}... [<other options>] [-f infile] [addr...]\n"
+      "options:\n"
+      "    -p <provider> enable the given provider (repeatable).\n"
+      "                  Use \"-p'<provider> -?'\" for help with provider.\n"
+      "                  Available providers:\n",
+      name);
   /* get the available plugins from ipmeta */
   providers = ipmeta_get_all_providers(ipmeta);
-
   for (i = 0; i < IPMETA_PROVIDER_MAX; i++) {
     assert(providers[i] != NULL);
     assert(ipmeta_get_provider_name(providers[i]));
-    fprintf(stderr, "                      - %s\n",
+    fprintf(stderr, "                   - %s\n",
             ipmeta_get_provider_name(providers[i]));
   }
+  fprintf(stderr,
+      "    -D <struct>   data structure to use for storing prefixes\n"
+      "                  (default: %s)\n"
+      "                  Available datastructures:\n",
+      dsnames[IPMETA_DS_DEFAULT-1]);
+  for (i = 0; i < IPMETA_DS_MAX; i++) {
+    fprintf(stderr, "                   - %s\n", dsnames[i]);
+  }
+  free(dsnames);
+  fprintf(stderr,
+      "    -h            write out a header row with field names\n"
+      "    -o <outfile>  write results to the given file\n"
+      "    -c <level>    compression level to use for <outfile> "
+      "(default: %d)\n"
+      "    -f <infile>   look up addresses or prefixes listed in <infile>\n"
+      "    <addr>        look up the given address or prefix\n",
+      DEFAULT_COMPRESS_LEVEL);
 }
 
 int main(int argc, char **argv)

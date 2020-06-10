@@ -1523,6 +1523,28 @@ static void na_to_polygon_free(ipmeta_provider_netacq_edge_state_t *state)
   state->na_to_polygons_cnt = 0;
 }
 
+static int load_file(ipmeta_provider_t *provider, const char *filename,
+    const char *label, int (*readfn)(ipmeta_provider_t *, io_t *))
+{
+  io_t *file;
+  int rc;
+
+  ipmeta_log(__func__, "processing %s file '%s'", label, filename);
+  if ((file = wandio_create(filename)) == NULL) {
+    ipmeta_log(__func__, "failed to open %s file '%s'",
+               label, filename);
+    return -1;
+  }
+
+  if ((rc = readfn(provider, file)) != 0) {
+    ipmeta_log(__func__, "failed to parse %s file '%s'", label, filename);
+  }
+
+  wandio_destroy(file);
+
+  return rc;
+}
+
 /* ===== PUBLIC FUNCTIONS BELOW THIS POINT ===== */
 
 ipmeta_provider_t *ipmeta_provider_netacq_edge_alloc(void)
@@ -1534,7 +1556,6 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider, int argc,
                                      char **argv)
 {
   ipmeta_provider_netacq_edge_state_t *state;
-  io_t *file = NULL;
   int i;
 
   /* allocate our state */
@@ -1555,121 +1576,40 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider, int argc,
 
   /* if provided, open the region decode file and populate the lookup arrays */
   if (state->region_file != NULL) {
-    ipmeta_log(__func__, "processing region file (%s)", state->region_file);
-    if ((file = wandio_create(state->region_file)) == NULL) {
-      ipmeta_log(__func__, "failed to open region decode file '%s'",
-                 state->region_file);
+    if (load_file(provider, state->region_file, "region", read_regions) < 0)
       return -1;
-    }
-
-    /* populate the arrays! */
-    if (read_regions(provider, file) != 0) {
-      ipmeta_log(__func__, "failed to parse region decode file");
-      goto err;
-    }
-
-    /* close it... */
-    wandio_destroy(file);
   }
 
   /* if provided, open the country decode file and populate the lookup arrays */
   if (state->country_file != NULL) {
-    ipmeta_log(__func__, "processing country file (%s)", state->country_file);
-    if ((file = wandio_create(state->country_file)) == NULL) {
-      ipmeta_log(__func__, "failed to open country decode file '%s'",
-                 state->country_file);
+    if (load_file(provider, state->country_file, "country", read_countries) < 0)
       return -1;
-    }
-
-    /* populate the arrays! */
-    if (read_countries(provider, file) != 0) {
-      ipmeta_log(__func__, "failed to parse country decode file");
-      goto err;
-    }
-
-    /* close it... */
-    wandio_destroy(file);
   }
 
   /* open each polygon decode file and populate the lookup arrays */
   for (i = 0; i < state->polygon_files_cnt; i++) {
     assert(state->polygon_files[i] != NULL);
-    ipmeta_log(__func__, "processing polygon table (%s)",
-               state->polygon_files[i]);
-    if ((file = wandio_create(state->polygon_files[i])) == NULL) {
-      ipmeta_log(__func__, "failed to open Polygon decode file '%s'",
-                 state->polygon_files[i]);
+    if (load_file(provider, state->polygon_files[i], "polygon",
+          read_polygons) < 0)
       return -1;
-    }
-
-    /* populate the arrays! */
-    if (read_polygons(provider, file) != 0) {
-      ipmeta_log(__func__, "failed to parse Polygon decode file");
-      goto err;
-    }
-
-    /* close it... */
-    wandio_destroy(file);
   }
 
   /* if provided, open the netacq2polygon mapping file and populate the
      temporary join table */
   if (state->na_to_polygon_file != NULL) {
-    ipmeta_log(__func__, "processing na2poly table (%s)",
-               state->na_to_polygon_file);
-    if ((file = wandio_create(state->na_to_polygon_file)) == NULL) {
-      ipmeta_log(__func__,
-                 "failed to open Net Acuity to Polygon mapping file '%s'",
-                 state->na_to_polygon_file);
+    if (load_file(provider, state->na_to_polygon_file, "Net Acuity to Polygon",
+          read_na_to_polygon) < 0)
       return -1;
-    }
-
-    /* populate the arrays! */
-    if (read_na_to_polygon(provider, file) != 0) {
-      ipmeta_log(__func__,
-                 "failed to parse Net Acuity to Polygon mapping file");
-      goto err;
-    }
-
-    /* close it... */
-    wandio_destroy(file);
   }
 
-  ipmeta_log(__func__, "processing locations file (%s)", state->locations_file);
-
-  /* open the locations file */
-  if ((file = wandio_create(state->locations_file)) == NULL) {
-    ipmeta_log(__func__, "failed to open location file '%s'",
-               state->locations_file);
+  /* load the locations file */
+  if (load_file(provider, state->locations_file, "location",
+        read_locations) < 0)
     return -1;
-  }
 
-  /* populate the locations hash */
-  if (read_locations(provider, file) != 0) {
-    ipmeta_log(__func__, "failed to parse locations file");
-    goto err;
-  }
-
-  /* close the locations file */
-  wandio_destroy(file);
-  file = NULL;
-
-  ipmeta_log(__func__, "processing blocks file (%s)", state->blocks_file);
-
-  /* open the blocks file */
-  if ((file = wandio_create(state->blocks_file)) == NULL) {
-    ipmeta_log(__func__, "failed to open blocks file '%s'", state->blocks_file);
-    goto err;
-  }
-
-  /* populate the ds (by joining on the id in the hash) */
-  if (read_blocks(provider, file) != 0) {
-    ipmeta_log(__func__, "failed to parse blocks file");
-    goto err;
-  }
-
-  /* close the blocks file */
-  wandio_destroy(file);
+  /* load the blocks file */
+  if (load_file(provider, state->blocks_file, "blocks", read_blocks) < 0)
+    return -1;
 
   /* free the netacq 2 polygon temporary mapping table */
   na_to_polygon_free(state);
@@ -1677,13 +1617,6 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider, int argc,
   /* ready to rock n roll */
 
   return 0;
-
-err:
-  if (file != NULL) {
-    wandio_destroy(file);
-  }
-  usage(provider);
-  return -1;
 }
 
 void ipmeta_provider_netacq_edge_free(ipmeta_provider_t *provider)

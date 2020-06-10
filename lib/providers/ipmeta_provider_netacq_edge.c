@@ -334,6 +334,12 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     }
   }
 
+  if (optind != argc) {
+    fprintf(stderr, "ERROR: extra arguments to %s\n", provider->name);
+    usage(provider);
+    return -1;
+  }
+
   if (state->locations_file == NULL || state->blocks_file == NULL) {
     fprintf(stderr, "ERROR: %s requires both '-b' and '-l'\n", provider->name);
     usage(provider);

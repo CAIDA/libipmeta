@@ -78,7 +78,6 @@ static void usage(ipmeta_provider_t *provider)
 }
 
 /** Parse the arguments given to the provider
- * @todo add option to choose datastructure
  */
 static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 {
@@ -117,6 +116,12 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   if (state->pfx2as_file == NULL) {
     fprintf(stderr, "ERROR: %s requires '-f'\n", provider->name);
+    usage(provider);
+    return -1;
+  }
+
+  if (optind != argc) {
+    fprintf(stderr, "ERROR: extra arguments to %s\n", provider->name);
     usage(provider);
     return -1;
   }

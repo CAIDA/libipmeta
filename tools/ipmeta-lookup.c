@@ -59,6 +59,7 @@ static ipmeta_record_set_t *records;
 
 static int lookup(char *addr_str, iow_t *outfile)
 {
+  char output_prefix[BUFFER_LEN];
   char orig_str[BUFFER_LEN];
 
   char *pfxlen_str = addr_str;
@@ -113,10 +114,10 @@ static int lookup(char *addr_str, iow_t *outfile)
       continue;
     }
 
-    ipmeta_printf(
-      outfile, "%s|",
-      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)));
-    ipmeta_write_record_set_by_provider(records, outfile, orig_str, i + 1);
+    snprintf(output_prefix, sizeof(output_prefix), "%s|%s",
+      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)),
+      orig_str);
+    ipmeta_write_record_set_by_provider(records, outfile, output_prefix, i + 1);
   }
 
   return 0;

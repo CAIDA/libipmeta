@@ -349,6 +349,43 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   return 0;
 }
 
+static int read_netacq_edge_file(ipmeta_provider_t *provider, io_t *file,
+    const char *label,
+    void (*parse_cell)(void *, size_t, void *),
+    void (*parse_row)(int, void *))
+{
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+
+  char buffer[BUFFER_LEN];
+  int read = 0;
+
+  /* options for the csv parser */
+  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
+                CSV_EMPTY_IS_NULL;
+
+  csv_init(&(state->parser), options);
+
+  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
+    if (csv_parse(&(state->parser), buffer, read, parse_cell, parse_row,
+          provider) != read) {
+      ipmeta_log(__func__, "Error parsing %s %s file", provider->name, label);
+      ipmeta_log(__func__, "CSV Error: %s",
+                 csv_strerror(csv_error(&(state->parser))));
+      return -1;
+    }
+  }
+
+  if (csv_fini(&(state->parser), parse_cell, parse_row, provider) != 0) {
+    ipmeta_log(__func__, "Error parsing %s %s file", provider->name, label);
+    ipmeta_log(__func__, "CSV Error: %s",
+               csv_strerror(csv_error(&(state->parser))));
+    return -1;
+  }
+
+  csv_free(&(state->parser));
+  return 0;
+}
+
 /* Parse a netacq_edge location cell */
 static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 {
@@ -598,42 +635,13 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
-  char buffer[BUFFER_LEN];
-  int read = 0;
-
   /* reset the state variables before we start */
   state->current_column = 0;
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read,
-                  parse_netacq_edge_location_cell,
-                  parse_netacq_edge_location_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_netacq_edge_location_cell,
-               parse_netacq_edge_location_row, provider) != 0) {
-    ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "Location",
+      parse_netacq_edge_location_cell, parse_netacq_edge_location_row);
 }
 
 /** Parse a blocks cell */
@@ -763,8 +771,6 @@ static void parse_blocks_row(int c, void *data)
 static int read_blocks(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
-  char buffer[BUFFER_LEN];
-  int read = 0;
 
   /* reset the state variables before we start */
   state->current_column = 0;
@@ -773,33 +779,8 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   state->block_lower.masklen = 32;
   state->block_upper.masklen = 32;
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_blocks_cell,
-                  parse_blocks_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing Blocks file");
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_blocks_cell, parse_blocks_row,
-               provider) != 0) {
-    ipmeta_log(__func__, "Error parsing Netacq_Edge Blocks file");
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "Blocks",
+      parse_blocks_cell, parse_blocks_row);
 }
 
 /** Parse a regions cell */
@@ -963,8 +944,6 @@ static void parse_regions_row(int c, void *data)
 static int read_regions(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
-  char buffer[BUFFER_LEN];
-  int read = 0;
 
   /* reset the state variables before we start */
   state->current_column = 0;
@@ -972,33 +951,8 @@ static int read_regions(ipmeta_provider_t *provider, io_t *file)
   memset(&(state->tmp_region), 0, sizeof(ipmeta_provider_netacq_edge_region_t));
   state->tmp_region_ignore = 0;
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_regions_cell,
-                  parse_regions_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing regions file");
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_regions_cell, parse_regions_row,
-               provider) != 0) {
-    ipmeta_log(__func__, "Error parsing Netacq_Edge Region file");
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "Regions",
+      parse_regions_cell, parse_regions_row);
 }
 
 /** Parse a country cell */
@@ -1213,8 +1167,6 @@ static void parse_country_row(int c, void *data)
 static int read_countries(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
-  char buffer[BUFFER_LEN];
-  int read = 0;
 
   /* reset the state variables before we start */
   state->current_column = 0;
@@ -1223,33 +1175,8 @@ static int read_countries(ipmeta_provider_t *provider, io_t *file)
          sizeof(ipmeta_provider_netacq_edge_country_t));
   state->tmp_country_ignore = 0;
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_country_cell,
-                  parse_country_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing country file");
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_country_cell, parse_country_row,
-               provider) != 0) {
-    ipmeta_log(__func__, "Error parsing Netacq Edge Country file");
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "Country",
+      parse_country_cell, parse_country_row);
 }
 
 /* Parse a polygon decode table cell */
@@ -1410,41 +1337,14 @@ static void parse_polygons_row(int c, void *data)
 static int read_polygons(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
-  char buffer[BUFFER_LEN];
-  int read = 0;
 
   /* reset the state variables before we start */
   state->current_column = 0;
   state->current_line = 0;
   memset(&(state->tmp_polygon), 0, sizeof(ipmeta_polygon_t));
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_polygons_cell,
-                  parse_polygons_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing polygon decode file");
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_polygons_cell, parse_polygons_row,
-               provider) != 0) {
-    ipmeta_log(__func__, "Error parsing locations to polygons file");
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "Polygons",
+      parse_polygons_cell, parse_polygons_row);
 }
 
 /* Parse a netacq2polygon table cell */
@@ -1596,41 +1496,14 @@ static void parse_na_to_polygon_row(int c, void *data)
 static int read_na_to_polygon(ipmeta_provider_t *provider, io_t *file)
 {
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
-  char buffer[BUFFER_LEN];
-  int read = 0;
 
   /* reset the state variables before we start */
   state->current_column = 0;
   state->current_line = 0;
   memset(&(state->tmp_na_to_polygon), 0, sizeof(na_to_polygon_t));
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_na_to_polygon_cell,
-                  parse_na_to_polygon_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing netacq2polygon file");
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-
-  if (csv_fini(&(state->parser), parse_na_to_polygon_cell,
-               parse_na_to_polygon_row, provider) != 0) {
-    ipmeta_log(__func__, "Error parsing locations to polygons file");
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
+  return read_netacq_edge_file(provider, file, "netacq2polygon",
+      parse_na_to_polygon_cell, parse_na_to_polygon_row);
 }
 
 static void na_to_polygon_free(ipmeta_provider_netacq_edge_state_t *state)

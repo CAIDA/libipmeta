@@ -427,7 +427,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_CC:
     if (tok == NULL ||
-        (strlen(tok) != 2 && (strlen(tok) == 1 && tok[0] != '?'))) {
+        ((strlen(tok) != 2) && !(strlen(tok) == 1 && tok[0] == '?'))) {
       ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
       ipmeta_log(__func__, "Invalid Net Acuity Edge Location Column (%d:%d)",
                  state->current_line, state->current_column);
@@ -584,7 +584,6 @@ static void parse_netacq_edge_location_row(int c, void *data)
     return;
   }
 
-  /* at the end of successful row parsing, current_column will be 9 */
   /* make sure we parsed exactly as many columns as we anticipated */
   if (state->current_column != LOCATION_COL_COUNT) {
     ipmeta_log(__func__,

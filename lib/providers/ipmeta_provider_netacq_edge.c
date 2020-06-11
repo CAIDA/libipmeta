@@ -100,7 +100,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
   /* State for CSV parser */
   struct csv_parser parser;
   int current_line;
-  int current_column;
+  int current_column; // column ID (not column number)
   ipmeta_record_t tmp_record;
   uint32_t block_id;
   ip_prefix_t block_lower;
@@ -130,127 +130,86 @@ static const char *continent_strings[] = {
 
 #define CONTINENT_MAX 7
 
+// Column ids start at a multiple of 1000 and count up from there.  To convert
+// a column id to a column number, we must mod by 1000.  This allows two
+// different tables to have non-overlapping sets of column IDs so they can
+// share some of the same column parsers.
+
 /** The columns in the netacq_edge locations CSV file */
 typedef enum locations_cols {
-  /** ID */
-  LOCATION_COL_ID = 0,
-  /** 2 Char Country Code */
-  LOCATION_COL_CC = 1,
-  /** Region String */
-  LOCATION_COL_REGION = 2,
-  /** City String */
-  LOCATION_COL_CITY = 3,
-  /** Postal Code */
-  LOCATION_COL_POSTAL = 4,
-  /** Latitude */
-  LOCATION_COL_LAT = 5,
-  /** Longitude */
-  LOCATION_COL_LONG = 6,
-  /** Metro Code */
-  LOCATION_COL_METRO = 7,
-  /** Area Codes (plural) */
-  LOCATION_COL_AREACODES = 8, /* not used */
-  /** 3 Char Country Code */
-  LOCATION_COL_CC3 = 9, /* not used */
-  /** Country Code */
-  LOCATION_COL_CNTRYCODE = 10, /* not used */
-  /** Region Code */
-  LOCATION_COL_RCODE = 11,
-  /** City Code */
-  LOCATION_COL_CITYCODE = 12, /* not used */
-  /** Continent Code */
-  LOCATION_COL_CONTCODE = 13,
-  /** Internal Code */
-  LOCATION_COL_INTERNAL = 14, /* not used */
-  /** Connection Speed String */
-  LOCATION_COL_CONN = 15,
-  /** Country-Conf ?? */
-  LOCATION_COL_CNTRYCONF = 16, /* not used */
-  /** Region-Conf ?? */
-  LOCATION_COL_REGCONF = 17, /* not used */
-  /** City-Conf ?? */
-  LOCATION_COL_CITYCONF = 18, /* not used */
-  /** Postal-Conf ?? */
-  LOCATION_COL_POSTCONF = 19, /* not used */
-  /** GMT-Offset */
-  LOCATION_COL_GMTOFF = 20, /* not used */
-  /** In CST */
-  LOCATION_COL_INDST = 21, /* not used */
-
-  /** Total number of columns in the locations table */
-  LOCATION_COL_COUNT = 22
+  LOCATION_COL_FIRSTCOL = 0,   ///< ID of first column in table
+  LOCATION_COL_ID = 0,         ///< ID
+  LOCATION_COL_CC,             ///< 2 Char Country Code
+  LOCATION_COL_REGION,         ///< Region String
+  LOCATION_COL_CITY,           ///< City String
+  LOCATION_COL_POSTAL,         ///< Postal Code
+  LOCATION_COL_LAT,            ///< Latitude
+  LOCATION_COL_LONG,           ///< Longitude
+  LOCATION_COL_METRO,          ///< Metro Code
+  LOCATION_COL_AREACODES,      ///< Area Codes (plural) (not used)
+  LOCATION_COL_CC3,            ///< 3 Char Country Code (not used)
+  LOCATION_COL_CNTRYCODE,      ///< Country Code (not used)
+  LOCATION_COL_RCODE,          ///< Region Code
+  LOCATION_COL_CITYCODE,       ///< City Code (not used)
+  LOCATION_COL_CONTCODE,       ///< Continent Code
+  LOCATION_COL_INTERNAL,       ///< Internal Code (not used)
+  LOCATION_COL_CONN,           ///< Connection Speed String
+  LOCATION_COL_CNTRYCONF,      ///< Country-Conf ?? (not used)
+  LOCATION_COL_REGCONF,        ///< Region-Conf ?? (not used)
+  LOCATION_COL_CITYCONF,       ///< City-Conf ?? (not used)
+  LOCATION_COL_POSTCONF,       ///< Postal-Conf ?? (not used)
+  LOCATION_COL_GMTOFF,         ///< GMT-Offset (not used)
+  LOCATION_COL_INDST,          ///< In DST (not used)
+  LOCATION_COL_ENDCOL          ///< 1 past the last column ID in the table
 } locations_cols_t;
 
-/** The columns in the netacq_edge locations CSV file */
+/** The columns in the netacq_edge blocks CSV file */
 typedef enum blocks_cols {
-  /** Range Start IP */
-  BLOCKS_COL_STARTIP = 0,
-  /** Range End IP */
-  BLOCKS_COL_ENDIP = 1,
-  /** ID */
-  BLOCKS_COL_ID = 2,
-
-  /** Total number of columns in blocks table */
-  BLOCKS_COL_COUNT = 3
+  BLOCKS_COL_FIRSTCOL = 1000,  ///< ID of first column in table
+  BLOCKS_COL_STARTIP = 1000,   ///< Range Start IP, numeric
+  BLOCKS_COL_ENDIP,            ///< Range End IP, numeric
+  BLOCKS_COL_ID,               ///< ID
+  BLOCKS_COL_ENDCOL            ///< 1 past the last column ID in the table
 } blocks_cols_t;
 
 /** The columns in the netacq region decode CSV file */
 typedef enum region_cols {
-  /** Country */
-  REGION_COL_COUNTRY = 0,
-  /** Region */
-  REGION_COL_REGION = 1,
-  /** Description */
-  REGION_COL_DESC = 2,
-  /** Region Code */
-  REGION_COL_CODE = 3,
-
-  /** Total number of columns in region file */
-  REGION_COL_COUNT = 4
+  REGION_COL_FIRSTCOL = 0,     ///< ID of first column in table
+  REGION_COL_COUNTRY = 0,      ///< Country
+  REGION_COL_REGION,           ///< Region
+  REGION_COL_DESC,             ///< Description
+  REGION_COL_CODE,             ///< Region Code
+  REGION_COL_ENDCOL            ///< 1 past the last column ID in the table
 } region_cols_t;
 
 /** The columns in the netacq country decode CSV file */
 typedef enum country_cols {
-  /** ISO 3 char */
-  COUNTRY_COL_ISO3 = 0,
-  /** ISO 2 char */
-  COUNTRY_COL_ISO2 = 1,
-  /** Name */
-  COUNTRY_COL_NAME = 2,
-  /** Is region info? */
-  COUNTRY_COL_REGIONS = 3,
-  /** Continent code */
-  COUNTRY_COL_CONTCODE = 4,
-  /** Continent name-abbr */
-  COUNTRY_COL_CONTNAME = 5,
-  /** Country code (internal) */
-  COUNTRY_COL_CODE = 6,
-
-  /** Total number of columns in country file */
-  COUNTRY_COL_COUNT = 7
+  COUNTRY_COL_FIRSTCOL = 0,    ///< ID of first column in table
+  COUNTRY_COL_ISO3 = 0,        ///< ISO 3 char
+  COUNTRY_COL_ISO2,            ///< ISO 2 char
+  COUNTRY_COL_NAME,            ///< Name
+  COUNTRY_COL_REGIONS,         ///< Is region info?
+  COUNTRY_COL_CONTCODE,        ///< Continent code
+  COUNTRY_COL_CONTNAME,        ///< Continent name-abbr
+  COUNTRY_COL_CODE,            ///< Country code (internal)
+  COUNTRY_COL_ENDCOL           ///< 1 past the last column ID in the table
 } country_cols_t;
 
 /** The columns in the polygon decode CSV file */
 typedef enum polygon_cols {
-  /** id */
-  POLYGON_COL_ID = 0,
-  /** FQ-ID */
-  POLYGON_COL_FQID = 1,
-  /** Name */
-  POLYGON_COL_NAME = 2,
-  /* User ID */
-  POLYGON_COL_USERCODE = 3,
-
-  /** Total number of columns in polygon decode file */
-  POLYGON_COL_COUNT = 4
+  POLYGON_COL_FIRSTCOL = 0,    ///< ID of first column in table
+  POLYGON_COL_ID = 0,          ///< id
+  POLYGON_COL_FQID,            ///< FQ-ID
+  POLYGON_COL_NAME,            ///< Name
+  POLYGON_COL_USERCODE,        ///< User ID
+  POLYGON_COL_ENDCOL           ///< 1 past the last column ID in the table
 } polygon_cols_t;
 
 /** The columns in the netacq2polygon mapping CSV file */
 typedef enum na_to_polygon_cols {
-  /** netacq location id */
-  NA_TO_POLYGON_COL_NETACQ_LOC_ID = 0,
-
-  /** Plus an arbitrary number of other polygon id columns */
+  NA_TO_POLYGON_COL_FIRSTCOL = 0,      ///< ID of first column in table
+  NA_TO_POLYGON_COL_NETACQ_LOC_ID = 0, ///< netacq location id
+  // Plus an arbitrary number of other polygon id columns
 } na_to_polygon_cols_t;
 
 /** The number of header rows in the netacq_edge CSV files */
@@ -260,19 +219,17 @@ typedef enum na_to_polygon_cols {
 static void usage(ipmeta_provider_t *provider)
 {
   fprintf(stderr,
-          "provider usage: %s -l locations -b blocks\n"
-          "       -b            blocks file (must be used with -l)\n"
-          "       -c            country decode file\n",
-          provider->name);
-
-  fprintf(stderr,
-          "       -l            locations file (must be used with -b)\n"
-          "       -r            region decode file\n"
-          "       -p            netacq2polygon mapping file\n"
-          "       -t            polygon table file\n"
+          "provider usage: %s [<options>]\n"
+          "options:\n"
+          "       -b <file>     ipv4 blocks file (must be used with -l)\n"
+          "       -l <file>     ipv4 locations file (must be used with -b)\n"
+          "       -c <file>     country decode file\n"
+          "       -r <file>     region decode file\n"
+          "       -p <file>     netacq2polygon mapping file\n"
+          "       -t <file>     polygon table file\n"
           "                       (can be used up to %d times to specify "
           "multiple tables)\n",
-          POLYGON_FILE_CNT_MAX);
+          provider->name, POLYGON_FILE_CNT_MAX);
 }
 
 /** Parse the arguments given to the provider
@@ -390,6 +347,19 @@ static int read_netacq_edge_file(ipmeta_provider_t *provider, io_t *file,
   return 0;
 }
 
+#define log_invalid_col(state, label, tok) \
+    ipmeta_log(__func__, "%s \"%s\" at %d:%d", label, tok ? tok : "(empty)",   \
+        state->current_line, state->current_column % 1000)
+
+#define check_column_count(state, label, endcol)                               \
+  if ((state)->current_column != (endcol)) {                                   \
+    ipmeta_log(__func__,                                                       \
+      "ERROR in %s file, line %d: Expected %d columns, found %d", label,       \
+      (state)->current_line, (endcol) % 1000, (state)->current_column % 1000); \
+    (state)->parser.status = CSV_EUSER;                                        \
+    return;                                                                    \
+  } else (void)0 /* this is here to make a semicolon after it valid */
+
 /* Parse a netacq_edge location cell */
 static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 {
@@ -402,7 +372,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 
   char *end;
 
-  /* skip the first two lines */
+  /* skip header */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
@@ -410,7 +380,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
   /*
     ipmeta_log(__func__, "row: %d, column: %d, tok: %s",
     state->current_line,
-    state->current_column,
+    state->current_column % 1000,
     tok);
   */
 
@@ -419,7 +389,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     /* init this record */
     tmp->id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
+      log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -428,9 +398,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
   case LOCATION_COL_CC:
     if (tok == NULL ||
         ((strlen(tok) != 2) && !(strlen(tok) == 1 && tok[0] == '?'))) {
-      ipmeta_log(__func__, "Invalid Country Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Edge Location Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid country code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -452,9 +420,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 
   case LOCATION_COL_REGION:
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid Region Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Edge Location Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid region code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -484,7 +450,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
   case LOCATION_COL_LAT:
     tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Latitude Value (%s)", tok);
+      log_invalid_col(state, "Invalid latitude", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -494,7 +460,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     /* longitude */
     tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Longitude Value (%s)", tok);
+      log_invalid_col(state, "Invalid longitude", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -505,7 +471,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     if (tok != NULL) {
       tmp->metro_code = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE) {
-        ipmeta_log(__func__, "Invalid Metro Value (%s)", tok);
+        log_invalid_col(state, "Invalid metro code", tok);
         state->parser.status = CSV_EUSER;
         return;
       }
@@ -520,7 +486,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
   case LOCATION_COL_RCODE:
     tmp->region_code = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Region Code (%s)", tok);
+      log_invalid_col(state, "Invalid region code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -534,7 +500,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       tmp_continent = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE ||
           tmp_continent > CONTINENT_MAX) {
-        ipmeta_log(__func__, "Invalid Continent Code Value (%s)", tok);
+        log_invalid_col(state, "Invalid continent code", tok);
         state->parser.status = CSV_EUSER;
         return;
       }
@@ -560,8 +526,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   default:
-    ipmeta_log(__func__, "Invalid Net Acuity Edge Location Column (%d:%d)",
-               state->current_line, state->current_column);
+    log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
     return;
   }
@@ -578,21 +543,14 @@ static void parse_netacq_edge_location_row(int c, void *data)
   ipmeta_record_t *record;
   int i;
 
-  /* skip the first two lines */
+  /* skip header */
   if (state->current_line < HEADER_ROW_CNT) {
     state->current_line++;
     return;
   }
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column != LOCATION_COL_COUNT) {
-    ipmeta_log(__func__,
-               "ERROR: Expecting %d columns in the locations file, "
-               "but actually got %d",
-               LOCATION_COL_COUNT, state->current_column);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
+  check_column_count(state, "locations", LOCATION_COL_ENDCOL);
 
   if ((record = ipmeta_provider_init_record(provider, state->tmp_record.id)) ==
       NULL) {
@@ -626,7 +584,7 @@ static void parse_netacq_edge_location_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = LOCATION_COL_FIRSTCOL;
   /* reset the temp record */
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
@@ -639,7 +597,7 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = LOCATION_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
@@ -655,7 +613,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   char *tok = (char *)s;
   char *end;
 
-  /* skip the first lines */
+  /* skip header */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
@@ -665,7 +623,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     /* start ip */
     state->block_lower.addr = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Start IP Value (%s)", tok);
+      log_invalid_col(state, "Invalid start IP", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
@@ -674,7 +632,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     /* end ip */
     state->block_upper.addr = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid End IP Value (%s)", tok);
+      log_invalid_col(state, "Invalid end IP", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
@@ -683,14 +641,13 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
     /* id */
     state->block_id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid ID Value (%s)", tok);
+      log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
 
   default:
-    ipmeta_log(__func__, "Invalid Blocks Column (%d:%d)", state->current_line,
-               state->current_column);
+    log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
     break;
   }
@@ -716,14 +673,7 @@ static void parse_blocks_row(int c, void *data)
   /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column != BLOCKS_COL_COUNT) {
-    ipmeta_log(__func__,
-               "ERROR: Expecting %d columns in the blocks file, "
-               "but actually got %d",
-               BLOCKS_COL_COUNT, state->current_column);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
+  check_column_count(state, "blocks", BLOCKS_COL_ENDCOL);
 
   assert(state->block_id > 0);
 
@@ -767,7 +717,7 @@ static void parse_blocks_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = BLOCKS_COL_FIRSTCOL;
 }
 
 /** Read a blocks file  */
@@ -776,7 +726,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = BLOCKS_COL_FIRSTCOL;
   state->current_line = 0;
   state->block_id = 0;
   state->block_lower.masklen = 32;
@@ -797,7 +747,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
   int j;
   int len;
 
-  /* skip the first lines */
+  /* skip header */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
@@ -806,9 +756,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
   case REGION_COL_COUNTRY:
     /* country */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid ISO Country Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid ISO country code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -826,9 +774,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
   case REGION_COL_REGION:
     /* region */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid ISO Region Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid ISO region code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -856,9 +802,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
   case REGION_COL_DESC:
     /* description */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid Description Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid description code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -868,17 +812,14 @@ static void parse_regions_cell(void *s, size_t i, void *data)
   case REGION_COL_CODE:
     state->tmp_region.code = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Code Value (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
     break;
 
   default:
-    ipmeta_log(__func__, "Invalid Regions Column (%d:%d)", state->current_line,
-               state->current_column);
+    log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
     break;
   }
@@ -902,14 +843,7 @@ static void parse_regions_row(int c, void *data)
   /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column != REGION_COL_COUNT) {
-    ipmeta_log(__func__,
-               "ERROR: Expecting %d columns in the regions file, "
-               "but actually got %d",
-               REGION_COL_COUNT, state->current_column);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
+  check_column_count(state, "regions", REGION_COL_ENDCOL);
 
   if (state->tmp_region_ignore == 0) {
     /* copy the tmp region structure into a new struct */
@@ -937,7 +871,7 @@ static void parse_regions_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = REGION_COL_FIRSTCOL;
   /* reset the tmp region info */
   memset(&(state->tmp_region), 0, sizeof(ipmeta_provider_netacq_edge_region_t));
   state->tmp_region_ignore = 0;
@@ -949,7 +883,7 @@ static int read_regions(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = REGION_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_region), 0, sizeof(ipmeta_provider_netacq_edge_region_t));
   state->tmp_region_ignore = 0;
@@ -968,7 +902,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
 
   int j;
 
-  /* skip the first lines */
+  /* skip header */
   if (state->current_line < HEADER_ROW_CNT) {
     return;
   }
@@ -977,9 +911,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_ISO3:
     /* country 3 char */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid ISO-3 Country Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid ISO-3 country code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1002,9 +934,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_ISO2:
     /* country 2 char */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid ISO-2 Country Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Region Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid ISO-2 country code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1031,9 +961,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_NAME:
     /* name */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Invalid Country Name (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Country Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid country name", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1044,9 +972,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
     state->tmp_country.regions = strtol(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE ||
         (state->tmp_country.regions != 0 && state->tmp_country.regions != 1)) {
-      ipmeta_log(__func__, "Invalid Regions Value (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Country Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid regions value", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1055,9 +981,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_CONTCODE:
     state->tmp_country.continent_code = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Continent Code Value (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Country Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid continent code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1066,9 +990,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_CONTNAME:
     /* continent 2 char*/
     if (tok == NULL || strnlen(tok, 2) != 2) {
-      ipmeta_log(__func__, "Invalid 2 char Continent Code (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Country Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid 2-char continent code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1089,17 +1011,14 @@ static void parse_country_cell(void *s, size_t i, void *data)
   case COUNTRY_COL_CODE:
     state->tmp_country.code = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Code Value (%s)", tok);
-      ipmeta_log(__func__, "Invalid Net Acuity Country Column (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
     break;
 
   default:
-    ipmeta_log(__func__, "Invalid Country Column (%d:%d)", state->current_line,
-               state->current_column);
+    log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
     break;
   }
@@ -1123,14 +1042,7 @@ static void parse_country_row(int c, void *data)
   /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column != COUNTRY_COL_COUNT) {
-    ipmeta_log(__func__,
-               "ERROR: Expecting %d columns in the country file, "
-               "but actually got %d",
-               COUNTRY_COL_COUNT, state->current_column);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
+  check_column_count(state, "country", COUNTRY_COL_ENDCOL);
 
   if (state->tmp_country_ignore == 0) {
     /* copy the tmp country structure into a new struct */
@@ -1159,7 +1071,7 @@ static void parse_country_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = COUNTRY_COL_FIRSTCOL;
   /* reset the tmp country info */
   memset(&(state->tmp_country), 0,
          sizeof(ipmeta_provider_netacq_edge_country_t));
@@ -1172,7 +1084,7 @@ static int read_countries(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = COUNTRY_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_country), 0,
          sizeof(ipmeta_provider_netacq_edge_country_t));
@@ -1195,7 +1107,7 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
 
   /* process the header row, creating polygon table objects */
   if (state->current_line == 0) {
-    if (state->current_column == 0) {
+    if (state->current_column == POLYGON_COL_FIRSTCOL) {
       /* create a new polygon table */
       if ((new_table = malloc_zero(sizeof(ipmeta_polygon_table_t))) == NULL) {
         ipmeta_log(__func__, "Cannot allocate polygon table (%s)", tok);
@@ -1238,7 +1150,7 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
     /* Polygon id */
     state->tmp_polygon.id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Polygon ID Value (%s)", tok);
+      log_invalid_col(state, "Invalid polygon ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1289,7 +1201,7 @@ static void parse_polygons_row(int c, void *data)
   /* process the header row */
   if (state->current_line == 0) {
     /* all is done by the col parser */
-    state->current_column = 0;
+    state->current_column = POLYGON_COL_FIRSTCOL;
     state->current_line++;
     return;
   }
@@ -1300,14 +1212,7 @@ static void parse_polygons_row(int c, void *data)
   /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column != POLYGON_COL_COUNT) {
-    ipmeta_log(__func__,
-               "ERROR: Expecting %d columns in the polygons file, "
-               "but actually got %d",
-               POLYGON_COL_COUNT, state->current_column);
-    state->parser.status = CSV_EUSER;
-    return;
-  }
+  check_column_count(state, "polygons", POLYGON_COL_ENDCOL);
 
   /* copy the tmp polygon struct into a new one */
   if ((polygon = malloc(sizeof(ipmeta_polygon_t))) == NULL) {
@@ -1331,7 +1236,7 @@ static void parse_polygons_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = POLYGON_COL_FIRSTCOL;
   /* reset the tmp region info */
   memset(&(state->tmp_polygon), 0, sizeof(ipmeta_polygon_t));
 }
@@ -1342,7 +1247,7 @@ static int read_polygons(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = POLYGON_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_polygon), 0, sizeof(ipmeta_polygon_t));
 
@@ -1363,7 +1268,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
 
   /* process the first line */
   if (state->current_line == 0) {
-    if (state->current_column > 0) {
+    if (state->current_column > NA_TO_POLYGON_COL_FIRSTCOL) {
       /* what table does this refer to? */
       for (i = 0; i < state->polygon_tables_cnt; i++) {
         /* chop off the -id suffix */
@@ -1372,7 +1277,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
         }
         if (strcmp(tok, state->polygon_tables[i]->ascii_id) == 0) {
           /* this is it! */
-          state->tmp_na_col_to_tbl[state->current_column] = i;
+          state->tmp_na_col_to_tbl[state->current_column % 1000] = i;
           found = 1;
           break;
         }
@@ -1393,29 +1298,27 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
   case NA_TO_POLYGON_COL_NETACQ_LOC_ID:
     /* Netacq id */
     if (tok == NULL) {
-      ipmeta_log(__func__, "Missing Net Acuity ID Value (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid Net Acuity ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
     state->tmp_na_to_polygon.na_loc_id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Net Acuity ID Value (%s)", tok);
+      log_invalid_col(state, "Invalid Net Acuity ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
     break;
   default:
-    table_id = state->tmp_na_col_to_tbl[state->current_column];
+    table_id = state->tmp_na_col_to_tbl[state->current_column % 1000];
     if (tok == NULL) {
-      ipmeta_log(__func__, "Missing Polygon ID Value (%d:%d)",
-                 state->current_line, state->current_column);
+      log_invalid_col(state, "Invalid polygon ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
     state->tmp_na_to_polygon.polygon_ids[table_id] = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      ipmeta_log(__func__, "Invalid Polygon ID Value (%s)", tok);
+      log_invalid_col(state, "Invalid polygon ID", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
@@ -1438,7 +1341,7 @@ static void parse_na_to_polygon_row(int c, void *data)
   /* process the header row */
   if (state->current_line == 0) {
     /** all work is done in the col parser ? */
-    state->current_column = 0;
+    state->current_column = NA_TO_POLYGON_COL_FIRSTCOL;
     state->current_line++;
     return;
   }
@@ -1446,8 +1349,8 @@ static void parse_na_to_polygon_row(int c, void *data)
   /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  if (state->current_column < NA_TO_POLYGON_COL_NETACQ_LOC_ID) {
-    ipmeta_log(__func__, "ERROR: Missing Net Acuity location ID column");
+  if (state->current_column <= NA_TO_POLYGON_COL_NETACQ_LOC_ID) {
+    ipmeta_log(__func__, "Missing location ID");
     state->parser.status = CSV_EUSER;
     return;
   }
@@ -1490,7 +1393,7 @@ static void parse_na_to_polygon_row(int c, void *data)
   /* increment the current line */
   state->current_line++;
   /* reset the current column */
-  state->current_column = 0;
+  state->current_column = NA_TO_POLYGON_COL_FIRSTCOL;
   /* reset the tmp region info */
   memset(&(state->tmp_na_to_polygon), 0, sizeof(na_to_polygon_t));
 }
@@ -1501,7 +1404,7 @@ static int read_na_to_polygon(ipmeta_provider_t *provider, io_t *file)
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
   /* reset the state variables before we start */
-  state->current_column = 0;
+  state->current_column = NA_TO_POLYGON_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_na_to_polygon), 0, sizeof(na_to_polygon_t));
 

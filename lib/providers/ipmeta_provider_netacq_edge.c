@@ -434,12 +434,12 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       state->parser.status = CSV_EUSER;
       return;
     }
-    /* ugly hax to s/uk/GB/ in country names */
+    // ugly hax to s/uk/GB/ in country names
     if (tok[0] == 'u' && tok[1] == 'k') {
       tmp->country_code[0] = 'G';
       tmp->country_code[1] = 'B';
     }
-    /* s/ ** /??/ and s/?/??/ */
+    // s/**/??/ and s/?/??/
     else if (tok[0] == '?' || (tok[0] == '*' && tok[1] == '*')) {
       tmp->country_code[0] = '?';
       tmp->country_code[1] = '?';
@@ -458,7 +458,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
       state->parser.status = CSV_EUSER;
       return;
     }
-    /* s/ * /?/g */
+    // s/*/?/g
     for (i = 0; i < strlen(tok); i++) {
       if (tok[i] == '*') {
         tok[i] = '?';
@@ -1008,12 +1008,12 @@ static void parse_country_cell(void *s, size_t i, void *data)
       state->parser.status = CSV_EUSER;
       return;
     }
-    /* ugly hax to s/uk/GB/ in country names */
+    // ugly hax to s/uk/GB/ in country names
     if (tok[0] == 'u' && tok[1] == 'k') {
       state->tmp_country.iso2[0] = 'G';
       state->tmp_country.iso2[1] = 'B';
     }
-    /* s/ ** / ?? / */
+    // s/**/??/
     else if (tok[0] == '*' && tok[1] == '*') {
       state->tmp_country.iso2[0] = '?';
       state->tmp_country.iso2[1] = '?';
@@ -1072,12 +1072,12 @@ static void parse_country_cell(void *s, size_t i, void *data)
       state->parser.status = CSV_EUSER;
       return;
     }
-    /* s/ ** /??/ */
+    // s/**/??/
     if (tok[0] == '*' && tok[1] == '*') {
       tok[0] = '?';
       tok[1] = '?';
     }
-    /* s/au/oc/ */
+    // s/au/oc/
     if (tok[0] == 'a' && tok[1] == 'u') {
       tok[0] = 'o';
       tok[1] = 'c';

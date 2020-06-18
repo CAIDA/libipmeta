@@ -43,13 +43,12 @@
 #include "libipmeta.h"
 #include "ipmeta_ds.h"
 #include "utils.h"
+#include "ipvx_utils.h"
 
 /** The length of the static line buffer */
 #define BUFFER_LEN 1024
 
 #define DEFAULT_COMPRESS_LEVEL 6
-
-#define PFXLEN_UNSET 255
 
 static ipmeta_t *ipmeta = NULL;
 static uint32_t providermask = 0;
@@ -57,66 +56,39 @@ static ipmeta_provider_t *enabled_providers[IPMETA_PROVIDER_MAX];
 static int enabled_providers_cnt = 0;
 static ipmeta_record_set_t *records;
 
-static int lookup(char *addr_str, iow_t *outfile)
+static int lookup(const char *addr_str, iow_t *outfile)
 {
   char output_prefix[BUFFER_LEN];
-  char orig_str[BUFFER_LEN];
 
-  char *pfxlen_str = addr_str;
-  union {
-    struct in_addr v4;
-    struct in6_addr v6;
-  } addr;
-  int family;
-  uint8_t max_pfxlen;
-  uint8_t pfxlen = PFXLEN_UNSET;
-  int i;
+  int rc;
 
-  /* preserve the original string for dumping */
-  strcpy(orig_str, addr_str);
-
-  /* extract the pfxlen from the prefix */
-  if ((pfxlen_str = strchr(addr_str, '/')) != NULL) {
-    *pfxlen_str = '\0';
-    pfxlen_str++;
-    pfxlen = atoi(pfxlen_str);
-  } else {
-    pfxlen = PFXLEN_UNSET;
-  }
-
-  if (inet_pton(AF_INET, addr_str, &addr) == 1) {
-    family = AF_INET;
-    max_pfxlen = sizeof(struct in_addr) * 8;
-  } else if (inet_pton(AF_INET6, addr_str, &addr) == 1) {
-    family = AF_INET6;
-    max_pfxlen = sizeof(struct in6_addr) * 8;
-  } else {
-    fprintf(stderr, "ERROR: invalid address \"%s\"\n", addr_str);
+  ipvx_prefix_t pfx;
+  rc = ipvx_pton_pfx(addr_str, &pfx);
+  if (rc < 0) {
+    if (rc == IPVX_ERR_INVALID_ADDR)
+      fprintf(stderr, "ERROR: invalid address \"%s\"\n", addr_str);
+    else if (rc == IPVX_ERR_INVALID_MASKLEN)
+      fprintf(stderr, "ERROR: invalid prefix length \"%s\"\n", addr_str);
+    else
+      fprintf(stderr, "ERROR: invalid prefix \"%s\"\n", addr_str);
     return -1;
   }
 
-  if (pfxlen == PFXLEN_UNSET) {
-    pfxlen = max_pfxlen;
-  } else if (pfxlen > max_pfxlen) {
-    fprintf(stderr, "ERROR: invalid prefix length /%s\n", pfxlen_str);
-    return -1;
-  }
-
-  if (pfxlen == max_pfxlen) {
-    ipmeta_lookup_addr(ipmeta, family, &addr, providermask, records);
+  if (pfx.masklen == ipvx_family_size(pfx.family)) {
+    ipmeta_lookup_addr(ipmeta, pfx.family, &pfx.addr, providermask, records);
   } else {
-    ipmeta_lookup_pfx(ipmeta, family, &addr, pfxlen, providermask, records);
+    ipmeta_lookup_pfx(ipmeta, pfx.family, &pfx.addr, pfx.masklen, providermask, records);
   }
 
   /* look it up using each provider */
-  for (i = 0; i < IPMETA_PROVIDER_MAX; i++) {
+  for (int i = 0; i < IPMETA_PROVIDER_MAX; i++) {
     if ((providermask & (1 << (i))) == 0) {
       continue;
     }
 
     snprintf(output_prefix, sizeof(output_prefix), "%s|%s",
       ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)),
-      orig_str);
+      addr_str);
     ipmeta_write_record_set_by_provider(records, outfile, output_prefix, i + 1);
   }
 

@@ -519,7 +519,7 @@ ATTR_FORMAT_PRINTF(2, 3);
 
 /** Convenience function to retrieve a list of ISO 2 character country codes
  *
- * @param countries[out]   The provided pointer is updated to point to an
+ * @param[out] countries   The provided pointer is updated to point to an
  *                         array of 2 character country code strings
  * @return the number of elements in the array
  */
@@ -529,7 +529,7 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  * the same ordering as the countries returned by
  * ipmeta_provider_maxmind_get_iso2_list
  *
- * @param continents[out]   The provided pointer is updated to point to an
+ * @param[out] continents   The provided pointer is updated to point to an
  *                          array of 2 character continent code strings
  * @return the number of elements in the array
  */
@@ -618,7 +618,7 @@ typedef struct ipmeta_polygon_table {
 /** Retrieve a list of Net Acuity region objects
  *
  * @param provider      The provider to retrieve the regions from
- * @param regions[out]  The provided pointer is updated to point to an array
+ * @param[out] regions  The provided pointer is updated to point to an array
  *                      of region objects
  * @return the number of regions in the array
  *
@@ -631,7 +631,7 @@ int ipmeta_provider_netacq_edge_get_regions(
 /** Retrieve a list of Net Acuity country objects
  *
  * @param provider        The provider to retrieve the countries from
- * @param countries[out]  The provided pointer is updated to point to an array
+ * @param[out] countries  The provided pointer is updated to point to an array
  *                        of country objects
  * @return the number of countries in the array
  *

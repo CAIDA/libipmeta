@@ -99,7 +99,7 @@ struct ipmeta_ds {
 
 /** Initialize the specified datastructure
  *
- * @param ds[out]       where to store the pointer to the datastructure
+ * @param[out] ds       where to store the pointer to the datastructure
  * @param ds_id         id of the datastructure to initialize
  * @return 0 if initialization was successful, -1 otherwise
  */

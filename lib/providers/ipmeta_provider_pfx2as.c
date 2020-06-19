@@ -40,7 +40,7 @@
 #include "khash.h"
 #include "utils.h"
 #include "csv.h"
-#include "ip_utils.h"
+#include "ipvx_utils.h"
 
 #include "ipmeta_ds.h"
 #include "ipmeta_provider_pfx2as.h"
@@ -202,12 +202,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
   int tokc = 0;
 
   uint32_t asn_id = 0;
-  int family = 0;
-  union {
-    struct in_addr v4;
-    struct in6_addr v6;
-  } addr;
-  uint8_t pfxlen = 0;
+  ipvx_prefix_t addr;
   uint32_t *asn = NULL;
   char *asn_str = NULL;
   int asn_cnt = 0;
@@ -223,11 +218,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       switch (tokc) {
       case 0:
         /* network */
-        if (inet_pton(AF_INET, tok, &addr) == 1) {
-          family = AF_INET;
-        } else if (inet_pton(AF_INET6, tok, &addr) == 1) {
-          family = AF_INET6;
-        } else {
+        if (ipvx_pton_addr(tok, &addr) < 0) {
           ipmeta_log(__func__, "invalid address in pfx2as file");
           return -1;
         }
@@ -235,7 +226,7 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
 
       case 1:
         /* pfxlen */
-        pfxlen = atoi(tok);
+        addr.masklen = atoi(tok);
         break;
 
       case 2:
@@ -296,15 +287,16 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
     /* how many IP addresses does this prefix cover ? */
     /* we will add this to the record and then use the total count for the asn
        to find the 'biggest' ASes */
-    if (pfxlen <= 64) {
+    if (addr.masklen <= 64) {
       // For IPv6, we count /64 subnets, not addresses.  Prefixes longer than
       // /64 don't count.
-      record->asn_ip_cnt += (uint64_t)1 << ((family == AF_INET ? 32 : 64) - pfxlen);
+      record->asn_ip_cnt += (uint64_t)1 <<
+        ((addr.family == AF_INET ? 32 : 64) - addr.masklen);
     }
 
     /* by here record is the right asn record, associate it with this pfx */
-    if (ipmeta_provider_associate_record(provider, family, &addr, pfxlen,
-        record) != 0) {
+    if (ipmeta_provider_associate_record(provider, addr.family, &addr.addr,
+        addr.masklen, record) != 0) {
       ipmeta_log(__func__, "failed to associate record");
       return -1;
     }

@@ -291,14 +291,8 @@ int main(int argc, char **argv)
   }
 
   /* dump out the record header first */
-  if (headers_enabled != 0) {
-    if (enabled_providers_cnt > 1) {
-      if (outfile != NULL) {
-        wandio_printf(outfile, "provider|");
-      } else {
-        fprintf(stdout, "provider|");
-      }
-    }
+  if (headers_enabled) {
+    ipmeta_printf(outfile, "provider|");
     ipmeta_write_record_header(outfile);
   }
 

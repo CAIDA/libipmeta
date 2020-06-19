@@ -41,7 +41,7 @@
 #include "khash.h"
 #include "utils.h"
 #include "csv.h"
-#include "ip_utils.h"
+#include "ipvx_utils.h"
 
 #include "ipmeta_ds.h"
 #include "ipmeta_provider_netacq_edge.h"
@@ -53,6 +53,8 @@
 #define BUFFER_LEN 1024
 
 #define POLYGON_FILE_CNT_MAX 8 /* increase as you like */
+
+#define IPV6_ID_START 0x8000000 /* avoid collisions with v4 location ids */
 
 /** The basic fields that every instance of this provider have in common */
 static ipmeta_provider_t ipmeta_provider_netacq_edge = {
@@ -75,6 +77,7 @@ typedef struct ipmeta_provider_netacq_edge_state {
   /* info extracted from args */
   char *locations_file;
   char *blocks_file;
+  char *ipv6_file;
   char *region_file;
   char *country_file;
   char *polygon_files[POLYGON_FILE_CNT_MAX];
@@ -103,8 +106,8 @@ typedef struct ipmeta_provider_netacq_edge_state {
   int current_column; // column ID (not column number)
   ipmeta_record_t tmp_record;
   uint32_t block_id;
-  ip_prefix_t block_lower;
-  ip_prefix_t block_upper;
+  ipvx_prefix_t block_lower;
+  ipvx_prefix_t block_upper;
   ipmeta_provider_netacq_edge_region_t tmp_region;
   int tmp_region_ignore;
   ipmeta_provider_netacq_edge_country_t tmp_country;
@@ -172,6 +175,37 @@ typedef enum blocks_cols {
   BLOCKS_COL_ENDCOL            ///< 1 past the last column ID in the table
 } blocks_cols_t;
 
+/** The columns in the netacq_edge ipv6 CSV file */
+typedef enum ipv6_cols {
+  IPV6_COL_FIRSTCOL = 2000,    ///< ID of first column in table
+  IPV6_COL_STARTIPTEXT = 2000, ///< Range Start IP addr, text
+  IPV6_COL_ENDIPTEXT,          ///< Range End IP addr, text
+  IPV6_COL_STARTIP,            ///< Range Start IP addr, numeric
+  IPV6_COL_ENDIP,              ///< Range End IP addr, numeric
+  IPV6_COL_CC,                 ///< 2 Char Country Code
+  IPV6_COL_REGION,             ///< Region String
+  IPV6_COL_CITY,               ///< City String
+  IPV6_COL_LAT,                ///< Latitude
+  IPV6_COL_LONG,               ///< Longitude
+  IPV6_COL_POSTAL,             ///< Postal Code
+  IPV6_COL_METRO,              ///< Metro Code
+  IPV6_COL_AREACODES,          ///< Area Codes (plural) (not used)
+  IPV6_COL_CC3,                ///< 3 Char Country Code (not used)
+  IPV6_COL_CNTRYCODE,          ///< Country Code (not used)
+  IPV6_COL_RCODE,              ///< Region Code
+  IPV6_COL_CITYCODE,           ///< City Code (not used)
+  IPV6_COL_CONTCODE,           ///< Continent Code
+  IPV6_COL_INTERNAL,           ///< Internal Code (not used)
+  IPV6_COL_CONN,               ///< Connection Speed String
+  IPV6_COL_CNTRYCONF,          ///< Country-Conf ?? (not used)
+  IPV6_COL_REGCONF,            ///< Region-Conf ?? (not used)
+  IPV6_COL_CITYCONF,           ///< City-Conf ?? (not used)
+  IPV6_COL_POSTCONF,           ///< Postal-Conf ?? (not used)
+  IPV6_COL_GMTOFF,             ///< GMT-Offset (not used)
+  IPV6_COL_INDST,              ///< In CST (not used)
+  IPV6_COL_ENDCOL              ///< 1 past the last column ID in the table
+} ipv6_cols_t;
+
 /** The columns in the netacq region decode CSV file */
 typedef enum region_cols {
   REGION_COL_FIRSTCOL = 0,     ///< ID of first column in table
@@ -223,6 +257,7 @@ static void usage(ipmeta_provider_t *provider)
           "options:\n"
           "       -b <file>     ipv4 blocks file (must be used with -l)\n"
           "       -l <file>     ipv4 locations file (must be used with -b)\n"
+          "       -6 <file>     ipv6 file\n"
           "       -c <file>     country decode file\n"
           "       -r <file>     region decode file\n"
           "       -p <file>     netacq2polygon mapping file\n"
@@ -251,7 +286,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
   /* remember the argv strings DO NOT belong to us */
 
-  while ((opt = getopt(argc, argv, "b:c:D:l:r:p:t:?")) >= 0) {
+  while ((opt = getopt(argc, argv, "b:c:D:l:6:r:p:t:?")) >= 0) {
     switch (opt) {
     case 'b':
       state->blocks_file = strdup(optarg);
@@ -269,6 +304,10 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 
     case 'l':
       state->locations_file = strdup(optarg);
+      break;
+
+    case '6':
+      state->ipv6_file = strdup(optarg);
       break;
 
     case 'r':
@@ -297,8 +336,9 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     return -1;
   }
 
-  if (state->locations_file == NULL || state->blocks_file == NULL) {
-    fprintf(stderr, "ERROR: %s requires both '-b' and '-l'\n", provider->name);
+  if (!((state->locations_file && state->blocks_file) || state->ipv6_file)) {
+    fprintf(stderr, "ERROR: %s requires both '-b' and '-l', or '-6'\n",
+        provider->name);
     usage(provider);
     return -1;
   }
@@ -316,11 +356,8 @@ static int read_netacq_edge_file(ipmeta_provider_t *provider, io_t *file,
   char buffer[BUFFER_LEN];
   int read = 0;
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
+  csv_init(&(state->parser), CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
+      CSV_APPEND_NULL | CSV_EMPTY_IS_NULL);
 
   while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
     if (csv_parse(&(state->parser), buffer, read, parse_cell, parse_row,
@@ -360,8 +397,8 @@ static int read_netacq_edge_file(ipmeta_provider_t *provider, io_t *file,
     return;                                                                    \
   } else (void)0 /* this is here to make a semicolon after it valid */
 
-/* Parse a netacq_edge location cell */
-static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
+/* Parse a netacq_edge location cell or ipv6 cell */
+static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
@@ -395,7 +432,26 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     }
     break;
 
+  case IPV6_COL_STARTIPTEXT:
+    if (inet_pton(AF_INET6, tok, &state->block_lower.addr.v6) != 1) {
+      log_invalid_col(state, "Invalid Start IP", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
+  case IPV6_COL_ENDIPTEXT:
+    if (inet_pton(AF_INET6, tok, &state->block_upper.addr.v6) != 1) {
+      log_invalid_col(state, "Invalid End IP", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
+  case IPV6_COL_STARTIP:
+  case IPV6_COL_ENDIP:
+    break; // not used
+
   case LOCATION_COL_CC:
+  case IPV6_COL_CC:
     if (tok == NULL ||
         ((strlen(tok) != 2) && !(strlen(tok) == 1 && tok[0] == '?'))) {
       log_invalid_col(state, "Invalid country code", tok);
@@ -419,6 +475,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_REGION:
+  case IPV6_COL_REGION:
     if (tok == NULL) {
       log_invalid_col(state, "Invalid region code", tok);
       state->parser.status = CSV_EUSER;
@@ -438,16 +495,19 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_CITY:
+  case IPV6_COL_CITY:
     if (tok != NULL) {
       tmp->city = strndup(tok, strlen(tok));
     }
     break;
 
   case LOCATION_COL_POSTAL:
+  case IPV6_COL_POSTAL:
     tmp->post_code = strndup(tok, strlen(tok));
     break;
 
   case LOCATION_COL_LAT:
+  case IPV6_COL_LAT:
     tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid latitude", tok);
@@ -457,6 +517,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_LONG:
+  case IPV6_COL_LONG:
     /* longitude */
     tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -467,6 +528,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_METRO:
+  case IPV6_COL_METRO:
     /* metro code - whatever the heck that is */
     if (tok != NULL) {
       tmp->metro_code = strtoul(tok, &end, 10);
@@ -479,11 +541,15 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_AREACODES:
+  case IPV6_COL_AREACODES:
   case LOCATION_COL_CC3:
+  case IPV6_COL_CC3:
   case LOCATION_COL_CNTRYCODE:
+  case IPV6_COL_CNTRYCODE:
     break;
 
   case LOCATION_COL_RCODE:
+  case IPV6_COL_RCODE:
     tmp->region_code = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid region code", tok);
@@ -493,9 +559,11 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_CITYCODE:
+  case IPV6_COL_CITYCODE:
     break;
 
   case LOCATION_COL_CONTCODE:
+  case IPV6_COL_CONTCODE:
     if (tok != NULL) {
       tmp_continent = strtoul(tok, &end, 10);
       if (end == tok || *end != '\0' || errno == ERANGE ||
@@ -509,20 +577,28 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION_COL_INTERNAL:
+  case IPV6_COL_INTERNAL:
     break;
 
   case LOCATION_COL_CONN:
+  case IPV6_COL_CONN:
     if (tok != NULL) {
       tmp->conn_speed = strndup(tok, strlen(tok));
     }
     break;
 
   case LOCATION_COL_CNTRYCONF:
+  case IPV6_COL_CNTRYCONF:
   case LOCATION_COL_REGCONF:
+  case IPV6_COL_REGCONF:
   case LOCATION_COL_CITYCONF:
+  case IPV6_COL_CITYCONF:
   case LOCATION_COL_POSTCONF:
+  case IPV6_COL_POSTCONF:
   case LOCATION_COL_GMTOFF:
+  case IPV6_COL_GMTOFF:
   case LOCATION_COL_INDST:
+  case IPV6_COL_INDST:
     break;
 
   default:
@@ -536,7 +612,7 @@ static void parse_netacq_edge_location_cell(void *s, size_t i, void *data)
 }
 
 /** Handle an end-of-row event from the CSV parser */
-static void parse_netacq_edge_location_row(int c, void *data)
+static void parse_location_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
@@ -602,7 +678,7 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
   return read_netacq_edge_file(provider, file, "Location",
-      parse_netacq_edge_location_cell, parse_netacq_edge_location_row);
+      parse_location_or_ipv6_cell, parse_location_row);
 }
 
 /** Parse a blocks cell */
@@ -621,7 +697,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   switch (state->current_column) {
   case BLOCKS_COL_STARTIP:
     /* start ip */
-    state->block_lower.addr = strtoul(tok, &end, 10);
+    state->block_lower.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid start IP", tok);
       state->parser.status = CSV_EUSER;
@@ -630,7 +706,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   case BLOCKS_COL_ENDIP:
     /* end ip */
-    state->block_upper.addr = strtoul(tok, &end, 10);
+    state->block_upper.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid end IP", tok);
       state->parser.status = CSV_EUSER;
@@ -661,8 +737,7 @@ static void parse_blocks_row(int c, void *data)
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
 
-  ip_prefix_list_t *pfx_list = NULL;
-  ip_prefix_list_t *temp = NULL;
+  ipvx_prefix_list_t *pfx_list, *pfx_node;
   ipmeta_record_t *record = NULL;
 
   if (state->current_line < HEADER_ROW_CNT) {
@@ -678,7 +753,7 @@ static void parse_blocks_row(int c, void *data)
   assert(state->block_id > 0);
 
   /* convert the range to prefixes */
-  if (ip_range_to_prefix(state->block_lower, state->block_upper, &pfx_list) !=
+  if (ipvx_range_to_prefix(&state->block_lower, &state->block_upper, &pfx_list) !=
       0) {
     ipmeta_log(__func__, "ERROR: Could not convert range to pfxs");
     state->parser.status = CSV_EUSER;
@@ -696,23 +771,16 @@ static void parse_blocks_row(int c, void *data)
   }
 
   /* iterate over and add each prefix to the trie */
-  while (pfx_list != NULL) {
-    uint32_t addr = htonl(pfx_list->prefix.addr);
-    if (ipmeta_provider_associate_record(provider, AF_INET, &addr,
-                                         pfx_list->prefix.masklen,
-                                         record) != 0) {
+  for (pfx_node = pfx_list; pfx_node; pfx_node = pfx_node->next) {
+    ipvx_prefix_t *pfx = &pfx_node->prefix;
+    if (ipmeta_provider_associate_record(provider, pfx->family,
+          &pfx->addr.v4, pfx->masklen, record) != 0) {
       ipmeta_log(__func__, "ERROR: Failed to associate record");
       state->parser.status = CSV_EUSER;
       return;
     }
-
-    /* store this node so we can free it */
-    temp = pfx_list;
-    /* move on to the next pfx */
-    pfx_list = pfx_list->next;
-    /* free this node (saves us walking the list twice) */
-    free(temp);
   }
+  ipvx_prefix_list_free(pfx_list);
 
   /* increment the current line */
   state->current_line++;
@@ -729,11 +797,91 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   state->current_column = BLOCKS_COL_FIRSTCOL;
   state->current_line = 0;
   state->block_id = 0;
+  state->block_lower.family = AF_INET;
+  state->block_upper.family = AF_INET;
   state->block_lower.masklen = 32;
   state->block_upper.masklen = 32;
 
   return read_netacq_edge_file(provider, file, "Blocks",
       parse_blocks_cell, parse_blocks_row);
+}
+
+/** Handle an end-of-row event from the CSV parser */
+static void parse_ipv6_row(int c, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+  ipvx_prefix_list_t *pfx_list, *pfx_node;
+  ipmeta_record_t *record = NULL;
+
+  /* skip header */
+  if (state->current_line < HEADER_ROW_CNT) {
+    state->current_line++;
+    return;
+  }
+
+  /* make sure we parsed exactly as many columns as we anticipated */
+  check_column_count(state, "ipv6", IPV6_COL_ENDCOL);
+
+  if ((record = ipmeta_provider_init_record(provider, state->block_id)) ==
+      NULL) {
+    ipmeta_log(__func__, "ERROR: Could not initialize meta record");
+    state->parser.status = CSV_EUSER;
+    return;
+  }
+
+  state->tmp_record.source = provider->id;
+  memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
+
+  /* convert the range to prefixes */
+  if (ipvx_range_to_prefix(&state->block_lower, &state->block_upper, &pfx_list) !=
+      0) {
+    ipmeta_log(__func__, "ERROR: Could not convert range to prefixes");
+    state->parser.status = CSV_EUSER;
+    return;
+  }
+  assert(pfx_list);
+
+  /* iterate over and add each prefix to the trie */
+  for (pfx_node = pfx_list; pfx_node; pfx_node = pfx_node->next) {
+    ipvx_prefix_t *pfx = &pfx_node->prefix;
+    if (ipmeta_provider_associate_record(provider, pfx->family,
+          &pfx->addr.v6, pfx->masklen, record) != 0) {
+      ipmeta_log(__func__, "ERROR: Failed to associate record");
+      state->parser.status = CSV_EUSER;
+      return;
+    }
+  }
+  ipvx_prefix_list_free(pfx_list);
+
+  /* reset the temp record */
+  memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
+
+  state->block_id++; // generate our own ids
+
+  /* increment the current line */
+  state->current_line++;
+  /* reset the current column */
+  state->current_column = IPV6_COL_FIRSTCOL;
+}
+
+/** Read a ipv6 file */
+static int read_ipv6(ipmeta_provider_t *provider, io_t *file)
+{
+  ipmeta_provider_netacq_edge_state_t *state = STATE(provider);
+
+  /* reset the state variables before we start */
+  state->current_column = IPV6_COL_FIRSTCOL;
+  state->current_line = 0;
+  state->block_id = IPV6_ID_START;
+  state->block_lower.family = AF_INET6;
+  state->block_upper.family = AF_INET6;
+  state->block_lower.masklen = 128;
+  state->block_upper.masklen = 128;
+  memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
+
+  return read_netacq_edge_file(provider, file, "IPv6",
+      parse_location_or_ipv6_cell, parse_ipv6_row);
 }
 
 /** Parse a regions cell */
@@ -1474,47 +1622,54 @@ int ipmeta_provider_netacq_edge_init(ipmeta_provider_t *provider, int argc,
     return -1;
   }
 
-  assert(state->locations_file != NULL && state->blocks_file != NULL);
+  if (state->blocks_file) {
+    /* if provided, open the region decode file and populate the lookup arrays */
+    if (state->region_file != NULL) {
+      if (load_file(provider, state->region_file, "region", read_regions) < 0)
+        return -1;
+    }
 
-  /* if provided, open the region decode file and populate the lookup arrays */
-  if (state->region_file != NULL) {
-    if (load_file(provider, state->region_file, "region", read_regions) < 0)
+    /* if provided, open the country decode file and populate the lookup arrays */
+    if (state->country_file != NULL) {
+      if (load_file(provider, state->country_file, "country", read_countries) < 0)
+        return -1;
+    }
+
+    /* open each polygon decode file and populate the lookup arrays */
+    for (i = 0; i < state->polygon_files_cnt; i++) {
+      assert(state->polygon_files[i] != NULL);
+      if (load_file(provider, state->polygon_files[i], "polygon",
+            read_polygons) < 0)
+        return -1;
+    }
+
+    /* if provided, open the netacq2polygon mapping file and populate the
+       temporary join table */
+    if (state->na_to_polygon_file != NULL) {
+      if (load_file(provider, state->na_to_polygon_file, "Net Acuity to Polygon",
+            read_na_to_polygon) < 0)
+        return -1;
+    }
+
+    /* load the locations file */
+    if (load_file(provider, state->locations_file, "location",
+          read_locations) < 0)
       return -1;
+
+    /* load the blocks file */
+    if (load_file(provider, state->blocks_file, "blocks", read_blocks) < 0)
+      return -1;
+
+    /* free the netacq 2 polygon temporary mapping table */
+    na_to_polygon_free(state);
+
   }
 
-  /* if provided, open the country decode file and populate the lookup arrays */
-  if (state->country_file != NULL) {
-    if (load_file(provider, state->country_file, "country", read_countries) < 0)
+  if (state->ipv6_file) {
+    /* load the ipv6 file */
+    if (load_file(provider, state->ipv6_file, "IPv6", read_ipv6) < 0)
       return -1;
   }
-
-  /* open each polygon decode file and populate the lookup arrays */
-  for (i = 0; i < state->polygon_files_cnt; i++) {
-    assert(state->polygon_files[i] != NULL);
-    if (load_file(provider, state->polygon_files[i], "polygon",
-          read_polygons) < 0)
-      return -1;
-  }
-
-  /* if provided, open the netacq2polygon mapping file and populate the
-     temporary join table */
-  if (state->na_to_polygon_file != NULL) {
-    if (load_file(provider, state->na_to_polygon_file, "Net Acuity to Polygon",
-          read_na_to_polygon) < 0)
-      return -1;
-  }
-
-  /* load the locations file */
-  if (load_file(provider, state->locations_file, "location",
-        read_locations) < 0)
-    return -1;
-
-  /* load the blocks file */
-  if (load_file(provider, state->blocks_file, "blocks", read_blocks) < 0)
-    return -1;
-
-  /* free the netacq 2 polygon temporary mapping table */
-  na_to_polygon_free(state);
 
   /* ready to rock n roll */
 

@@ -75,6 +75,8 @@ typedef struct ipmeta_provider_maxmind_state {
   struct csv_parser parser;
   int current_line;
   int current_column; // column ID (not column number)
+  int first_column; // ID of first column for the current file format
+  void (*parse_row)(int, void *);
   ipmeta_record_t tmp_record;
   uint16_t cntry_code;
   uint32_t block_id;
@@ -114,9 +116,6 @@ typedef enum blocks1_cols {
   BLOCKS1_COL_ENDCOL             ///< 1 past the last column ID in the table
 } blocks1_cols_t;
 
-
-/** The number of header rows in the maxmind CSV files */
-#define HEADER_ROW_CNT 2
 
 /** Print usage information to stderr */
 static void usage(ipmeta_provider_t *provider)
@@ -253,20 +252,13 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     return;                                                                    \
   } else (void)0 /* this is here to make a semicolon after it valid */
 
-/* Parse a maxmind location cell */
-static void parse_maxmind_location_cell(void *s, size_t i, void *data)
+/* Parse a maxmind cell */
+static void parse_maxmind_cell(void *s, size_t i, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
-  ipmeta_record_t *tmp = &(state->tmp_record);
   char *tok = (char *)s;
-
   char *end;
-
-  /* skip header */
-  if (state->current_line < HEADER_ROW_CNT) {
-    return;
-  }
 
   /*
   ipmeta_log(__func__, "row: %d, column: %d, tok: %s",
@@ -274,6 +266,8 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
              state->current_column % 1000,
              tok);
   */
+
+#define tmp (&(state->tmp_record)) /* convenient code abbreviation */
 
   switch (state->current_column) {
   case LOCATION1_COL_ID:
@@ -364,6 +358,33 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
     }
     break;
 
+  case BLOCKS1_COL_STARTIP:
+    /* start ip */
+    state->block_lower.addr = strtol(tok, &end, 10);
+    if (end == tok || *end != '\0' || errno == ERANGE) {
+      log_invalid_col(state, "Invalid Start IP", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
+  case BLOCKS1_COL_ENDIP:
+    /* end ip */
+    state->block_upper.addr = strtol(tok, &end, 10);
+    if (end == tok || *end != '\0' || errno == ERANGE) {
+      log_invalid_col(state, "Invalid End IP", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
+  case BLOCKS1_COL_ID:
+    /* id */
+    state->block_id = strtol(tok, &end, 10);
+    if (end == tok || *end != '\0' || errno == ERANGE) {
+      log_invalid_col(state, "Invalid ID", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
   default:
     log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
@@ -375,7 +396,7 @@ static void parse_maxmind_location_cell(void *s, size_t i, void *data)
 }
 
 /** Handle an end-of-row event from the CSV parser */
-static void parse_maxmind_location_row(int c, void *data)
+static void parse_maxmind_location1_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
@@ -384,12 +405,6 @@ static void parse_maxmind_location_row(int c, void *data)
   uint16_t tmp_continent;
 
   khiter_t khiter;
-
-  /* skip header */
-  if (state->current_line < HEADER_ROW_CNT) {
-    state->current_line++;
-    return;
-  }
 
   /* make sure we parsed exactly as many columns as we anticipated */
   check_column_count(state, "locations", LOCATION1_COL_ENDCOL);
@@ -436,105 +451,7 @@ static void parse_maxmind_location_row(int c, void *data)
   return;
 }
 
-/** Read a locations file */
-static int read_locations(ipmeta_provider_t *provider, io_t *file)
-{
-  ipmeta_provider_maxmind_state_t *state = STATE(provider);
-
-  char buffer[BUFFER_LEN];
-  int read = 0;
-
-  /* reset the state variables before we start */
-  state->current_column = LOCATION1_COL_FIRSTCOL;
-  state->current_line = 0;
-  memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-  state->cntry_code = 0;
-
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
-
-  while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_maxmind_location_cell,
-                  parse_maxmind_location_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
-      ipmeta_log(__func__, "CSV Error: %s",
-                 csv_strerror(csv_error(&(state->parser))));
-      return -1;
-    }
-  }
-  if (read < 0) {
-    ipmeta_log(__func__, "Error reading Location file");
-    return -1;
-  }
-
-  if (csv_fini(&(state->parser), parse_maxmind_location_cell,
-               parse_maxmind_location_row, provider) != 0) {
-    ipmeta_log(__func__, "Error parsing %s Location file", provider->name);
-    ipmeta_log(__func__, "CSV Error: %s",
-               csv_strerror(csv_error(&(state->parser))));
-    return -1;
-  }
-
-  csv_free(&(state->parser));
-
-  return 0;
-}
-
-/** Parse a blocks cell */
-static void parse_blocks_cell(void *s, size_t i, void *data)
-{
-  ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
-  ipmeta_provider_maxmind_state_t *state = STATE(provider);
-  char *tok = (char *)s;
-  char *end;
-
-  /* skip header */
-  if (state->current_line < HEADER_ROW_CNT) {
-    return;
-  }
-
-  switch (state->current_column) {
-  case BLOCKS1_COL_STARTIP:
-    /* start ip */
-    state->block_lower.addr = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid Start IP", tok);
-      state->parser.status = CSV_EUSER;
-    }
-    break;
-
-  case BLOCKS1_COL_ENDIP:
-    /* end ip */
-    state->block_upper.addr = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid End IP", tok);
-      state->parser.status = CSV_EUSER;
-    }
-    break;
-
-  case BLOCKS1_COL_ID:
-    /* id */
-    state->block_id = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid ID", tok);
-      state->parser.status = CSV_EUSER;
-    }
-    break;
-
-  default:
-    log_invalid_col(state, "Unexpected trailing column", tok);
-    state->parser.status = CSV_EUSER;
-    break;
-  }
-
-  /* move on to the next column */
-  state->current_column++;
-}
-
-static void parse_blocks_row(int c, void *data)
+static void parse_blocks1_row(int c, void *data)
 {
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
@@ -542,13 +459,6 @@ static void parse_blocks_row(int c, void *data)
   ip_prefix_list_t *pfx_list = NULL;
   ip_prefix_list_t *temp = NULL;
   ipmeta_record_t *record = NULL;
-
-  if (state->current_line < HEADER_ROW_CNT) {
-    state->current_line++;
-    return;
-  }
-
-  /* done processing the line */
 
   /* make sure we parsed exactly as many columns as we anticipated */
   check_column_count(state, "blocks", BLOCKS1_COL_ENDCOL);
@@ -598,43 +508,73 @@ static void parse_blocks_row(int c, void *data)
   state->current_column = BLOCKS1_COL_FIRSTCOL;
 }
 
-/** Read a blocks file  */
-static int read_blocks(ipmeta_provider_t *provider, io_t *file)
+#define startswith(buf, str)  (strncmp(buf, str "", sizeof(str)-1) == 0)
+
+/** Read a maxmind file */
+static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
+    const char *filename)
 {
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   char buffer[BUFFER_LEN];
   int read = 0;
+  state->first_column = -1;
+  state->parse_row = NULL;
 
-  /* reset the state variables before we start */
-  state->current_column = BLOCKS1_COL_FIRSTCOL;
-  state->current_line = 0;
-  state->block_id = 0;
-  state->block_lower.masklen = 32;
-  state->block_upper.masklen = 32;
+  // Examine header lines to determine file format
+  while (state->first_column < 0) {
+    // wandio_fgets is slow, but we use it only for the header
+    read = wandio_fgets(file, &buffer, BUFFER_LEN, 0);
+    if (read < 0) {
+      ipmeta_log(__func__, "Error reading file: %s", filename);
+      return -1;
+    }
+    if (read == 0) {
+      ipmeta_log(__func__, "Empty file: %s", filename);
+      return -1;
+    }
+    if (startswith(buffer, "Copyright")) {
+      // skip
+    } else if (startswith(buffer, "locId,")) {
+      state->current_column = state->first_column = LOCATION1_COL_FIRSTCOL;
+      state->parse_row = parse_maxmind_location1_row;
+      // initialize state specific to location1
+      memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
+      state->cntry_code = 0;
+    } else if (startswith(buffer, "startIpNum,")) {
+      state->current_column = state->first_column = BLOCKS1_COL_FIRSTCOL;
+      state->parse_row = parse_blocks1_row;
+      // initialize state specific to blocks1
+      state->block_id = 0;
+      state->block_lower.masklen = 32;
+      state->block_upper.masklen = 32;
+    } else {
+      ipmeta_log(__func__, "Unknown file format for %s", filename);
+      return -1;
+    }
+    state->current_line++;
+    continue;
+  }
 
-  /* options for the csv parser */
-  int options = CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI | CSV_APPEND_NULL |
-                CSV_EMPTY_IS_NULL;
-
-  csv_init(&(state->parser), options);
+  csv_init(&(state->parser), CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
+      CSV_APPEND_NULL | CSV_EMPTY_IS_NULL);
 
   while ((read = wandio_read(file, &buffer, BUFFER_LEN)) > 0) {
-    if (csv_parse(&(state->parser), buffer, read, parse_blocks_cell,
-                  parse_blocks_row, provider) != read) {
-      ipmeta_log(__func__, "Error parsing Blocks file");
+    if (csv_parse(&(state->parser), buffer, read, parse_maxmind_cell,
+                  state->parse_row, provider) != read) {
+      ipmeta_log(__func__, "Error parsing %s file", provider->name);
       ipmeta_log(__func__, "CSV Error: %s",
                  csv_strerror(csv_error(&(state->parser))));
       return -1;
     }
   }
   if (read < 0) {
-    ipmeta_log(__func__, "Error reading Blocks file");
+    ipmeta_log(__func__, "Error reading file %s", filename);
     return -1;
   }
 
-  if (csv_fini(&(state->parser), parse_blocks_cell, parse_blocks_row,
-               provider) != 0) {
-    ipmeta_log(__func__, "Error parsing Maxmind Location file");
+  if (csv_fini(&(state->parser), parse_maxmind_cell, state->parse_row,
+        provider) != 0) {
+    ipmeta_log(__func__, "Error parsing %s file %s", provider->name, filename);
     ipmeta_log(__func__, "CSV Error: %s",
                csv_strerror(csv_error(&(state->parser))));
     return -1;
@@ -1361,7 +1301,7 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
   }
 
   /* populate the locations hash */
-  if (read_locations(provider, file) != 0) {
+  if (read_maxmind_file(provider, file, state->locations_file) != 0) {
     ipmeta_log(__func__, "failed to parse locations file");
     goto err;
   }
@@ -1377,7 +1317,7 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
   }
 
   /* populate the ds (by joining on the id in the hash) */
-  if (read_blocks(provider, file) != 0) {
+  if (read_maxmind_file(provider, file, state->blocks_file) != 0) {
     ipmeta_log(__func__, "failed to parse blocks file");
     goto err;
   }

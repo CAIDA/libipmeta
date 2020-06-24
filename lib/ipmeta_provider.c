@@ -213,30 +213,33 @@ void ipmeta_provider_free_state(ipmeta_provider_t *provider)
   provider->state = NULL;
 }
 
+ipmeta_record_t *ipmeta_provider_insert_record(ipmeta_provider_t *provider,
+                                               ipmeta_record_t *record)
+{
+  khiter_t khiter;
+  int khret;
+
+  record->source = provider->id;
+
+  khiter = kh_put(ipmeta_rechash, provider->all_records, record->id, &khret);
+  assert(khret != 0); // id was not already present
+  kh_value(provider->all_records, khiter) = record;
+
+  return record;
+}
+
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
                                              uint32_t id)
 {
   ipmeta_record_t *record;
-  khiter_t khiter;
-  int khret;
 
   if ((record = malloc_zero(sizeof(ipmeta_record_t))) == NULL) {
     return NULL;
   }
 
   record->id = id;
-  record->source = provider->id;
 
-  assert(kh_get(ipmeta_rechash, provider->all_records, id) ==
-         kh_end(provider->all_records));
-
-  khiter = kh_put(ipmeta_rechash, provider->all_records, id, &khret);
-  kh_value(provider->all_records, khiter) = record;
-
-  assert(kh_get(ipmeta_rechash, provider->all_records, id) !=
-         kh_end(provider->all_records));
-
-  return record;
+  return ipmeta_provider_insert_record(provider, record);
 }
 
 ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,

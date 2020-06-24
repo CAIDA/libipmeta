@@ -225,18 +225,30 @@ void ipmeta_provider_register_state(ipmeta_provider_t *provider, void *state);
  */
 void ipmeta_provider_free_state(ipmeta_provider_t *provider);
 
+/** Insert a metadata record with the given record->id
+ *
+ * @param provider      The metadata provider to associate the record with
+ * @param record        Pointer to the record to be inserted
+ * @return pointer to the record
+ *
+ * The record->id must be set before this function is called.
+ * This function will set record->source and insert the record into the
+ * provider's lookup table.
+ *
+ * The record will be free'd when ipmeta_free_provider() is called, including
+ * *ALL* char pointers in the record.
+ */
+ipmeta_record_t *ipmeta_provider_insert_record(ipmeta_provider_t *provider,
+                                               ipmeta_record_t *record);
+
 /** Allocate an empty metadata record for the given id
  *
  * @param provider      The metadata provider to associate the record with
  * @param id            The id to use to inialize the record
  * @return the new metadata record, NULL if an error occurred
  *
- * @note Most metadata providers will not want to allocate a record on the fly
- * for every lookup, instead they will allocate all needed records at init time,
- * and then use ipmeta_provider_add_record to add the appropriate record to the
- * results structure. These records are stored in the provider, and free'd when
- * ipmeta_free_provider is called. Also *ALL* char pointers in this structure
- * will be free'd.
+ * Allocate an empty record, set record->id = id, and call
+ * ipmeta_provider_insert_record(provider, record).
  */
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
                                              uint32_t id);

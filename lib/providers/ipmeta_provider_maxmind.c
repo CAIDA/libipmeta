@@ -529,12 +529,9 @@ static void parse_maxmind_location1_row(int c, void *data)
 
   ipmeta_provider_insert_record(provider, state->wip_record);
 
-  /* done processing the line */
-
-  // reset for next line
+  // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
-  // reset the temp record
   state->wip_record = NULL;
 
   return;
@@ -582,7 +579,7 @@ static void parse_blocks1_row(int c, void *data)
   }
   ipvx_prefix_list_free(pfx_list);
 
-  // reset for next line
+  // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
 }
@@ -596,12 +593,15 @@ static void parse_maxmind_location2_row(int c, void *data)
   // make sure we parsed exactly as many columns as we anticipated
   check_column_count(state, LOCATION2_COL_ENDCOL);
 
+  // In maxmind v2, location information is split across location and block
+  // records.  We store this incomplete location record in state->loc_records,
+  // so it can be merged into each block record that needs it later.
   khiter_t k = kh_put(ipm_records, state->loc_records, state->wip_record->id,
       &khret);
   kh_val(state->loc_records, k) = state->wip_record;
   state->wip_record = NULL;
 
-  // reset for next line
+  // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
 
@@ -613,7 +613,7 @@ static void parse_blocks2_row(int c, void *data)
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
 
-  /* make sure we parsed exactly as many columns as we anticipated */
+  // make sure we parsed exactly as many columns as we anticipated
   check_column_count(state, BLOCKS2_COL_ENDCOL);
 
   ipmeta_record_t *blk_rec = state->wip_record;
@@ -622,7 +622,9 @@ static void parse_blocks2_row(int c, void *data)
 
   ipmeta_provider_insert_record(provider, blk_rec);
 
-  // Copy fields from the loc record to the block record.
+  // Copy fields from the loc record to the block record.  (We can't just use
+  // a single record structure, because multiple block records may refer to
+  // the same location record).
   khiter_t k = kh_get(ipm_records, state->loc_records, state->loc_id);
   ipmeta_record_t *loc_rec = kh_val(state->loc_records, k);
 
@@ -643,7 +645,7 @@ static void parse_blocks2_row(int c, void *data)
     return;
   }
 
-  // reset for next line
+  // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
   state->wip_record = NULL;
@@ -663,10 +665,9 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
   state->current_line = 0;
   state->parse_row = NULL;
 
-  /* open the locations file */
+  // open the file
   if ((file = wandio_create(filename)) == NULL) {
-    ipmeta_log(__func__, "failed to open file '%s'",
-               filename);
+    ipmeta_log(__func__, "failed to open file '%s'", filename);
     goto end;
   }
   state->current_filename = filename;

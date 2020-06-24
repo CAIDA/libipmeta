@@ -82,7 +82,8 @@ typedef struct ipmeta_provider_maxmind_state {
 
   /* info extracted from args */
   char *locations_file;
-  char *blocks_file;
+  char *blocks_file[8];
+  int blocks_file_cnt;
 
   /* State for CSV parser */
   struct csv_parser parser;
@@ -183,9 +184,9 @@ static void usage(ipmeta_provider_t *provider)
   fprintf(
     stderr,
     "provider usage: %s {-l locations -b blocks}|{-d directory}\n"
-    "       -d <dir>      directory containing blocks and location files\n"
-    "       -b <file>     blocks file (must be used with -l)\n"
-    "       -l <file>     locations file (must be used with -b)\n",
+    "   -d <dir>    directory containing v1 blocks and location files\n"
+    "   -l <file>   v1 or v2 locations file (requires -b)\n"
+    "   -b <file>   v1 or v2 blocks file (requires -l; may be repeated)\n",
     provider->name);
 }
 
@@ -212,19 +213,30 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   while ((opt = getopt(argc, argv, "b:d:D:l:?")) >= 0) {
     switch (opt) {
     case 'b':
-      state->blocks_file = strdup(optarg);
+      if (state->blocks_file_cnt >= ARR_CNT(state->blocks_file)) {
+        fprintf(stderr, "ERROR: too many block files\n");
+        return -1;
+      }
+      state->blocks_file[state->blocks_file_cnt++] = strdup(optarg);
       break;
     case 'D':
-      fprintf(
-        stderr,
+      fprintf(stderr,
         "WARNING: -D option is no longer supported by individual providers.\n");
       break;
     case 'd':
+      if (directory) {
+        fprintf(stderr, "ERROR: only one directory is allowed\n");
+        return -1;
+      }
       /* no need to dup right now because we will do it later */
       directory = optarg;
       break;
 
     case 'l':
+      if (state->locations_file) {
+        fprintf(stderr, "ERROR: only one location file is allowed\n");
+        return -1;
+      }
       state->locations_file = strdup(optarg);
       break;
 
@@ -242,23 +254,14 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     return -1;
   }
 
-  if (directory != NULL) {
-    /* check if they were daft and specified explicit files too */
-    if (state->locations_file != NULL || state->blocks_file != NULL) {
-      fprintf(stderr, "WARNING: both directory and file name specified.\n");
+  if ((state->locations_file || state->blocks_file[0]) && directory) {
+    /* check if they were daft and specified files AND directory */
+    fprintf(stderr, "WARNING: both directory and file name specified; "
+        "ignoring directory.\n");
+    directory = NULL;
+  }
 
-      /* free up the dup'd strings */
-      if (state->locations_file != NULL) {
-        free(state->locations_file);
-        state->locations_file = NULL;
-      }
-
-      if (state->blocks_file != NULL) {
-        free(state->blocks_file);
-        state->blocks_file = NULL;
-      }
-    }
-
+  if (directory) {
     /* remove the trailing slash if there is one */
     if (directory[strlen(directory) - 1] == '/') {
       directory[strlen(directory) - 1] = '\0';
@@ -271,11 +274,12 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
       return -1;
     }
 
-    if ((state->blocks_file = malloc(strlen(directory) + 1 +
+    if ((state->blocks_file[0] = malloc(strlen(directory) + 1 +
                                      strlen(BLOCKS_FILE_NAME) + 1)) == NULL) {
       ipmeta_log(__func__, "could not malloc blocks file string");
       return -1;
     }
+    state->blocks_file_cnt++;
 
     /** @todo make this check for both .gz and non-.gz files */
 
@@ -284,12 +288,12 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     /* last copy needs a +1 to get the terminating nul. d'oh */
     ptr = stpncpy(ptr, LOCATIONS_FILE_NAME, strlen(LOCATIONS_FILE_NAME) + 1);
 
-    ptr = stpncpy(state->blocks_file, directory, strlen(directory));
+    ptr = stpncpy(state->blocks_file[0], directory, strlen(directory));
     *ptr++ = '/';
     ptr = stpncpy(ptr, BLOCKS_FILE_NAME, strlen(BLOCKS_FILE_NAME) + 1);
   }
 
-  if (state->locations_file == NULL || state->blocks_file == NULL) {
+  if (state->locations_file == NULL || state->blocks_file[0] == NULL) {
     fprintf(stderr, "ERROR: %s requires either '-d' or both '-b' and '-l'\n",
             provider->name);
     usage(provider);
@@ -1506,7 +1510,7 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
     return -1;
   }
 
-  assert(state->locations_file != NULL && state->blocks_file != NULL);
+  assert(state->locations_file != NULL && state->blocks_file[0] != NULL);
 
   // load locations
   if (read_maxmind_file(provider, FILETYPE_LOC, state->locations_file) != 0) {
@@ -1515,9 +1519,11 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
   }
 
   // load blocks
-  if (read_maxmind_file(provider, FILETYPE_BLK, state->blocks_file) != 0) {
-    ipmeta_log(__func__, "failed to parse blocks file");
-    goto err;
+  for (int i = 0; i < state->blocks_file_cnt; i++) {
+    if (read_maxmind_file(provider, FILETYPE_BLK, state->blocks_file[i]) != 0) {
+      ipmeta_log(__func__, "failed to parse blocks file");
+      goto err;
+    }
   }
 
   /* ready to rock n roll */
@@ -1537,9 +1543,9 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
       state->locations_file = NULL;
     }
 
-    if (state->blocks_file != NULL) {
-      free(state->blocks_file);
-      state->blocks_file = NULL;
+    for (int i = 0; i < state->blocks_file_cnt; i++) {
+      free(state->blocks_file[i]);
+      state->blocks_file[i] = NULL;
     }
 
     if (state->country_continent != NULL) {

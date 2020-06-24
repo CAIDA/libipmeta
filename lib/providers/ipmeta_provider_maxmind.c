@@ -108,6 +108,9 @@ typedef struct ipmeta_provider_maxmind_state {
   uint32_t block_cnt; // for v2
 } ipmeta_provider_maxmind_state_t;
 
+enum { FILETYPE_BLK, FILETYPE_LOC };
+static const char *filetype_name[] = { "blocks", "locations" };
+
 // Column ids start at a multiple of 1000 and count up from there.  To convert
 // a column id to a column number, we must mod by 1000.  This allows two
 // different tables to have non-overlapping sets of column IDs so they can
@@ -678,23 +681,17 @@ end:
 
 #define startswith(buf, str)  (strncmp(buf, str "", sizeof(str)-1) == 0)
 
-#define check_maxmind_version(state, v)                                        \
-  do {                                                                         \
-    if ((state)->maxmind_version != 0 && (state)->maxmind_version != (v)) {    \
-      ipmeta_log(__func__, "Error: cannot mix maxmind v1 and v2 files");       \
-      goto end;                                                                \
-    }                                                                          \
-    (state)->maxmind_version = (v);                                            \
-  } while (0)
-
 /** Read a maxmind file */
-static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
+static int read_maxmind_file(ipmeta_provider_t *provider, int filetype,
+    const char *filename)
 {
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   char buffer[BUFFER_LEN];
   io_t *file;
   int read = 0;
   int rc = -1; // fail, until proven otherwise
+  int found_type = -1;
+  int found_version = 0;
   state->first_column = -1;
   state->current_line = 0;
   state->parse_row = NULL;
@@ -723,7 +720,8 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       // skip
 
     } else if (startswith(buffer, "locId,")) {
-      check_maxmind_version(state, 1);
+      found_version = 1;
+      found_type = FILETYPE_LOC;
       state->current_column = state->first_column = LOCATION1_COL_FIRSTCOL;
       state->parse_row = parse_maxmind_location1_row;
       // initialize state specific to location1
@@ -747,7 +745,8 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       }
 
     } else if (startswith(buffer, "startIpNum,")) {
-      check_maxmind_version(state, 1);
+      found_version = 1;
+      found_type = FILETYPE_BLK;
       state->current_column = state->first_column = BLOCKS1_COL_FIRSTCOL;
       state->parse_row = parse_blocks1_row;
       // initialize state specific to blocks1
@@ -758,7 +757,8 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       state->block_upper.masklen = 32;
 
     } else if (startswith(buffer, "geoname_id,")) {
-      check_maxmind_version(state, 2);
+      found_version = 2;
+      found_type = FILETYPE_LOC;
       state->current_column = state->first_column = LOCATION2_COL_FIRSTCOL;
       state->parse_row = parse_maxmind_location2_row;
       // initialize state specific to location2
@@ -766,7 +766,8 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       state->loc_records = kh_init(ipm_records);
 
     } else if (startswith(buffer, "network,")) {
-      check_maxmind_version(state, 2);
+      found_version = 2;
+      found_type = FILETYPE_BLK;
       state->current_column = state->first_column = BLOCKS2_COL_FIRSTCOL;
       state->parse_row = parse_blocks2_row;
       // initialize state specific to blocks2
@@ -774,13 +775,22 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       state->loc_id = 0;
 
     } else {
-      ipmeta_log(__func__, "Unknown file format for %s", filename);
-      goto end;
+      break;
     }
 
     state->current_line++;
     continue;
   }
+
+  if (found_type != filetype) {
+    ipmeta_log(__func__, "Error: %s is not a %s file", filename, filetype_name[filetype]);
+    goto end;
+  }
+  if (state->maxmind_version != 0 && state->maxmind_version != found_version) {
+    ipmeta_log(__func__, "Error: cannot mix files with different versions");
+    goto end;
+  }
+  state->maxmind_version = found_version;
 
   csv_init(&(state->parser), CSV_STRICT | CSV_REPALL_NL | CSV_STRICT_FINI |
       CSV_APPEND_NULL | CSV_EMPTY_IS_NULL);
@@ -1499,13 +1509,13 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
   assert(state->locations_file != NULL && state->blocks_file != NULL);
 
   // load locations
-  if (read_maxmind_file(provider, state->locations_file) != 0) {
+  if (read_maxmind_file(provider, FILETYPE_LOC, state->locations_file) != 0) {
     ipmeta_log(__func__, "failed to parse locations file");
     goto err;
   }
 
   // load blocks
-  if (read_maxmind_file(provider, state->blocks_file) != 0) {
+  if (read_maxmind_file(provider, FILETYPE_BLK, state->blocks_file) != 0) {
     ipmeta_log(__func__, "failed to parse blocks file");
     goto err;
   }

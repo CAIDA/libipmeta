@@ -678,6 +678,15 @@ end:
 
 #define startswith(buf, str)  (strncmp(buf, str "", sizeof(str)-1) == 0)
 
+#define check_maxmind_version(state, v)                                        \
+  do {                                                                         \
+    if ((state)->maxmind_version != 0 && (state)->maxmind_version != (v)) {    \
+      ipmeta_log(__func__, "Error: cannot mix maxmind v1 and v2 files");       \
+      goto end;                                                                \
+    }                                                                          \
+    (state)->maxmind_version = (v);                                            \
+  } while (0)
+
 /** Read a maxmind file */
 static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
 {
@@ -714,6 +723,7 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       // skip
 
     } else if (startswith(buffer, "locId,")) {
+      check_maxmind_version(state, 1);
       state->current_column = state->first_column = LOCATION1_COL_FIRSTCOL;
       state->parse_row = parse_maxmind_location1_row;
       // initialize state specific to location1
@@ -737,6 +747,7 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       }
 
     } else if (startswith(buffer, "startIpNum,")) {
+      check_maxmind_version(state, 1);
       state->current_column = state->first_column = BLOCKS1_COL_FIRSTCOL;
       state->parse_row = parse_blocks1_row;
       // initialize state specific to blocks1
@@ -747,6 +758,7 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       state->block_upper.masklen = 32;
 
     } else if (startswith(buffer, "geoname_id,")) {
+      check_maxmind_version(state, 2);
       state->current_column = state->first_column = LOCATION2_COL_FIRSTCOL;
       state->parse_row = parse_maxmind_location2_row;
       // initialize state specific to location2
@@ -754,6 +766,7 @@ static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
       state->loc_records = kh_init(ipm_records);
 
     } else if (startswith(buffer, "network,")) {
+      check_maxmind_version(state, 2);
       state->current_column = state->first_column = BLOCKS2_COL_FIRSTCOL;
       state->parse_row = parse_blocks2_row;
       // initialize state specific to blocks2

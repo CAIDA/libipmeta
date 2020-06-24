@@ -305,6 +305,12 @@ int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, int family,
 int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider, int family,
     void *addrp, ipmeta_record_set_t *found);
 
+/** Dealloacate a record.
+ *
+ * @param record   Pointer to the record to free.
+ */
+void ipmeta_free_record(ipmeta_record_t *record);
+
 /** }@ */
 
 #endif /* __IPMETA_PROVIDER_H */

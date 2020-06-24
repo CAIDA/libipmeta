@@ -1499,7 +1499,7 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
     }
 
     if (state->loc_records) {
-      // TODO kh_free_vals(ipm_records, state->loc_records, ipmeta_free_record);
+      kh_free_vals(ipm_records, state->loc_records, ipmeta_free_record);
       kh_destroy(ipm_records, state->loc_records);
       state->loc_records = NULL;
     }

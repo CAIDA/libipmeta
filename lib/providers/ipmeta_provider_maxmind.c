@@ -1,7 +1,7 @@
 /*
  * libipmeta
  *
- * Alistair King, CAIDA, UC San Diego
+ * Alistair King and Ken Keys, CAIDA, UC San Diego
  * corsaro-info@caida.org
  *
  * Copyright (C) 2012 The Regents of the University of California.
@@ -40,7 +40,7 @@
 #include "khash.h"
 #include "utils.h"
 #include "csv.h"
-#include "ip_utils.h"
+#include "ipvx_utils.h"
 
 #include "ipmeta_ds.h"
 #include "ipmeta_provider_maxmind.h"
@@ -48,10 +48,13 @@
 #define PROVIDER_NAME "maxmind"
 
 #define STATE(provname) (IPMETA_PROVIDER_STATE(maxmind, provname))
+#define nstrdup(str) ((str) ? strdup(str) : NULL)
 
 #define BUFFER_LEN 1024
 
 KHASH_INIT(u16u16, uint16_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
+KHASH_INIT(ipm_records, int, ipmeta_record_t *, 1, kh_int_hash_func,
+    kh_int_hash_equal)
 
 /** The default file name for the locations file */
 #define LOCATIONS_FILE_NAME "GeoLiteCity-Location.csv.gz"
@@ -73,18 +76,24 @@ typedef struct ipmeta_provider_maxmind_state {
 
   /* State for CSV parser */
   struct csv_parser parser;
+  const char *current_filename;
   int current_line;
   int current_column; // column ID (not column number)
   int first_column; // ID of first column for the current file format
   void (*parse_row)(int, void *);
-  ipmeta_record_t tmp_record;
-  uint16_t cntry_code;
-  uint32_t block_id;
-  ip_prefix_t block_lower;
-  ip_prefix_t block_upper;
+  ipmeta_record_t scratch_record;
+  ipmeta_record_t *wip_record; // points to scratch_record or malloc'd record
+  uint32_t loc_id;
+  ipvx_prefix_t block_lower; // v1: low end of range; v2: prefix
+  ipvx_prefix_t block_upper; // v1: high end of range; v2: not used
 
-  /* hash that maps from country code to continent code */
-  khash_t(u16u16) * country_continent;
+  // map from country code to continent code (for v1)
+  khash_t(u16u16) *country_continent;
+
+  // v2 location records
+  khash_t(ipm_records) *loc_records;
+
+  uint32_t block_cnt; // for v2
 } ipmeta_provider_maxmind_state_t;
 
 // Column ids start at a multiple of 1000 and count up from there.  To convert
@@ -115,6 +124,42 @@ typedef enum blocks1_cols {
   BLOCKS1_COL_ID,                ///< location ID
   BLOCKS1_COL_ENDCOL             ///< 1 past the last column ID in the table
 } blocks1_cols_t;
+
+/** The columns in the maxmind v2 locations CSV file */
+typedef enum locations2_cols {
+  LOCATION2_COL_FIRSTCOL = 3000, ///< ID of first column in table
+  LOCATION2_COL_GNID = 3000,     ///< geonames ID
+  LOCATION2_COL_LOCALE_CODE,     ///< locale code
+  LOCATION2_COL_CONTINENT_CODE,  ///< 2-char continent code
+  LOCATION2_COL_CONTINENT_NAME,  ///< continent name
+  LOCATION2_COL_CC,              ///< ISO 3166-1 2-char country code
+  LOCATION2_COL_COUNTRY_NAME,    ///< country name
+  LOCATION2_COL_SUBDIV1_CODE,    ///< subsivision 1 iso code (1-3 chars)
+  LOCATION2_COL_SUBDIV1_NAME,    ///< subsivision 1 name
+  LOCATION2_COL_SUBDIV2_CODE,    ///< subsivision 2 iso code (1-3 chars)
+  LOCATION2_COL_SUBDIV2_NAME,    ///< subsivision 2 name
+  LOCATION2_COL_CITY_NAME,       ///< city name
+  LOCATION2_COL_METRO_CODE,      ///< metro code (US only)
+  LOCATION2_COL_TIMEZONE,        ///< time zone from IANA time zone db
+  LOCATION2_COL_IS_IN_EU,        ///< is in European Union: 0 or 1
+  LOCATION2_COL_ENDCOL           ///< 1 past the last column ID in the table
+} locations2_cols_t;
+
+/** The columns in the maxmind v2 locations CSV file */
+typedef enum blocks2_cols {
+  BLOCKS2_COL_FIRSTCOL = 4000,   ///< ID of first column in table
+  BLOCKS2_COL_NETWORK = 4000,    ///< Network prefix
+  BLOCKS2_COL_GNID,              ///< geonames ID of network
+  BLOCKS2_COL_REG_CNTRY_GNID,    ///< geonames ID of registered country
+  BLOCKS2_COL_REP_CNTRY_GNID,    ///< geonames ID of represented country
+  BLOCKS2_COL_IS_ANON_PROXY,     ///< deprecated
+  BLOCKS2_COL_IS_SATELLITE_PROV, ///< deprecated
+  BLOCKS2_COL_POSTAL,            ///< postal code (string)
+  BLOCKS2_COL_LAT,               ///< latitude (decimal)
+  BLOCKS2_COL_LONG,              ///< longitude (decimal)
+  BLOCKS2_COL_ACCURACY_RADIUS,   ///< accuracy radius (integer kilometers)
+  BLOCKS2_COL_ENDCOL             ///< 1 past the last column ID in the table
+} blocks2_cols_t;
 
 
 /** Print usage information to stderr */
@@ -239,15 +284,16 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   return 0;
 }
 
-#define log_invalid_col(state, label, tok) \
-    ipmeta_log(__func__, "%s \"%s\" at %d:%d", label, tok ? tok : "(empty)",   \
-        state->current_line, state->current_column % 1000)
+#define log_invalid_col(state, msg, tok)                                       \
+  ipmeta_log(__func__, "%s \"%s\" at %s:%d:%d", msg, tok ? tok : "",           \
+    state->current_filename, state->current_line, state->current_column % 1000)
 
-#define check_column_count(state, label, endcol)                               \
+#define check_column_count(state, endcol)                                      \
   if ((state)->current_column != (endcol)) {                                   \
     ipmeta_log(__func__,                                                       \
-      "ERROR in %s file, line %d: Expected %d columns, found %d", label,       \
-      (state)->current_line, (endcol) % 1000, (state)->current_column % 1000); \
+      "ERROR: Expected %d columns, found %d, at %s line %d",                   \
+      (endcol) % 1000, (state)->current_column % 1000,                         \
+      (state)->current_filename, (state)->current_line);                       \
     (state)->parser.status = CSV_EUSER;                                        \
     return;                                                                    \
   } else (void)0 /* this is here to make a semicolon after it valid */
@@ -267,12 +313,14 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
              tok);
   */
 
-#define tmp (&(state->tmp_record)) /* convenient code abbreviation */
+#define tmp (state->wip_record) /* convenient code abbreviation */
 
   switch (state->current_column) {
+  case LOCATION2_COL_GNID:
+    state->wip_record = malloc_zero(sizeof(ipmeta_record_t));
+    // fall through
   case LOCATION1_COL_ID:
-    /* init this record */
-    tmp->id = strtol(tok, &end, 10);
+    tmp->id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
@@ -280,22 +328,42 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     }
     break;
 
-  case LOCATION1_COL_CC:
-    /* country code */
+  case LOCATION2_COL_LOCALE_CODE:
+    break; // not used
+
+  case LOCATION2_COL_CONTINENT_CODE:
+    // continent code
     if (tok == NULL || strlen(tok) != 2) {
-      log_invalid_col(state, "Invalid Country Code", tok);
+      log_invalid_col(state, "Invalid continent code", tok);
       state->parser.status = CSV_EUSER;
       return;
     }
-    if (tok[0] == '-' && tok[1] == '-') {
-      tok[0] = '?';
-      tok[1] = '?';
-    }
-    state->cntry_code = (tok[0] << 8) | tok[1];
-    memcpy(tmp->country_code, tok, 2);
+    memcpy(tmp->continent_code, tok, 2);
     break;
 
+  case LOCATION2_COL_CONTINENT_NAME:
+    break; // not used
+
+  case LOCATION1_COL_CC:
+  case LOCATION2_COL_CC:
+    // country code
+    if (!tok || !*tok || (tok[0] == '-' && tok[1] == '-')) {
+      tmp->country_code[0] = '?';
+      tmp->country_code[1] = '?';
+    } else if (strlen(tok) != 2) {
+      log_invalid_col(state, "Invalid country code", tok);
+      state->parser.status = CSV_EUSER;
+      return;
+    } else {
+      memcpy(tmp->country_code, tok, 2);
+    }
+    break;
+
+  case LOCATION2_COL_COUNTRY_NAME:
+    break; // not used
+
   case LOCATION1_COL_REGION:
+  case LOCATION2_COL_SUBDIV1_CODE:
     /* region string */
     if (tok != NULL && (tmp->region = strdup(tok)) == NULL) {
       ipmeta_log(__func__, "Region code copy failed (%s)", tok);
@@ -304,17 +372,25 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     }
     break;
 
+  case LOCATION2_COL_SUBDIV1_NAME:
+  case LOCATION2_COL_SUBDIV2_CODE:
+  case LOCATION2_COL_SUBDIV2_NAME:
+    break; // not used
+
   case LOCATION1_COL_CITY:
+  case LOCATION2_COL_CITY_NAME:
     /* city */
-    tmp->city = strndup(tok, strlen(tok));
+    tmp->city = nstrdup(tok);
     break;
 
   case LOCATION1_COL_POSTAL:
+  case BLOCKS2_COL_POSTAL:
     /* postal code */
-    tmp->post_code = strndup(tok, strlen(tok));
+    tmp->post_code = nstrdup(tok);
     break;
 
   case LOCATION1_COL_LAT:
+  case BLOCKS2_COL_LAT:
     /* latitude */
     tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -325,6 +401,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION1_COL_LONG:
+  case BLOCKS2_COL_LONG:
     /* longitude */
     tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -335,9 +412,10 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION1_COL_METRO:
+  case LOCATION2_COL_METRO_CODE:
     /* metro code - whatever the heck that is */
     if (tok != NULL) {
-      tmp->metro_code = strtol(tok, &end, 10);
+      tmp->metro_code = strtoul(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
         log_invalid_col(state, "Invalid metro code", tok);
         state->parser.status = CSV_EUSER;
@@ -349,7 +427,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_AREA:
     /* area code - (phone) */
     if (tok != NULL) {
-      tmp->area_code = strtol(tok, &end, 10);
+      tmp->area_code = strtoul(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
         log_invalid_col(state, "Invalid area code", tok);
         state->parser.status = CSV_EUSER;
@@ -358,38 +436,60 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     }
     break;
 
+  case LOCATION2_COL_TIMEZONE:
+  case LOCATION2_COL_IS_IN_EU:
+  case BLOCKS2_COL_ACCURACY_RADIUS:
+    break; // not used
+
   case BLOCKS1_COL_STARTIP:
     /* start ip */
-    state->block_lower.addr = strtol(tok, &end, 10);
+    state->block_lower.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid Start IP", tok);
+      log_invalid_col(state, "Invalid start IP", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
 
   case BLOCKS1_COL_ENDIP:
     /* end ip */
-    state->block_upper.addr = strtol(tok, &end, 10);
+    state->block_upper.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid End IP", tok);
+      log_invalid_col(state, "Invalid end IP", tok);
+      state->parser.status = CSV_EUSER;
+    }
+    break;
+
+  case BLOCKS2_COL_NETWORK:
+    // network prefix
+    if (ipvx_pton_pfx(tok, &state->block_lower) < 0) {
+      log_invalid_col(state, "Invalid network", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
 
   case BLOCKS1_COL_ID:
+  case BLOCKS2_COL_GNID:
     /* id */
-    state->block_id = strtol(tok, &end, 10);
+    state->loc_id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
 
+  case BLOCKS2_COL_REG_CNTRY_GNID:
+  case BLOCKS2_COL_REP_CNTRY_GNID:
+  case BLOCKS2_COL_IS_ANON_PROXY:
+  case BLOCKS2_COL_IS_SATELLITE_PROV:
+    break; // not used
+
   default:
     log_invalid_col(state, "Unexpected trailing column", tok);
     state->parser.status = CSV_EUSER;
     return;
   }
+
+#undef tmp
 
   /* move on to the next column */
   state->current_column++;
@@ -407,46 +507,45 @@ static void parse_maxmind_location1_row(int c, void *data)
   khiter_t khiter;
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  check_column_count(state, "locations", LOCATION1_COL_ENDCOL);
+  check_column_count(state, LOCATION1_COL_ENDCOL);
 
   /* look up the continent code */
-  if ((khiter = kh_get(u16u16, state->country_continent, state->cntry_code)) ==
+  char *cc = state->wip_record->country_code;
+  uint16_t cntry_code = (cc[0] << 8) | cc[1];
+  if ((khiter = kh_get(u16u16, state->country_continent, cntry_code)) ==
       kh_end(state->country_continent)) {
-    ipmeta_log(__func__, "ERROR: Invalid country code (%s) (%x)",
-               state->tmp_record.country_code, state->cntry_code);
+    ipmeta_log(__func__, "ERROR: Unknown country code (%s) (%x)",
+               cc, cntry_code);
     state->parser.status = CSV_EUSER;
     return;
   }
 
   tmp_continent = kh_value(state->country_continent, khiter);
-  state->tmp_record.continent_code[0] = (tmp_continent & 0xFF00) >> 8;
-  state->tmp_record.continent_code[1] = (tmp_continent & 0x00FF);
+  state->wip_record->continent_code[0] = (tmp_continent & 0xFF00) >> 8;
+  state->wip_record->continent_code[1] = (tmp_continent & 0x00FF);
 
   /*
   ipmeta_log(__func__, NULL, "looking up %s (%x) got %x",
               tmp.country_code, cntry_code, tmp.continent_code);
   */
 
-  if ((record = ipmeta_provider_init_record(provider, state->tmp_record.id)) ==
+  if ((record = ipmeta_provider_init_record(provider, state->wip_record->id)) ==
       NULL) {
     ipmeta_log(__func__, "ERROR: Could not initialize meta record");
     state->parser.status = CSV_EUSER;
     return;
   }
 
-  state->tmp_record.source = provider->id;
-  memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
+  state->wip_record->source = provider->id;
+  memcpy(record, state->wip_record, sizeof(ipmeta_record_t));
 
   /* done processing the line */
 
-  /* increment the current line */
+  // reset for next line
   state->current_line++;
-  /* reset the current column */
-  state->current_column = LOCATION1_COL_FIRSTCOL;
-  /* reset the temp record */
-  memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-  /* reset the country code */
-  state->cntry_code = 0;
+  state->current_column = state->first_column;
+  // reset the temp record
+  memset(state->wip_record, 0, sizeof(ipmeta_record_t));
 
   return;
 }
@@ -456,69 +555,141 @@ static void parse_blocks1_row(int c, void *data)
   ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
 
-  ip_prefix_list_t *pfx_list = NULL;
-  ip_prefix_list_t *temp = NULL;
+  ipvx_prefix_list_t *pfx_list, *pfx_node;
   ipmeta_record_t *record = NULL;
 
   /* make sure we parsed exactly as many columns as we anticipated */
-  check_column_count(state, "blocks", BLOCKS1_COL_ENDCOL);
+  check_column_count(state, BLOCKS1_COL_ENDCOL);
 
-  assert(state->block_id > 0);
+  assert(state->loc_id > 0);
 
   /* convert the range to prefixes */
-  if (ip_range_to_prefix(state->block_lower, state->block_upper, &pfx_list) !=
+  if (ipvx_range_to_prefix(&state->block_lower, &state->block_upper, &pfx_list) !=
       0) {
-    ipmeta_log(__func__, "ERROR: Could not convert range to pfxs");
+    ipmeta_log(__func__, "ERROR: Could not convert range to prefixes");
     state->parser.status = CSV_EUSER;
     return;
   }
   assert(pfx_list != NULL);
 
   /* get the record from the provider */
-  if ((record = ipmeta_provider_get_record(provider, state->block_id)) ==
+  if ((record = ipmeta_provider_get_record(provider, state->loc_id)) ==
       NULL) {
     ipmeta_log(__func__, "ERROR: Missing record for location %d",
-               state->block_id);
+               state->loc_id);
     state->parser.status = CSV_EUSER;
     return;
   }
 
   /* iterate over and add each prefix to the trie */
-  while (pfx_list != NULL) {
-    uint32_t addr = htonl(pfx_list->prefix.addr);
-    if (ipmeta_provider_associate_record(provider, AF_INET, &addr,
-                                         pfx_list->prefix.masklen,
-                                         record) != 0) {
+  for (pfx_node = pfx_list; pfx_node; pfx_node = pfx_node->next) {
+    if (ipmeta_provider_associate_record(provider, pfx_node->prefix.family,
+          &pfx_node->prefix.addr, pfx_node->prefix.masklen, record) != 0) {
       ipmeta_log(__func__, "ERROR: Failed to associate record");
       state->parser.status = CSV_EUSER;
       return;
     }
+  }
+  ipvx_prefix_list_free(pfx_list);
 
-    /* store this node so we can free it */
-    temp = pfx_list;
-    /* move on to the next pfx */
-    pfx_list = pfx_list->next;
-    /* free this node (saves us walking the list twice) */
-    free(temp);
+  // reset for next line
+  state->current_line++;
+  state->current_column = state->first_column;
+}
+
+static void parse_maxmind_location2_row(int c, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
+  ipmeta_provider_maxmind_state_t *state = STATE(provider);
+  int khret;
+
+  // make sure we parsed exactly as many columns as we anticipated
+  check_column_count(state, LOCATION2_COL_ENDCOL);
+
+  khiter_t k = kh_put(ipm_records, state->loc_records, state->wip_record->id,
+      &khret);
+  kh_val(state->loc_records, k) = state->wip_record;
+  state->wip_record = NULL;
+
+  // reset for next line
+  state->current_line++;
+  state->current_column = state->first_column;
+
+  return;
+}
+
+static void parse_blocks2_row(int c, void *data)
+{
+  ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
+  ipmeta_provider_maxmind_state_t *state = STATE(provider);
+  ipmeta_record_t *merged;
+
+  /* make sure we parsed exactly as many columns as we anticipated */
+  check_column_count(state, BLOCKS2_COL_ENDCOL);
+
+  uint32_t block_id = ++state->block_cnt;
+
+  if ((merged = ipmeta_provider_init_record(provider, block_id)) ==
+      NULL) {
+    ipmeta_log(__func__, "ERROR: Could not initialize meta record");
+    state->parser.status = CSV_EUSER;
+    return;
   }
 
-  /* increment the current line */
+  // Copy wip_record (block data) to the merged record.
+  memcpy(merged, state->wip_record, sizeof(*merged));
+  merged->id = block_id;
+  merged->source = provider->id;
+
+  // Copy fields from the loc record to the merged record.
+  khiter_t k = kh_get(ipm_records, state->loc_records, state->loc_id);
+  ipmeta_record_t *loc_rec = kh_val(state->loc_records, k);
+
+  // merged->locale_code = nstrdup(loc_rec->locale_code);
+  memcpy(merged->continent_code, loc_rec->continent_code, 2);
+  memcpy(merged->country_code, loc_rec->country_code, 2);
+  merged->region = nstrdup(loc_rec->region); // subdiv1
+  merged->city = nstrdup(loc_rec->city);
+  merged->metro_code = loc_rec->metro_code;
+  // merged->timezone = nstrdup(loc_rec->timezone);
+  // TODO: Share the strings with loc_rec instead of duplicating them.
+
+  // add prefix to the trie
+  if (ipmeta_provider_associate_record(provider, state->block_lower.family,
+        &state->block_lower.addr, state->block_lower.masklen, merged) != 0) {
+    ipmeta_log(__func__, "ERROR: Failed to associate record");
+    state->parser.status = CSV_EUSER;
+    return;
+  }
+
+  // reset for next line
   state->current_line++;
-  /* reset the current column */
-  state->current_column = BLOCKS1_COL_FIRSTCOL;
+  state->current_column = state->first_column;
+  // reset the temp record
+  memset(state->wip_record, 0, sizeof(ipmeta_record_t));
 }
 
 #define startswith(buf, str)  (strncmp(buf, str "", sizeof(str)-1) == 0)
 
 /** Read a maxmind file */
-static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
-    const char *filename)
+static int read_maxmind_file(ipmeta_provider_t *provider, const char *filename)
 {
   ipmeta_provider_maxmind_state_t *state = STATE(provider);
   char buffer[BUFFER_LEN];
+  io_t *file;
   int read = 0;
+  int rc = -1; // fail, until proven otherwise
   state->first_column = -1;
+  state->current_line = 0;
   state->parse_row = NULL;
+
+  /* open the locations file */
+  if ((file = wandio_create(filename)) == NULL) {
+    ipmeta_log(__func__, "failed to open file '%s'",
+               filename);
+    goto end;
+  }
+  state->current_filename = filename;
 
   // Examine header lines to determine file format
   while (state->first_column < 0) {
@@ -526,11 +697,11 @@ static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
     read = wandio_fgets(file, &buffer, BUFFER_LEN, 0);
     if (read < 0) {
       ipmeta_log(__func__, "Error reading file: %s", filename);
-      return -1;
+      goto end;
     }
     if (read == 0) {
       ipmeta_log(__func__, "Empty file: %s", filename);
-      return -1;
+      goto end;
     }
     if (startswith(buffer, "Copyright")) {
       // skip
@@ -538,18 +709,33 @@ static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
       state->current_column = state->first_column = LOCATION1_COL_FIRSTCOL;
       state->parse_row = parse_maxmind_location1_row;
       // initialize state specific to location1
-      memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
-      state->cntry_code = 0;
+      state->wip_record = &state->scratch_record;
+      memset(state->wip_record, 0, sizeof(ipmeta_record_t));
     } else if (startswith(buffer, "startIpNum,")) {
       state->current_column = state->first_column = BLOCKS1_COL_FIRSTCOL;
       state->parse_row = parse_blocks1_row;
       // initialize state specific to blocks1
-      state->block_id = 0;
+      state->loc_id = 0;
+      state->block_lower.family = AF_INET;
       state->block_lower.masklen = 32;
+      state->block_upper.family = AF_INET;
       state->block_upper.masklen = 32;
+    } else if (startswith(buffer, "geoname_id,")) {
+      state->current_column = state->first_column = LOCATION2_COL_FIRSTCOL;
+      state->parse_row = parse_maxmind_location2_row;
+      // initialize state specific to location2
+      state->wip_record = NULL;
+      state->loc_records = kh_init(ipm_records);
+    } else if (startswith(buffer, "network,")) {
+      state->current_column = state->first_column = BLOCKS2_COL_FIRSTCOL;
+      state->parse_row = parse_blocks2_row;
+      // initialize state specific to blocks2
+      state->wip_record = &state->scratch_record;
+      memset(state->wip_record, 0, sizeof(ipmeta_record_t));
+      state->loc_id = 0;
     } else {
       ipmeta_log(__func__, "Unknown file format for %s", filename);
-      return -1;
+      goto end;
     }
     state->current_line++;
     continue;
@@ -564,12 +750,12 @@ static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
       ipmeta_log(__func__, "Error parsing %s file", provider->name);
       ipmeta_log(__func__, "CSV Error: %s",
                  csv_strerror(csv_error(&(state->parser))));
-      return -1;
+      goto end;
     }
   }
   if (read < 0) {
     ipmeta_log(__func__, "Error reading file %s", filename);
-    return -1;
+    goto end;
   }
 
   if (csv_fini(&(state->parser), parse_maxmind_cell, state->parse_row,
@@ -577,12 +763,15 @@ static int read_maxmind_file(ipmeta_provider_t *provider, io_t *file,
     ipmeta_log(__func__, "Error parsing %s file %s", provider->name, filename);
     ipmeta_log(__func__, "CSV Error: %s",
                csv_strerror(csv_error(&(state->parser))));
-    return -1;
+    goto end;
   }
 
-  csv_free(&(state->parser));
+  rc = 0; // success
 
-  return 0;
+end:
+  csv_free(&(state->parser));
+  wandio_destroy(file);
+  return rc;
 }
 
 /* ----- Class Helper Functions below here ------ */
@@ -1253,8 +1442,6 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
                                  char **argv)
 {
   ipmeta_provider_maxmind_state_t *state;
-  io_t *file = NULL;
-
   int country_cnt;
   /*int continent_cnt;*/
   const char **countries;
@@ -1293,46 +1480,23 @@ int ipmeta_provider_maxmind_init(ipmeta_provider_t *provider, int argc,
     kh_value(state->country_continent, khiter) = cont_code;
   }
 
-  /* open the locations file */
-  if ((file = wandio_create(state->locations_file)) == NULL) {
-    ipmeta_log(__func__, "failed to open location file '%s'",
-               state->locations_file);
-    return -1;
-  }
-
   /* populate the locations hash */
-  if (read_maxmind_file(provider, file, state->locations_file) != 0) {
+  if (read_maxmind_file(provider, state->locations_file) != 0) {
     ipmeta_log(__func__, "failed to parse locations file");
     goto err;
   }
 
-  /* close the locations file */
-  wandio_destroy(file);
-  file = NULL;
-
-  /* open the blocks file */
-  if ((file = wandio_create(state->blocks_file)) == NULL) {
-    ipmeta_log(__func__, "failed to open blocks file '%s'", state->blocks_file);
-    goto err;
-  }
-
   /* populate the ds (by joining on the id in the hash) */
-  if (read_maxmind_file(provider, file, state->blocks_file) != 0) {
+  if (read_maxmind_file(provider, state->blocks_file) != 0) {
     ipmeta_log(__func__, "failed to parse blocks file");
     goto err;
   }
-
-  /* close the blocks file */
-  wandio_destroy(file);
 
   /* ready to rock n roll */
 
   return 0;
 
 err:
-  if (file != NULL) {
-    wandio_destroy(file);
-  }
   usage(provider);
   return -1;
 }
@@ -1354,6 +1518,12 @@ void ipmeta_provider_maxmind_free(ipmeta_provider_t *provider)
     if (state->country_continent != NULL) {
       kh_destroy(u16u16, state->country_continent);
       state->country_continent = NULL;
+    }
+
+    if (state->loc_records) {
+      // TODO kh_free_vals(ipm_records, state->loc_records, ipmeta_free_record);
+      kh_destroy(ipm_records, state->loc_records);
+      state->loc_records = NULL;
     }
 
     ipmeta_provider_free_state(provider);

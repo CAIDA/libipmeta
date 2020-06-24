@@ -381,14 +381,20 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     tmp->city = nstrdup(tok);
     break;
 
-  case LOCATION1_COL_POSTAL:
   case BLOCKS2_COL_POSTAL:
+    if (!state->wip_record)
+      break; // we're ignoring this record because it had no GNID
+    // fall through
+  case LOCATION1_COL_POSTAL:
     /* postal code */
     tmp->post_code = nstrdup(tok);
     break;
 
-  case LOCATION1_COL_LAT:
   case BLOCKS2_COL_LAT:
+    if (!state->wip_record)
+      break; // we're ignoring this record because it had no GNID
+    // fall through
+  case LOCATION1_COL_LAT:
     /* latitude */
     tmp->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -398,8 +404,11 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     }
     break;
 
-  case LOCATION1_COL_LONG:
   case BLOCKS2_COL_LONG:
+    if (!state->wip_record)
+      break; // we're ignoring this record because it had no GNID
+    // fall through
+  case LOCATION1_COL_LONG:
     /* longitude */
     tmp->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
@@ -459,16 +468,24 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
 
   case BLOCKS2_COL_NETWORK:
     // network prefix
-    state->wip_record = malloc_zero(sizeof(ipmeta_record_t));
     if (ipvx_pton_pfx(tok, &state->block_lower) < 0) {
       log_invalid_col(state, "Invalid network", tok);
       state->parser.status = CSV_EUSER;
     }
     break;
 
-  case BLOCKS1_COL_ID:
   case BLOCKS2_COL_GNID:
-    /* location id (foreign key) */
+    if (!tok) {
+      // Maxmind v2 apparently has some blocks that are missing GNID and
+      // everything else except REG_CNTRY_GNID.  We'll ignore these blocks.
+      state->loc_id = 0;
+      break;
+    }
+    // Now we know we'll need wip_record.
+    state->wip_record = malloc_zero(sizeof(ipmeta_record_t));
+    // fall through
+  case BLOCKS1_COL_ID:
+    // location id (foreign key)
     state->loc_id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
@@ -582,6 +599,7 @@ static void parse_blocks1_row(int c, void *data)
   // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
+  state->loc_id = 0;
 }
 
 static void parse_maxmind_location2_row(int c, void *data)
@@ -617,6 +635,8 @@ static void parse_blocks2_row(int c, void *data)
   check_column_count(state, BLOCKS2_COL_ENDCOL);
 
   ipmeta_record_t *blk_rec = state->wip_record;
+  if (!state->wip_record)
+    goto end; // we're ignoring this record because it had no GNID
 
   blk_rec->id = ++state->block_cnt;
 
@@ -645,10 +665,12 @@ static void parse_blocks2_row(int c, void *data)
     return;
   }
 
+end:
   // reset for next record
   state->current_line++;
   state->current_column = state->first_column;
   state->wip_record = NULL;
+  state->loc_id = 0;
 }
 
 #define startswith(buf, str)  (strncmp(buf, str "", sizeof(str)-1) == 0)

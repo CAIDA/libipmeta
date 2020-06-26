@@ -392,10 +392,14 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
         if (i < record->asn_cnt - 1)
           ipmeta_printf(file, "_");
       }
-      ipmeta_printf(file, "|%" PRIu64 "\n", record->asn_ip_cnt);
+      ipmeta_printf(file, "|%" PRIu64, record->asn_ip_cnt);
     } else {
-      ipmeta_printf(file, "|\n");
+      ipmeta_printf(file, "|");
     }
+    ipmeta_printf(file,
+             "%s" SEPARATOR "%d" "\n",
+             record->timezone == NULL ? "" : record->timezone,
+             record->accuracy);
   }
   return;
 }
@@ -408,6 +412,7 @@ void ipmeta_write_record_header(iow_t *file)
                  "latitude" SEPARATOR "longitude" SEPARATOR
                  "metro-code" SEPARATOR "area-code" SEPARATOR
                  "region-code" SEPARATOR "connection-speed" SEPARATOR
-                 "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"
+                 "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt" SEPARATOR
+                 "timezone" SEPARATOR "accuracy"
                  "\n");
 }

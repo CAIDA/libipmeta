@@ -188,6 +188,12 @@ typedef struct ipmeta_record {
   /** Number of IDs in the Polygon IDs array */
   int polygon_ids_cnt;
 
+  /** time zone name */
+  char *timezone;
+
+  /** Accuracy radius of lat/lon, km (0 == unknown) */
+  int accuracy;
+
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
   /** The next record in the list */

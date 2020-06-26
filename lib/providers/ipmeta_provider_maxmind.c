@@ -144,7 +144,7 @@ typedef enum blocks1_cols {
 typedef enum locations2_cols {
   LOCATION2_COL_FIRSTCOL = 3000, ///< ID of first column in table
   LOCATION2_COL_GNID = 3000,     ///< geonames ID
-  LOCATION2_COL_LOCALE_CODE,     ///< locale code
+  LOCATION2_COL_LOCALE_CODE,     ///< locale code for location strings
   LOCATION2_COL_CONTINENT_CODE,  ///< 2-char continent code
   LOCATION2_COL_CONTINENT_NAME,  ///< continent name
   LOCATION2_COL_CC,              ///< ISO 3166-1 2-char country code
@@ -371,7 +371,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION2_COL_LOCALE_CODE:
-    break; // not used
+    break; // not used (it's the same for every record in the file)
 
   case LOCATION2_COL_CONTINENT_CODE:
     // continent code
@@ -472,9 +472,20 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break;
 
   case LOCATION2_COL_TIMEZONE:
+    coldup(state, col, rec->timezone, tok);
+    break;
+
   case LOCATION2_COL_IS_IN_EU:
-  case BLOCKS2_COL_ACCURACY_RADIUS:
     break; // not used
+
+  case BLOCKS2_COL_ACCURACY_RADIUS:
+    if (tok != NULL) {
+      rec->accuracy = strtoul(tok, &end, 10);
+      if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
+        col_invalid(state, "Invalid accuracy radius", tok);
+      }
+    }
+    break;
 
   case BLOCKS1_COL_STARTIP:
     /* start ip */
@@ -657,7 +668,7 @@ static void parse_blocks2_row(int c, void *data)
   coldup(state, row, blk_rec->region, loc_rec->region);
   coldup(state, row, blk_rec->city, loc_rec->city);
   blk_rec->metro_code = loc_rec->metro_code;
-  // coldup(state, row, blk_rec->timezone, loc_rec->timezone);
+  coldup(state, row, blk_rec->timezone, loc_rec->timezone);
   // TODO: Share the strings with loc_rec instead of duplicating them.
 
   // add prefix to the trie

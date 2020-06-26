@@ -50,6 +50,7 @@
 #define STATE(provname) (IPMETA_PROVIDER_STATE(maxmind, provname))
 
 #define BUFFER_LEN 1024
+#define EARTH_CIRCUMFERENCE 40000 /* km */
 
 KHASH_INIT(u16u16, uint16_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
 KHASH_INIT(ipm_records, int, ipmeta_record_t *, 1, kh_int_hash_func,
@@ -365,7 +366,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION2_COL_GNID:
     state->record = malloc_zero(sizeof(ipmeta_record_t));
     rec->id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       col_invalid(state, "Invalid ID", tok);
     }
     break;
@@ -433,7 +434,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_LAT:
     /* latitude */
     rec->latitude = strtod(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || rec->latitude < -90 || rec->latitude > 90) {
       col_invalid(state, "Invalid latitude", tok);
     }
     break;
@@ -445,7 +446,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_LONG:
     /* longitude */
     rec->longitude = strtod(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || rec->longitude < -180 || rec->longitude > 180) {
       col_invalid(state, "Invalid longitude", tok);
     }
     break;
@@ -453,22 +454,22 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_METRO:
   case LOCATION2_COL_METRO_CODE:
     /* metro code - whatever the heck that is */
-    if (tok != NULL) {
+    if (tok && *tok) {
       rec->metro_code = strtoul(tok, &end, 10);
-      if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
+      if (end == tok || *end || errno == ERANGE) {
         col_invalid(state, "Invalid metro code", tok);
       }
-    }
+    } // else, empty field is 0
     break;
 
   case LOCATION1_COL_AREA:
     /* area code - (phone) */
-    if (tok != NULL) {
+    if (tok && *tok) {
       rec->area_code = strtoul(tok, &end, 10);
-      if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
+      if (end == tok || *end || errno == ERANGE) {
         col_invalid(state, "Invalid area code", tok);
       }
-    }
+    } // else, empty field is 0
     break;
 
   case LOCATION2_COL_TIMEZONE:
@@ -479,18 +480,18 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break; // not used
 
   case BLOCKS2_COL_ACCURACY_RADIUS:
-    if (tok != NULL) {
+    if (tok && *tok) {
       rec->accuracy = strtoul(tok, &end, 10);
-      if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
+      if (end == tok || *end || rec->accuracy > EARTH_CIRCUMFERENCE / 4) {
         col_invalid(state, "Invalid accuracy radius", tok);
       }
-    }
+    } // else, empty field is 0
     break;
 
   case BLOCKS1_COL_STARTIP:
     /* start ip */
     state->block_lower.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       col_invalid(state, "Invalid start IP", tok);
     }
     break;
@@ -498,7 +499,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case BLOCKS1_COL_ENDIP:
     /* end ip */
     state->block_upper.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       col_invalid(state, "Invalid end IP", tok);
     }
     break;
@@ -523,7 +524,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case BLOCKS1_COL_ID:
     // location id (foreign key)
     state->loc_id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       col_invalid(state, "Invalid ID", tok);
     }
     break;

@@ -425,7 +425,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
   case LOCATION_COL_ID:
     /* init this record */
     tmp->id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -509,7 +509,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
   case LOCATION_COL_LAT:
   case IPV6_COL_LAT:
     tmp->latitude = strtod(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || tmp->latitude < -90 || tmp->latitude > 90) {
       log_invalid_col(state, "Invalid latitude", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -520,7 +520,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
   case IPV6_COL_LONG:
     /* longitude */
     tmp->longitude = strtod(tok, &end);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || tmp->longitude < -180 || tmp->longitude > 180) {
       log_invalid_col(state, "Invalid longitude", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -532,7 +532,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
     /* metro code - whatever the heck that is */
     if (tok != NULL) {
       tmp->metro_code = strtoul(tok, &end, 10);
-      if (end == tok || *end != '\0' || errno == ERANGE) {
+      if (end == tok || *end || errno == ERANGE) {
         log_invalid_col(state, "Invalid metro code", tok);
         state->parser.status = CSV_EUSER;
         return;
@@ -551,7 +551,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
   case LOCATION_COL_RCODE:
   case IPV6_COL_RCODE:
     tmp->region_code = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid region code", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -566,8 +566,7 @@ static void parse_location_or_ipv6_cell(void *s, size_t i, void *data)
   case IPV6_COL_CONTCODE:
     if (tok != NULL) {
       tmp_continent = strtoul(tok, &end, 10);
-      if (end == tok || *end != '\0' || errno == ERANGE ||
-          tmp_continent > CONTINENT_MAX) {
+      if (end == tok || *end || tmp_continent > CONTINENT_MAX) {
         log_invalid_col(state, "Invalid continent code", tok);
         state->parser.status = CSV_EUSER;
         return;
@@ -698,7 +697,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   case BLOCKS_COL_STARTIP:
     /* start ip */
     state->block_lower.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid start IP", tok);
       state->parser.status = CSV_EUSER;
     }
@@ -707,7 +706,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   case BLOCKS_COL_ENDIP:
     /* end ip */
     state->block_upper.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid end IP", tok);
       state->parser.status = CSV_EUSER;
     }
@@ -716,7 +715,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
   case BLOCKS_COL_ID:
     /* id */
     state->block_id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
     }
@@ -959,7 +958,7 @@ static void parse_regions_cell(void *s, size_t i, void *data)
 
   case REGION_COL_CODE:
     state->tmp_region.code = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid code", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1117,9 +1116,8 @@ static void parse_country_cell(void *s, size_t i, void *data)
     break;
 
   case COUNTRY_COL_REGIONS:
-    state->tmp_country.regions = strtol(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE ||
-        (state->tmp_country.regions != 0 && state->tmp_country.regions != 1)) {
+    state->tmp_country.regions = strtoul(tok, &end, 10);
+    if (end == tok || *end || state->tmp_country.regions > 1) {
       log_invalid_col(state, "Invalid regions value", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1128,7 +1126,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
 
   case COUNTRY_COL_CONTCODE:
     state->tmp_country.continent_code = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid continent code", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1158,7 +1156,7 @@ static void parse_country_cell(void *s, size_t i, void *data)
 
   case COUNTRY_COL_CODE:
     state->tmp_country.code = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid code", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1297,7 +1295,7 @@ static void parse_polygons_cell(void *s, size_t i, void *data)
   case POLYGON_COL_ID:
     /* Polygon id */
     state->tmp_polygon.id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid polygon ID", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1451,7 +1449,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
       return;
     }
     state->tmp_na_to_polygon.na_loc_id = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid Net Acuity ID", tok);
       state->parser.status = CSV_EUSER;
       return;
@@ -1465,7 +1463,7 @@ static void parse_na_to_polygon_cell(void *s, size_t i, void *data)
       return;
     }
     state->tmp_na_to_polygon.polygon_ids[table_id] = strtoul(tok, &end, 10);
-    if (end == tok || *end != '\0' || errno == ERANGE) {
+    if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid polygon ID", tok);
       state->parser.status = CSV_EUSER;
       return;

@@ -48,7 +48,6 @@
 #define PROVIDER_NAME "maxmind"
 
 #define STATE(provname) (IPMETA_PROVIDER_STATE(maxmind, provname))
-#define nstrdup(str) ((str) ? strdup(str) : NULL)
 
 #define BUFFER_LEN 1024
 
@@ -303,19 +302,46 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
   return 0;
 }
 
-#define log_invalid_col(state, msg, tok)                                       \
-  ipmeta_log(__func__, "%s \"%s\" at %s:%d:%d", msg, tok ? tok : "",           \
-    state->current_filename, state->current_line, state->current_column % 1000)
+// Handle a column error.  (Requires at least 3 arguments.)
+#define col_error(state, fmt, ...)                                             \
+  do {                                                                         \
+    ipmeta_log(__func__, "ERROR: " fmt " at %s:%d:%d",                         \
+      __VA_ARGS__, (state)->current_filename, (state)->current_line,           \
+      state->current_column % 1000);                                           \
+    (state)->parser.status = CSV_EUSER;                                        \
+    return;                                                                    \
+  } while (0)
+
+// Handle a row error.  (Requires at least 3 arguments.)
+#define row_error(state, fmt, ...)                                             \
+  do {                                                                         \
+    ipmeta_log(__func__, "ERROR: " fmt " at %s:%d",                            \
+      __VA_ARGS__, (state)->current_filename, (state)->current_line);          \
+    (state)->parser.status = CSV_EUSER;                                        \
+    return;                                                                    \
+  } while (0)
+
+// Handle an invalid column value.
+#define col_invalid(state, msg, tok)                                           \
+  do {                                                                         \
+    if (tok) {                                                                 \
+      col_error((state), "%s \"%s\"", msg, (tok));                             \
+    } else {                                                                   \
+      col_error((state), "%s (empty)", msg);                                   \
+    }                                                                          \
+  } while (0)
+
+// strdup a non-NULL column value and handle error.  type must be row or col.
+#define coldup(state, type, dst, src)                                          \
+  if ((src) && !((dst) = strdup(src))) {                                       \
+    type##_error((state), "Out of memory for \"%s\"", (src));                  \
+  } else (void)0 /* this makes a semicolon after it valid */
 
 #define check_column_count(state, endcol)                                      \
   if ((state)->current_column != (endcol)) {                                   \
-    ipmeta_log(__func__,                                                       \
-      "ERROR: Expected %d columns, found %d, at %s line %d",                   \
-      (endcol) % 1000, (state)->current_column % 1000,                         \
-      (state)->current_filename, (state)->current_line);                       \
-    (state)->parser.status = CSV_EUSER;                                        \
-    return;                                                                    \
-  } else (void)0 /* this is here to make a semicolon after it valid */
+    row_error((state), "Expected %d columns, found %d",                        \
+      (endcol) % 1000, (state)->current_column % 1000);                        \
+  } else (void)0 /* this makes a semicolon after it valid */
 
 /* Parse a maxmind cell */
 static void parse_maxmind_cell(void *s, size_t i, void *data)
@@ -340,9 +366,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     state->record = malloc_zero(sizeof(ipmeta_record_t));
     rec->id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid ID", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+      col_invalid(state, "Invalid ID", tok);
     }
     break;
 
@@ -352,9 +376,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION2_COL_CONTINENT_CODE:
     // continent code
     if (tok == NULL || strlen(tok) != 2) {
-      log_invalid_col(state, "Invalid continent code", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+      col_invalid(state, "Invalid continent code", tok);
     }
     memcpy(rec->continent_code, tok, 2);
     break;
@@ -369,9 +391,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
       rec->country_code[0] = '?';
       rec->country_code[1] = '?';
     } else if (strlen(tok) != 2) {
-      log_invalid_col(state, "Invalid country code", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+      col_invalid(state, "Invalid country code", tok);
     } else {
       memcpy(rec->country_code, tok, 2);
     }
@@ -383,11 +403,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_REGION:
   case LOCATION2_COL_SUBDIV1_CODE:
     /* region string */
-    if (tok != NULL && (rec->region = strdup(tok)) == NULL) {
-      ipmeta_log(__func__, "Region code copy failed (%s)", tok);
-      state->parser.status = CSV_EUSER;
-      return;
-    }
+    coldup(state, col, rec->region, tok);
     break;
 
   case LOCATION2_COL_SUBDIV1_NAME:
@@ -398,7 +414,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
   case LOCATION1_COL_CITY:
   case LOCATION2_COL_CITY_NAME:
     /* city */
-    rec->city = nstrdup(tok);
+    coldup(state, col, rec->city, tok);
     break;
 
   case BLOCKS2_COL_POSTAL:
@@ -407,7 +423,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     // fall through
   case LOCATION1_COL_POSTAL:
     /* postal code */
-    rec->post_code = nstrdup(tok);
+    coldup(state, col, rec->post_code, tok);
     break;
 
   case BLOCKS2_COL_LAT:
@@ -418,9 +434,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     /* latitude */
     rec->latitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid latitude", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+      col_invalid(state, "Invalid latitude", tok);
     }
     break;
 
@@ -432,9 +446,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     /* longitude */
     rec->longitude = strtod(tok, &end);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid longitude", tok);
-      state->parser.status = CSV_EUSER;
-      return;
+      col_invalid(state, "Invalid longitude", tok);
     }
     break;
 
@@ -444,9 +456,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     if (tok != NULL) {
       rec->metro_code = strtoul(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
-        log_invalid_col(state, "Invalid metro code", tok);
-        state->parser.status = CSV_EUSER;
-        return;
+        col_invalid(state, "Invalid metro code", tok);
       }
     }
     break;
@@ -456,9 +466,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     if (tok != NULL) {
       rec->area_code = strtoul(tok, &end, 10);
       if (*tok != '\0' && (end == tok || *end != '\0' || errno == ERANGE)) {
-        log_invalid_col(state, "Invalid area code", tok);
-        state->parser.status = CSV_EUSER;
-        return;
+        col_invalid(state, "Invalid area code", tok);
       }
     }
     break;
@@ -472,8 +480,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     /* start ip */
     state->block_lower.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid start IP", tok);
-      state->parser.status = CSV_EUSER;
+      col_invalid(state, "Invalid start IP", tok);
     }
     break;
 
@@ -481,16 +488,14 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     /* end ip */
     state->block_upper.addr.v4.s_addr = htonl(strtoul(tok, &end, 10));
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid end IP", tok);
-      state->parser.status = CSV_EUSER;
+      col_invalid(state, "Invalid end IP", tok);
     }
     break;
 
   case BLOCKS2_COL_NETWORK:
     // network prefix
     if (ipvx_pton_pfx(tok, &state->block_lower) < 0) {
-      log_invalid_col(state, "Invalid network", tok);
-      state->parser.status = CSV_EUSER;
+      col_invalid(state, "Invalid network", tok);
     }
     break;
 
@@ -508,8 +513,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     // location id (foreign key)
     state->loc_id = strtoul(tok, &end, 10);
     if (end == tok || *end != '\0' || errno == ERANGE) {
-      log_invalid_col(state, "Invalid ID", tok);
-      state->parser.status = CSV_EUSER;
+      col_invalid(state, "Invalid ID", tok);
     }
     break;
 
@@ -520,9 +524,7 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break; // not used
 
   default:
-    log_invalid_col(state, "Unexpected trailing column", tok);
-    state->parser.status = CSV_EUSER;
-    return;
+    col_invalid(state, "Unexpected trailing column", tok);
   }
 
 #undef rec
@@ -546,9 +548,7 @@ static void parse_maxmind_location1_row(int c, void *data)
   char *cc = state->record->country_code;
   if ((khiter = kh_get(u16u16, state->country_continent, c2_to_u16(cc))) ==
       kh_end(state->country_continent)) {
-    ipmeta_log(__func__, "ERROR: Unknown country code (%s)", cc);
-    state->parser.status = CSV_EUSER;
-    return;
+    row_error(state, "Unknown country code (%s)", cc);
   }
 
   uint16_t u16_continent = kh_value(state->country_continent, khiter);
@@ -580,28 +580,21 @@ static void parse_blocks1_row(int c, void *data)
   /* convert the range to prefixes */
   if (ipvx_range_to_prefix(&state->block_lower, &state->block_upper, &pfx_list) !=
       0) {
-    ipmeta_log(__func__, "ERROR: Could not convert range to prefixes");
-    state->parser.status = CSV_EUSER;
-    return;
+    row_error(state, "%s", "Could not convert range to prefixes");
   }
   assert(pfx_list != NULL);
 
   /* get the record from the provider */
   if ((record = ipmeta_provider_get_record(provider, state->loc_id)) ==
       NULL) {
-    ipmeta_log(__func__, "ERROR: Missing record for location %d",
-               state->loc_id);
-    state->parser.status = CSV_EUSER;
-    return;
+    row_error(state, "Missing record for location %d", state->loc_id);
   }
 
   /* iterate over and add each prefix to the trie */
   for (pfx_node = pfx_list; pfx_node; pfx_node = pfx_node->next) {
     if (ipmeta_provider_associate_record(provider, pfx_node->prefix.family,
           &pfx_node->prefix.addr, pfx_node->prefix.masklen, record) != 0) {
-      ipmeta_log(__func__, "ERROR: Failed to associate record");
-      state->parser.status = CSV_EUSER;
-      return;
+      row_error(state, "%s", "Failed to associate record");
     }
   }
   ipvx_prefix_list_free(pfx_list);
@@ -658,20 +651,19 @@ static void parse_blocks2_row(int c, void *data)
   khiter_t k = kh_get(ipm_records, state->loc_records, state->loc_id);
   ipmeta_record_t *loc_rec = kh_val(state->loc_records, k);
 
-  // blk_rec->locale_code = nstrdup(loc_rec->locale_code);
+  // coldup(state, row, blk_rec->locale_code, loc_rec->locale_code);
   memcpy(blk_rec->continent_code, loc_rec->continent_code, 2);
   memcpy(blk_rec->country_code, loc_rec->country_code, 2);
-  blk_rec->region = nstrdup(loc_rec->region); // subdiv1
-  blk_rec->city = nstrdup(loc_rec->city);
+  coldup(state, row, blk_rec->region, loc_rec->region);
+  coldup(state, row, blk_rec->city, loc_rec->city);
   blk_rec->metro_code = loc_rec->metro_code;
-  // blk_rec->timezone = nstrdup(loc_rec->timezone);
+  // coldup(state, row, blk_rec->timezone, loc_rec->timezone);
   // TODO: Share the strings with loc_rec instead of duplicating them.
 
   // add prefix to the trie
   if (ipmeta_provider_associate_record(provider, state->block_lower.family,
         &state->block_lower.addr, state->block_lower.masklen, blk_rec) != 0) {
-    ipmeta_log(__func__, "ERROR: Failed to associate record");
-    state->parser.status = CSV_EUSER;
+    row_error(state, "%s", "Failed to associate record");
     return;
   }
 
@@ -787,7 +779,8 @@ static int read_maxmind_file(ipmeta_provider_t *provider, int filetype,
   }
 
   if (found_type != filetype) {
-    ipmeta_log(__func__, "Error: %s is not a %s file", filename, filetype_name[filetype]);
+    ipmeta_log(__func__, "Error: %s is not a MaxMind %s file",
+        filename, filetype_name[filetype]);
     goto end;
   }
   if (state->maxmind_version != 0 && state->maxmind_version != found_version) {

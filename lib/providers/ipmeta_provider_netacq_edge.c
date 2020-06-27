@@ -54,8 +54,6 @@
 
 #define POLYGON_FILE_CNT_MAX 8 /* increase as you like */
 
-#define IPV6_ID_START 0x8000000 /* avoid collisions with v4 location ids */
-
 /** The basic fields that every instance of this provider have in common */
 static ipmeta_provider_t ipmeta_provider_netacq_edge = {
   IPMETA_PROVIDER_NETACQ_EDGE, PROVIDER_NAME,
@@ -105,7 +103,8 @@ typedef struct ipmeta_provider_netacq_edge_state {
   int current_line;
   int current_column; // column ID (not column number)
   ipmeta_record_t tmp_record;
-  uint32_t block_id;
+  uint32_t loc_id;
+  uint32_t max_loc_id;
   ipvx_prefix_t block_lower;
   ipvx_prefix_t block_upper;
   ipmeta_provider_netacq_edge_region_t tmp_region;
@@ -637,6 +636,10 @@ static void parse_location_row(int c, void *data)
   state->tmp_record.source = provider->id;
   memcpy(record, &(state->tmp_record), sizeof(ipmeta_record_t));
 
+  if (state->max_loc_id < state->tmp_record.id) {
+    state->max_loc_id = state->tmp_record.id;
+  }
+
   /* tag with polygon id, if there is a match in the netacq2polygons table */
   if ((record->id < state->na_to_polygons_cnt) &&
       state->na_to_polygons[record->id] != NULL) {
@@ -675,6 +678,7 @@ static int read_locations(ipmeta_provider_t *provider, io_t *file)
   state->current_column = LOCATION_COL_FIRSTCOL;
   state->current_line = 0;
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
+  assert(state->max_loc_id == 0);
 
   return read_netacq_edge_file(provider, file, "Location",
       parse_location_or_ipv6_cell, parse_location_row);
@@ -714,7 +718,7 @@ static void parse_blocks_cell(void *s, size_t i, void *data)
 
   case BLOCKS_COL_ID:
     /* id */
-    state->block_id = strtoul(tok, &end, 10);
+    state->loc_id = strtoul(tok, &end, 10);
     if (end == tok || *end || errno == ERANGE) {
       log_invalid_col(state, "Invalid ID", tok);
       state->parser.status = CSV_EUSER;
@@ -749,7 +753,7 @@ static void parse_blocks_row(int c, void *data)
   /* make sure we parsed exactly as many columns as we anticipated */
   check_column_count(state, "blocks", BLOCKS_COL_ENDCOL);
 
-  assert(state->block_id > 0);
+  assert(state->loc_id > 0);
 
   /* convert the range to prefixes */
   if (ipvx_range_to_prefix(&state->block_lower, &state->block_upper, &pfx_list) !=
@@ -761,10 +765,10 @@ static void parse_blocks_row(int c, void *data)
   assert(pfx_list != NULL);
 
   /* get the record from the provider */
-  if ((record = ipmeta_provider_get_record(provider, state->block_id)) ==
+  if ((record = ipmeta_provider_get_record(provider, state->loc_id)) ==
       NULL) {
     ipmeta_log(__func__, "ERROR: Missing record for location %d",
-               state->block_id);
+               state->loc_id);
     state->parser.status = CSV_EUSER;
     return;
   }
@@ -795,7 +799,7 @@ static int read_blocks(ipmeta_provider_t *provider, io_t *file)
   /* reset the state variables before we start */
   state->current_column = BLOCKS_COL_FIRSTCOL;
   state->current_line = 0;
-  state->block_id = 0;
+  state->loc_id = 0;
   state->block_lower.family = AF_INET;
   state->block_upper.family = AF_INET;
   state->block_lower.masklen = 32;
@@ -822,7 +826,7 @@ static void parse_ipv6_row(int c, void *data)
   /* make sure we parsed exactly as many columns as we anticipated */
   check_column_count(state, "ipv6", IPV6_COL_ENDCOL);
 
-  if ((record = ipmeta_provider_init_record(provider, state->block_id)) ==
+  if ((record = ipmeta_provider_init_record(provider, state->loc_id)) ==
       NULL) {
     ipmeta_log(__func__, "ERROR: Could not initialize meta record");
     state->parser.status = CSV_EUSER;
@@ -856,7 +860,7 @@ static void parse_ipv6_row(int c, void *data)
   /* reset the temp record */
   memset(&(state->tmp_record), 0, sizeof(ipmeta_record_t));
 
-  state->block_id++; // generate our own ids
+  state->loc_id++; // generate our own ids
 
   /* increment the current line */
   state->current_line++;
@@ -872,7 +876,11 @@ static int read_ipv6(ipmeta_provider_t *provider, io_t *file)
   /* reset the state variables before we start */
   state->current_column = IPV6_COL_FIRSTCOL;
   state->current_line = 0;
-  state->block_id = IPV6_ID_START;
+  // The IPv4 loc_ids are (nearly) contiguous.  If we break this trend now,
+  // khash's linear probing would perform very poorly due to clustering of the
+  // default int_hash_func.  To maintain good performance, we must continue
+  // the contiguous trend with our self-generated IPv6 loc_ids.
+  state->loc_id = state->max_loc_id + 1;
   state->block_lower.family = AF_INET6;
   state->block_upper.family = AF_INET6;
   state->block_lower.masklen = 128;

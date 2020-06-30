@@ -39,6 +39,7 @@
 #include "libipmeta_int.h"
 #include "ipmeta_ds.h"
 #include "ipmeta_provider.h"
+#include "ipvx_utils.h"
 
 #define MAXOPTS 1024
 
@@ -168,6 +169,23 @@ inline int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
   }
   return ipmeta->datastore->lookup_addr(ipmeta->datastore, family, addrp,
                                         providermask, found);
+}
+
+inline int ipmeta_lookup(ipmeta_t *ipmeta, const char *addr_str,
+                         uint32_t providermask, ipmeta_record_set_t *found)
+{
+  ipvx_prefix_t pfx;
+  int rc;
+
+  if ((rc = ipvx_pton_pfx(addr_str, &pfx)) < 0) {
+    return rc;
+  }
+
+  if (pfx.masklen == ipvx_family_size(pfx.family)) {
+    return ipmeta_lookup_addr(ipmeta, pfx.family, &pfx.addr, providermask, found);
+  } else {
+    return ipmeta_lookup_pfx(ipmeta, pfx.family, &pfx.addr, pfx.masklen, providermask, found);
+  }
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)

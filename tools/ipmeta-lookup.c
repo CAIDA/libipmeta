@@ -43,7 +43,6 @@
 #include "libipmeta.h"
 #include "ipmeta_ds.h"
 #include "utils.h"
-#include "ipvx_utils.h"
 
 /** The length of the static line buffer */
 #define BUFFER_LEN 1024
@@ -60,24 +59,9 @@ static int lookup(const char *addr_str, iow_t *outfile)
 {
   char output_prefix[BUFFER_LEN];
 
-  int rc;
-
-  ipvx_prefix_t pfx;
-  rc = ipvx_pton_pfx(addr_str, &pfx);
-  if (rc < 0) {
-    if (rc == IPVX_ERR_INVALID_ADDR)
-      fprintf(stderr, "ERROR: invalid address \"%s\"\n", addr_str);
-    else if (rc == IPVX_ERR_INVALID_MASKLEN)
-      fprintf(stderr, "ERROR: invalid prefix length \"%s\"\n", addr_str);
-    else
-      fprintf(stderr, "ERROR: invalid prefix \"%s\"\n", addr_str);
+  if (ipmeta_lookup(ipmeta, addr_str, providermask, records) < 0) {
+    fprintf(stderr, "ERROR: invalid address or prefix \"%s\"\n", addr_str);
     return -1;
-  }
-
-  if (pfx.masklen == ipvx_family_size(pfx.family)) {
-    ipmeta_lookup_addr(ipmeta, pfx.family, &pfx.addr, providermask, records);
-  } else {
-    ipmeta_lookup_pfx(ipmeta, pfx.family, &pfx.addr, pfx.masklen, providermask, records);
   }
 
   /* look it up using each provider */

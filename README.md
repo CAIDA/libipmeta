@@ -20,14 +20,14 @@ sudo apt install ipmeta
 
 ### From Release Tarball
 
-To get started using `libipmeta`, download a [release](https://github.com/CAIDA/libipmeta/releases).
-
-You will need [libwandio](https://research.wand.net.nz/software/libwandio.php).
+1. Install [libwandio](https://research.wand.net.nz/software/libwandio.php).
+2. Download a [release](https://github.com/CAIDA/libipmeta/releases).
 
 Then:
 ```
-$ ./configure
-$ sudo make install
+./configure
+make
+sudo make install
 ```
 On some systems you may need to also run `sudo ldconfig` after installation.
 
@@ -40,12 +40,13 @@ Debian/Ubuntu).
 Then run the following commands in sequence:
 
 ```
-$ git clone https://github.com/CAIDA/libipmeta.git
-$ cd libipmeta
-$ git submodule init
-$ git submodule update
-$ ./autogen.sh
-$ ./configure
-$ sudo make install
-$ sudo ldconfig
+git clone https://github.com/CAIDA/libipmeta.git
+cd libipmeta
+git submodule init
+git submodule update
+./autogen.sh
+./configure
+make
+sudo make install
+sudo ldconfig
 ```

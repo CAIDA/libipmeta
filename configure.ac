@@ -24,7 +24,7 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipmeta], [2.1.2], [software@caida.org])
+AC_INIT([libipmeta], [3.0.0], [software@caida.org])
 AM_INIT_AUTOMAKE([foreign])
 
 # The following define the version numbers for the libtool-created library
@@ -32,7 +32,7 @@ AM_INIT_AUTOMAKE([foreign])
 # should use semantic versioning, for more info on the library versioning, see
 # https://www.sourceware.org/autobook/autobook/autobook_91.html
 
-LIBIPMETA_MAJOR_VERSION=3
+LIBIPMETA_MAJOR_VERSION=4
 LIBIPMETA_MID_VERSION=0
 LIBIPMETA_MINOR_VERSION=0
 

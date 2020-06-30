@@ -69,7 +69,7 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   ipmeta_provider_pfx2as_alloc,
 };
 
-static void free_record(ipmeta_record_t *record)
+void ipmeta_free_record(ipmeta_record_t *record)
 {
   if (record == NULL) {
     return;
@@ -185,7 +185,7 @@ void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
     /* free the records hash */
     if (provider->all_records != NULL) {
       /* this is where the records are free'd */
-      kh_free_vals(ipmeta_rechash, provider->all_records, free_record);
+      kh_free_vals(ipmeta_rechash, provider->all_records, ipmeta_free_record);
       kh_destroy(ipmeta_rechash, provider->all_records);
       provider->all_records = NULL;
     }
@@ -213,30 +213,33 @@ void ipmeta_provider_free_state(ipmeta_provider_t *provider)
   provider->state = NULL;
 }
 
+ipmeta_record_t *ipmeta_provider_insert_record(ipmeta_provider_t *provider,
+                                               ipmeta_record_t *record)
+{
+  khiter_t khiter;
+  int khret;
+
+  record->source = provider->id;
+
+  khiter = kh_put(ipmeta_rechash, provider->all_records, record->id, &khret);
+  assert(khret != 0); // id was not already present
+  kh_value(provider->all_records, khiter) = record;
+
+  return record;
+}
+
 ipmeta_record_t *ipmeta_provider_init_record(ipmeta_provider_t *provider,
                                              uint32_t id)
 {
   ipmeta_record_t *record;
-  khiter_t khiter;
-  int khret;
 
   if ((record = malloc_zero(sizeof(ipmeta_record_t))) == NULL) {
     return NULL;
   }
 
   record->id = id;
-  record->source = provider->id;
 
-  assert(kh_get(ipmeta_rechash, provider->all_records, id) ==
-         kh_end(provider->all_records));
-
-  khiter = kh_put(ipmeta_rechash, provider->all_records, id, &khret);
-  kh_value(provider->all_records, khiter) = record;
-
-  assert(kh_get(ipmeta_rechash, provider->all_records, id) !=
-         kh_end(provider->all_records));
-
-  return record;
+  return ipmeta_provider_insert_record(provider, record);
 }
 
 ipmeta_record_t *ipmeta_provider_get_record(ipmeta_provider_t *provider,
@@ -257,7 +260,7 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
 {
   ipmeta_record_t **rec_arr = NULL;
   ipmeta_record_t **rec_ptr = NULL;
-  int rec_cnt = kh_size(provider->all_records);
+  unsigned rec_cnt = kh_size(provider->all_records);
   khiter_t i;
 
   /* if there are no records in the array, don't bother */
@@ -283,29 +286,28 @@ int ipmeta_provider_get_all_records(ipmeta_provider_t *provider,
 
   /* return the array and the count */
   *records = rec_arr;
-  return rec_cnt;
+  return (int)rec_cnt;
 }
 
-int ipmeta_provider_associate_record(ipmeta_provider_t *provider, uint32_t addr,
-                                     uint8_t mask, ipmeta_record_t *record)
+int ipmeta_provider_associate_record(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_t *record)
 {
   assert(provider != NULL && record != NULL);
   assert(provider->ds != NULL);
 
-  return provider->ds->add_prefix(provider->ds, addr, mask, record);
+  return provider->ds->add_prefix(provider->ds, family, addrp, pfxlen, record);
 }
 
-int ipmeta_provider_lookup_records(ipmeta_provider_t *provider, uint32_t addr,
-                                   uint8_t mask, ipmeta_record_set_t *records)
+int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_set_t *records)
 {
-  return provider->ds->lookup_records(provider->ds, addr, mask,
-                                      (1 << (provider->id - 1)), records);
+  return provider->ds->lookup_pfx(provider->ds, family, addrp, pfxlen,
+                                  (1 << (provider->id - 1)), records);
 }
 
-int ipmeta_provider_lookup_record_single(ipmeta_provider_t *provider,
-                                         uint32_t addr,
-                                         ipmeta_record_set_t *found)
+int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider, int family,
+    void *addrp, ipmeta_record_set_t *found)
 {
-  return provider->ds->lookup_record_single(provider->ds, addr,
-                                            (1 << (provider->id - 1)), found);
+  return provider->ds->lookup_addr(provider->ds, family, addrp,
+                                   (1 << (provider->id - 1)), found);
 }

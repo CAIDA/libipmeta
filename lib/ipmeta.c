@@ -30,10 +30,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wandio.h>
 
 #include "khash.h"
 #include "utils.h"
-#include "wandio_utils.h"
 #include "parse_cmd.h"
 
 #include "libipmeta_int.h"
@@ -144,8 +144,9 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
   return NULL;
 }
 
-inline int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
-                         uint32_t providermask, ipmeta_record_set_t *records)
+inline int ipmeta_lookup_pfx(ipmeta_t *ipmeta, int family, void *addrp,
+                             uint8_t pfxlen, uint32_t providermask,
+                             ipmeta_record_set_t *records)
 {
   assert(ipmeta != NULL && records != NULL);
 
@@ -154,20 +155,19 @@ inline int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
     providermask = ipmeta->all_provmask;
   }
 
-  return ipmeta->datastore->lookup_records(ipmeta->datastore, addr, mask,
-                                           providermask, records);
+  return ipmeta->datastore->lookup_pfx(ipmeta->datastore, family, addrp, pfxlen,
+                                       providermask, records);
 }
 
-inline int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr,
-                                uint32_t providermask,
-                                ipmeta_record_set_t *found)
+inline int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
+                              uint32_t providermask, ipmeta_record_set_t *found)
 {
   ipmeta_record_set_clear(found);
   if (providermask == 0) {
     providermask = ipmeta->all_provmask;
   }
-  return ipmeta->datastore->lookup_record_single(ipmeta->datastore, addr,
-                                                 providermask, found);
+  return ipmeta->datastore->lookup_addr(ipmeta->datastore, family, addrp,
+                                        providermask, found);
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)
@@ -251,7 +251,7 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set)
 }
 
 ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
-                                        uint32_t *num_ips)
+                                        uint64_t *num_ips)
 {
   if (record_set->n_recs <= record_set->_cursor) {
     /* No more records */
@@ -266,7 +266,7 @@ ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
 }
 
 int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
-                                 ipmeta_record_t *rec, int num_ips)
+                                 ipmeta_record_t *rec, uint64_t num_ips)
 {
   record_set->n_recs++;
 
@@ -276,16 +276,14 @@ int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
     record_set->_alloc_size = record_set->n_recs;
     kroundup32(record_set->_alloc_size);
 
-    if ((record_set->records =
-           realloc(record_set->records, sizeof(ipmeta_record_t *) *
-                                          record_set->_alloc_size)) == NULL) {
+    if ((record_set->records = realloc(record_set->records,
+        sizeof(*record_set->records) * record_set->_alloc_size)) == NULL) {
       ipmeta_log(__func__, "could not realloc records in record set");
       return -1;
     }
 
-    if ((record_set->ip_cnts =
-           realloc(record_set->ip_cnts,
-                   sizeof(uint32_t) * record_set->_alloc_size)) == NULL) {
+    if ((record_set->ip_cnts = realloc(record_set->ip_cnts,
+       sizeof(*record_set->ip_cnts) * record_set->_alloc_size)) == NULL) {
       ipmeta_log(__func__, "could not realloc ip_cnts in record set");
       return -1;
     }
@@ -306,7 +304,7 @@ void ipmeta_write_record_set(ipmeta_record_set_t *record_set, iow_t *file,
                              char *ip_str)
 {
   ipmeta_record_t *rec;
-  uint32_t num_ips;
+  uint64_t num_ips;
   ipmeta_record_set_rewind(record_set);
   while ((rec = ipmeta_record_set_next(record_set, &num_ips))) {
     ipmeta_write_record(file, rec, ip_str, num_ips);
@@ -323,7 +321,7 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
                                          char *ip_str, int provid)
 {
   ipmeta_record_t *rec;
-  uint32_t num_ips = 0;
+  uint64_t num_ips = 0;
   ipmeta_record_set_rewind(this);
   int dumped = 0;
   while ((rec = ipmeta_record_set_next(this, &num_ips))) {
@@ -347,7 +345,7 @@ int64_t ipmeta_printf(iow_t *file, const char *fmt, ...)
     return vprintf(fmt, ap);
 }
 
-void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips)
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, uint64_t num_ips)
 {
   ipmeta_write_record(NULL, record, ip_str, num_ips);
 }
@@ -358,24 +356,25 @@ void ipmeta_dump_record_header()
 }
 
 void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
-                         int num_ips)
+                         uint64_t num_ips)
 {
   int i;
 
   if (record == NULL) {
     ipmeta_printf(file,
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR SEPARATOR SEPARATOR SEPARATOR
+             "%s" SEPARATOR "%" PRIu64 SEPARATOR SEPARATOR SEPARATOR SEPARATOR
                SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR
                  SEPARATOR SEPARATOR SEPARATOR SEPARATOR SEPARATOR "\n",
              ip_str, num_ips);
   } else {
     ipmeta_printf(file,
-             "%s" SEPARATOR "%" PRIu32 SEPARATOR "%" PRIu32 SEPARATOR
+             "%s" SEPARATOR "%" PRIu64 SEPARATOR "%" PRIu32 SEPARATOR
              "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR "%s" SEPARATOR
              "%s" SEPARATOR "%f" SEPARATOR "%f" SEPARATOR "%" PRIu32 SEPARATOR
              "%" PRIu32 SEPARATOR "%" PRIu16 SEPARATOR "%s" SEPARATOR,
              ip_str, num_ips, record->id, record->country_code,
-             record->continent_code, record->region,
+             record->continent_code,
+             (record->region == NULL ? "" : record->region),
              (record->city == NULL ? "" : record->city),
              (record->post_code == NULL ? "" : record->post_code),
              record->latitude, record->longitude, record->metro_code,
@@ -393,10 +392,14 @@ void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
         if (i < record->asn_cnt - 1)
           ipmeta_printf(file, "_");
       }
-      ipmeta_printf(file, "|%" PRIu32 "\n", record->asn_ip_cnt);
+      ipmeta_printf(file, "|%" PRIu64, record->asn_ip_cnt);
     } else {
-      ipmeta_printf(file, "|\n");
+      ipmeta_printf(file, "|");
     }
+    ipmeta_printf(file,
+             "%s" SEPARATOR "%d" "\n",
+             record->timezone == NULL ? "" : record->timezone,
+             record->accuracy);
   }
   return;
 }
@@ -409,6 +412,7 @@ void ipmeta_write_record_header(iow_t *file)
                  "latitude" SEPARATOR "longitude" SEPARATOR
                  "metro-code" SEPARATOR "area-code" SEPARATOR
                  "region-code" SEPARATOR "connection-speed" SEPARATOR
-                 "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt"
+                 "polygon-ids" SEPARATOR "asn" SEPARATOR "asn-ip-cnt" SEPARATOR
+                 "timezone" SEPARATOR "accuracy"
                  "\n");
 }

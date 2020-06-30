@@ -179,7 +179,7 @@ typedef struct ipmeta_record {
   int asn_cnt;
 
   /** Number of IP addresses that this ASN (or ASN group) 'owns' */
-  uint32_t asn_ip_cnt;
+  uint64_t asn_ip_cnt;
 
   /** Polygon IDs. Indexes SHOULD correspond to those in the polygon table list
       obtained from the provider */
@@ -187,6 +187,12 @@ typedef struct ipmeta_record {
 
   /** Number of IDs in the Polygon IDs array */
   int polygon_ids_cnt;
+
+  /** time zone name */
+  char *timezone;
+
+  /** Accuracy radius of lat/lon, km (0 == unknown) */
+  int accuracy;
 
   /* -- ADD NEW FIELDS ABOVE HERE -- */
 
@@ -269,22 +275,24 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
 /** Look up the given IP prefix using a set of known providers
  *
  * @param ipmeta        The ipmeta instance to use for the lookup
- * @param addr          The IPv4 network address part to lookup
- *                       (network byte ordering)
- * @param mask          The IPv4 network mask defining the prefix length (0>32)
+ * @param family        The address family (AF_INET or AF_INET6)
+ * @param addrp         Pointer to a struct in_addr or in6_addr containing the
+ *                      address to look up
+ * @param pfxlen        The prefix length (0-32 or 0-128)
  * @param provmask	A bitmask indicating which providers should be used.
  *                       Set to '0' to automatically use all active providers.
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
-int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
+int ipmeta_lookup_pfx(ipmeta_t *ipmeta, int family, void *addrp, uint8_t pfxlen,
                   uint32_t provmask, ipmeta_record_set_t *records);
 
 /** Look up the given single IP address for a set of providers
  *
  * @param ipmeta        The ipmeta instance to use for the lookup
- * @param addr          The address to retrieve the record for
- *                       (network byte ordering)
+ * @param family        The address family (AF_INET or AF_INET6)
+ * @param addrp         Pointer to a struct in_addr or in6_addr containing the
+ *                      address to look up
  * @param providermask  A bitmask describing which providers to perform the
                          lookup with. Set to '0' to automatically use all
                          active providers.
@@ -292,8 +300,8 @@ int ipmeta_lookup(ipmeta_t *ipmeta, uint32_t addr, uint8_t mask,
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.
  */
-int ipmeta_lookup_single(ipmeta_t *ipmeta, uint32_t addr, uint32_t providermask,
-                         ipmeta_record_set_t *found);
+int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
+                       uint32_t providermask, ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already
  *
@@ -361,7 +369,8 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
 /** Get the next record in the record set iterator
  *
  * @param record_set    The record set instance
- * @param[out] num_ips  Pointer to an int set to the number of matched IPs
+ * @param[out] num_ips  Pointer to an int which will be set to the number of
+ *                      matched IPv4 addresses or IPv6 /64 subnets
  *                      (optional)
  *
  * @return a pointer to the record
@@ -370,7 +379,7 @@ void ipmeta_record_set_rewind(ipmeta_record_set_t *record_set);
  * records. Records can (and might) be repeated.
  */
 ipmeta_record_t *ipmeta_record_set_next(ipmeta_record_set_t *record_set,
-                                        uint32_t *num_ips);
+                                        uint64_t *num_ips);
 
 #ifdef __GNUC__
 #define ATTR_FORMAT_PRINTF(i,j) __attribute__((format(printf, i, j)))
@@ -443,14 +452,13 @@ void ipmeta_write_record_set_by_provider(ipmeta_record_set_t *this, iow_t *file,
 /** Dump the given metadata record to stdout
  *
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up
- * for
- * @param num_ips       The number of IPs from the prefix that this record
- * applies to
+ * @param ip_str        The IP address/prefix string used to look up this record
+ * @param num_ips       The number of IPv4 addresses or IPv6 /64 subnets
+ *                      that this record applies to
  *
  * Each field in the record is written to stdout in pipe-delimited format.
  */
-void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, int num_ips);
+void ipmeta_dump_record(ipmeta_record_t *record, char *ip_str, uint64_t num_ips);
 
 /** Dump names of the fields in a record structure
  *
@@ -463,14 +471,15 @@ void ipmeta_dump_record_header(void);
  *
  * @param file          The wandio file to write to, or NULL for stdout
  * @param record        The record to dump
- * @param ip_str        The IP address/prefix string this record was looked up
- * for
+ * @param ip_str        The IP address/prefix string used to look up this record
+ * @param num_ips       The number of IPv4 addresses or IPv6 /64 subnets
+ *                      that this record applies to
  *
  * Each field in the record is written to the given file in pipe-delimited
  * format (prefixed with the IP string given)
  */
 void ipmeta_write_record(iow_t *file, ipmeta_record_t *record, char *ip_str,
-                         int num_ips);
+                         uint64_t num_ips);
 
 /** Write names of the fields in a record structure to the given wandio file
  *
@@ -516,7 +525,7 @@ ATTR_FORMAT_PRINTF(2, 3);
 
 /** Convenience function to retrieve a list of ISO 2 character country codes
  *
- * @param countries[out]   The provided pointer is updated to point to an
+ * @param[out] countries   The provided pointer is updated to point to an
  *                         array of 2 character country code strings
  * @return the number of elements in the array
  */
@@ -526,7 +535,7 @@ int ipmeta_provider_maxmind_get_iso2_list(const char ***countries);
  * the same ordering as the countries returned by
  * ipmeta_provider_maxmind_get_iso2_list
  *
- * @param continents[out]   The provided pointer is updated to point to an
+ * @param[out] continents   The provided pointer is updated to point to an
  *                          array of 2 character continent code strings
  * @return the number of elements in the array
  */
@@ -615,7 +624,7 @@ typedef struct ipmeta_polygon_table {
 /** Retrieve a list of Net Acuity region objects
  *
  * @param provider      The provider to retrieve the regions from
- * @param regions[out]  The provided pointer is updated to point to an array
+ * @param[out] regions  The provided pointer is updated to point to an array
  *                      of region objects
  * @return the number of regions in the array
  *
@@ -628,7 +637,7 @@ int ipmeta_provider_netacq_edge_get_regions(
 /** Retrieve a list of Net Acuity country objects
  *
  * @param provider        The provider to retrieve the countries from
- * @param countries[out]  The provided pointer is updated to point to an array
+ * @param[out] countries  The provided pointer is updated to point to an array
  *                        of country objects
  * @return the number of countries in the array
  *

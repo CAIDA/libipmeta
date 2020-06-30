@@ -39,9 +39,8 @@
 
 #include "khash.h"
 #include "utils.h"
-#include "wandio_utils.h"
 #include "csv.h"
-#include "ip_utils.h"
+#include "ipvx_utils.h"
 
 #include "ipmeta_ds.h"
 #include "ipmeta_provider_pfx2as.h"
@@ -79,7 +78,6 @@ static void usage(ipmeta_provider_t *provider)
 }
 
 /** Parse the arguments given to the provider
- * @todo add option to choose datastructure
  */
 static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
 {
@@ -122,13 +120,19 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv)
     return -1;
   }
 
+  if (optind != argc) {
+    fprintf(stderr, "ERROR: extra arguments to %s\n", provider->name);
+    usage(provider);
+    return -1;
+  }
+
   return 0;
 }
 
 /** Parse an underscore-separated list of ASNs */
 static int parse_asn(char *asn_str, uint32_t **asn_arr)
 {
-  int asn_cnt = 0;
+  unsigned asn_cnt = 0;
   uint32_t *asn = NULL;
   char *tok = NULL;
   char *period = NULL;
@@ -163,17 +167,18 @@ static int parse_asn(char *asn_str, uint32_t **asn_arr)
       /* set this to a nul */
       *period = '\0';
       /* get the value of the first 16 bits and the second */
-      asn[asn_cnt] = (atoi(tok) << 16) | atoi(period + 1);
+      asn[asn_cnt] = ((uint32_t)strtoul(tok, NULL, 10) << 16) |
+        (uint32_t)strtoul(period + 1, NULL, 10);
     } else {
-      /* do a simple atoi and be done */
-      asn[asn_cnt] = atoi(tok);
+      /* do a simple strtoul and be done */
+      asn[asn_cnt] = (uint32_t)strtoul(tok, NULL, 10);
     }
     asn_cnt++;
   }
 
   /* return the array of asn values and the count */
   *asn_arr = asn;
-  return asn_cnt;
+  return (int)asn_cnt;
 }
 
 /** Free a string (for use with the map) */
@@ -196,16 +201,16 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
   char *tok = NULL;
   int tokc = 0;
 
-  int asn_id = 0;
-  in_addr_t addr = 0;
-  uint8_t mask = 0;
+  uint32_t asn_id = 0;
+  ipvx_prefix_t addr;
   uint32_t *asn = NULL;
   char *asn_str = NULL;
   int asn_cnt = 0;
 
   ipmeta_record_t *record;
 
-  while (wandio_fgets(file, &buffer, BUFFER_LEN, 1) > 0) {
+  int64_t nread;
+  while ((nread = wandio_fgets(file, &buffer, BUFFER_LEN, 1)) > 0) {
     rowp = buffer;
     tokc = 0;
 
@@ -213,12 +218,15 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
       switch (tokc) {
       case 0:
         /* network */
-        addr = inet_addr(tok);
+        if (ipvx_pton_addr(tok, &addr) < 0) {
+          ipmeta_log(__func__, "invalid address in pfx2as file");
+          return -1;
+        }
         break;
 
       case 1:
-        /* mask */
-        mask = atoi(tok);
+        /* pfxlen */
+        addr.masklen = atoi(tok);
         break;
 
       case 2:
@@ -279,14 +287,23 @@ static int read_pfx2as(ipmeta_provider_t *provider, io_t *file)
     /* how many IP addresses does this prefix cover ? */
     /* we will add this to the record and then use the total count for the asn
        to find the 'biggest' ASes */
-    record->asn_ip_cnt +=
-      (ip_broadcast_addr(addr, mask) - ip_network_addr(addr, mask)) + 1;
+    if (addr.masklen <= 64) {
+      // For IPv6, we count /64 subnets, not addresses.  Prefixes longer than
+      // /64 don't count.
+      record->asn_ip_cnt += (uint64_t)1 <<
+        ((addr.family == AF_INET ? 32 : 64) - addr.masklen);
+    }
 
     /* by here record is the right asn record, associate it with this pfx */
-    if (ipmeta_provider_associate_record(provider, addr, mask, record) != 0) {
+    if (ipmeta_provider_associate_record(provider, addr.family, &addr.addr,
+        addr.masklen, record) != 0) {
       ipmeta_log(__func__, "failed to associate record");
       return -1;
     }
+  }
+  if (nread < 0) {
+    ipmeta_log(__func__, "Error reading pfx2as file");
+    return -1;
   }
 
   /* free our asn_table hash */
@@ -365,17 +382,16 @@ void ipmeta_provider_pfx2as_free(ipmeta_provider_t *provider)
   return;
 }
 
-int ipmeta_provider_pfx2as_lookup(ipmeta_provider_t *provider, uint32_t addr,
-                                  uint8_t mask, ipmeta_record_set_t *records)
+int ipmeta_provider_pfx2as_lookup_pfx(ipmeta_provider_t *provider, int family,
+    void *addrp, uint8_t pfxlen, ipmeta_record_set_t *records)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_records(provider, addr, mask, records);
+  return ipmeta_provider_lookup_pfx(provider, family, addrp, pfxlen, records);
 }
 
-int ipmeta_provider_pfx2as_lookup_single(ipmeta_provider_t *provider,
-                                         uint32_t addr,
-                                         ipmeta_record_set_t *found)
+int ipmeta_provider_pfx2as_lookup_addr(ipmeta_provider_t *provider, int family,
+    void *addrp, ipmeta_record_set_t *found)
 {
   /* just call the lookup helper func in provider manager */
-  return ipmeta_provider_lookup_record_single(provider, addr, found);
+  return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }

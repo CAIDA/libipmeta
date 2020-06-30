@@ -92,9 +92,14 @@ void ipmeta_ds_intervaltree_free(ipmeta_ds_t *ds)
   return;
 }
 
-int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
-                                      uint8_t mask, ipmeta_record_t *record)
+int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, int family, void *addrp,
+                                      uint8_t pfxlen, ipmeta_record_t *record)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "intervaltree datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
 
   assert(ds != NULL && ds->state != NULL);
   interval_tree_t *tree = STATE(ds)->tree;
@@ -103,7 +108,7 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
   interval_t interval;
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + (1 << (32 - mask)) - 1;
+  interval.end = interval.start + (1 << (32 - pfxlen)) - 1;
   interval.data = record;
 
   if (STATE(ds)->providerid == 0) {
@@ -125,10 +130,14 @@ int ipmeta_ds_intervaltree_add_prefix(ipmeta_ds_t *ds, uint32_t addr,
   return 0;
 }
 
-int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
-                                          uint8_t mask, uint32_t providermask,
-                                          ipmeta_record_set_t *records)
+int ipmeta_ds_intervaltree_lookup_pfx(ipmeta_ds_t *ds, int family, void *addrp,
+    uint8_t pfxlen, uint32_t providermask, ipmeta_record_set_t *records)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "intervaltree datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
   interval_tree_t *tree = STATE(ds)->tree;
   interval_t interval;
   int num_matches = 0;
@@ -138,7 +147,7 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
   int i;
 
   interval.start = ntohl(addr);
-  interval.end = interval.start + (1 << (32 - mask)) - 1;
+  interval.end = interval.start + (1 << (32 - pfxlen)) - 1;
   interval.data = NULL;
 
   matches = getOverlapping(tree, &interval, &num_matches);
@@ -157,13 +166,17 @@ int ipmeta_ds_intervaltree_lookup_records(ipmeta_ds_t *ds, uint32_t addr,
     }
   }
 
-  return records->n_recs;
+  return (int)records->n_recs;
 }
 
-int ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
-                                                uint32_t providermask,
-                                                ipmeta_record_set_t *found)
+int ipmeta_ds_intervaltree_lookup_addr(ipmeta_ds_t *ds, int family, void *addrp,
+    uint32_t providermask, ipmeta_record_set_t *found)
 {
+  if (family != AF_INET) {
+    ipmeta_log(__func__, "intervaltree datastructure only supports IPv4");
+    return -1;
+  }
+  uint32_t addr = *(uint32_t *)addrp;
   interval_tree_t *tree = STATE(ds)->tree;
   interval_t interval;
   int num_matches = 0, i;
@@ -186,5 +199,5 @@ int ipmeta_ds_intervaltree_lookup_record_single(ipmeta_ds_t *ds, uint32_t addr,
     }
   }
 
-  return found->n_recs;
+  return (int)found->n_recs;
 }

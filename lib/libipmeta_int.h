@@ -67,11 +67,11 @@ struct ipmeta {
 struct ipmeta_record_set {
 
   ipmeta_record_t **records;
-  uint32_t *ip_cnts;
-  int n_recs;
+  uint64_t *ip_cnts; // count of IPv4 addresses or IPv6 /64 subnets matched
+  size_t n_recs;
 
-  int _cursor;
-  int _alloc_size;
+  size_t _cursor;
+  size_t _alloc_size;
 };
 
 /** @} */
@@ -81,12 +81,13 @@ struct ipmeta_record_set {
  *
  * @param record_set    The record set instance to add the record to
  * @param rec           The record to add
- * @param num_ips       The number of IPs matched in this record
+ * @param num_ips       The number of IPv4 addresses or IPv6 /64 subnets
+ *                      matched in this record
  *
  * @return 0 if insertion was successful, or -1 if realloc failed
  */
 int ipmeta_record_set_add_record(ipmeta_record_set_t *record_set,
-                                 ipmeta_record_t *rec, int num_ips);
+                                 ipmeta_record_t *rec, uint64_t num_ips);
 
 /** Empties the set.
  *

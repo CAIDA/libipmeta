@@ -53,7 +53,6 @@ static char *timestamp_str(char *buf, const size_t len)
 {
   struct timeval tv;
   struct tm *tm;
-  int ms;
   time_t t;
 
   buf[0] = '\0';
@@ -62,9 +61,8 @@ static char *timestamp_str(char *buf, const size_t len)
   if ((tm = localtime(&t)) == NULL)
     return buf;
 
-  ms = tv.tv_usec / 1000;
-  snprintf(buf, len, "[%02d:%02d:%02d:%03d] ", tm->tm_hour, tm->tm_min,
-           tm->tm_sec, ms);
+  snprintf(buf, len, "[%02d:%02d:%02d:%03lu] ", tm->tm_hour, tm->tm_min,
+           tm->tm_sec, tv.tv_usec / 1000);
 
   return buf;
 }

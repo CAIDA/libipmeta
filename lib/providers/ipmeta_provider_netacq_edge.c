@@ -54,6 +54,8 @@
 
 #define POLYGON_FILE_CNT_MAX 8 /* increase as you like */
 
+#pragma GCC diagnostic ignored "-Wtrigraphs"
+
 /** The basic fields that every instance of this provider have in common */
 static ipmeta_provider_t ipmeta_provider_netacq_edge = {
   IPMETA_PROVIDER_NETACQ_EDGE, PROVIDER_NAME,

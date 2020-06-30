@@ -1,65 +1,37 @@
 # libipmeta
 
 Libipmeta is a library to support the execution of historical and
-realtime geolocation metadata lookups using Maxmind GeoIP and/or
-NetAcuity (Digital Element) geolocation databases.
+realtime IP metadata lookups using Maxmind GeoIP,
+NetAcuity (Digital Element) geolocation, and CAIDA Prefix-To-AS databases.
 
-**NOTE: This is libipmeta v2. If you are trying to install PyIPMeta,
-then you must use
-[libipmeta v1](https://github.com/CAIDA/libipmeta/releases/tag/v1.0.0)**
+## Installation
+### Debian/Ubuntu
 
-### Quick Start
-To get started using `libipmeta`, either clone or download the contents from the GitHub repository.
-
-You will also need the libcurl and wandio libraries installed before building `libipmeta` (libcurl must be installed prior to building wandio).
-
-#### Step 1. Install Dependencies
-
-##### Required Libraries
-First, install the following dependencies of wandio using your favorite package manager:
-
- * libbz2
- * zlib
- * libcurl (> 7.18.0)
-
-##### Dependencies installation, OS-specific instructions
-**Ubuntu/Debian**
-
-`sudo apt-get install zlib1g-dev libbz2-dev libcurl4-openssl-dev libtool`
-
-Then, install `wandio` as follows:
+Add CAIDA package repository:
 ```
-$ mkdir ~/src
-$ cd ~/src/
-$ curl -O https://research.wand.net.nz/software/wandio/wandio-1.0.4.tar.gz
-$ tar zxf wandio-1.0.4.tar.gz
-$ cd wandio-1.0.4/
+curl https://pkg.caida.org/os/ubuntu/bootstrap.sh | bash
+```
+(of course, you should inspect this script before running it)
+
+Install libipmeta
+```
+sudo apt install ipmeta
+```
+
+### From Release Tarball
+
+To get started using `libipmeta`, download a [release](https://github.com/CAIDA/libipmeta/releases).
+
+You will need [libwandio](https://research.wand.net.nz/software/libwandio.php).
+
+Then:
+```
 $ ./configure
-$ make
-$ make install
+$ sudo make install
 ```
-Note: Ensure that the last lines from configure show a Yes result for at least `zlib`, `bz2`, and `libcurl` like the following:
+On some systems you may need to also run `sudo ldconfig` after installation.
 
-```
-configure: WANDIO version 1.0.4
-configure: Compiled with compressed file (zlib) support: Yes
-configure: Compiled with compressed file (bz2) support: Yes
-configure: Compiled with compressed file (lzo write only) support: No
-configure: Compiled with compressed file (lzma) support: No
-configure: Compiled with http read (libcurl) support: Yes
-```
-Note: If you do not want to install system-wide, then you can specify an installation directory (`/INSTALL/PATH`) as follows:
-
-`$ ./configure --prefix=/INSTALL/PATH`
-Then, depending on your OS, you may need to set LD_LIBRRAY_PATH as follows:
-
-`$ export LD_LIBRARY_PATH="/INSTALL/PATH/lib:$LD_LIBRARY_PATH"`
-If required libraries are not in the system library paths, specify their paths when running configure as follows:
-
-`$ ./configure CPPFLAGS='-I/path/to/deps/include' LDFLAGS='-L/path/to/deps/lib'`
-You may test that wandio works by running `$ wandiocat http://google.com`
-
-#### Step 2. Install `libipmeta` via clone (initializing submodules)
+### Install via clone (initializing submodules)
 
 First, make sure you have automake, autoconf and libtool installed on your
 system (e.g. `sudo apt-get install autoconf automake libtool` on

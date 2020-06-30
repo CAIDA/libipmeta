@@ -178,7 +178,7 @@ typedef struct ipmeta_record {
   /** Number of ASNs in the asn array */
   int asn_cnt;
 
-  /** Number of IP addresses that this ASN (or ASN group) 'owns' */
+  /** Number of IP addresses or /64 blocks that this ASN (or group) 'owns' */
   uint64_t asn_ip_cnt;
 
   /** Polygon IDs. Indexes SHOULD correspond to those in the polygon table list
@@ -302,6 +302,21 @@ int ipmeta_lookup_pfx(ipmeta_t *ipmeta, int family, void *addrp, uint8_t pfxlen,
  */
 int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
                        uint32_t providermask, ipmeta_record_set_t *found);
+
+/** Look up the address or prefix for a set of providers
+ *
+ * @param ipmeta        The ipmeta instance to use for the lookup
+ * @param addr_str      Pointer to a string representation of the IPv4 or IPv6
+ *                      address or prefix to look up
+ * @param providermask  A bitmask describing which providers to perform the
+                         lookup with. Set to '0' to automatically use all
+                         active providers.
+ * @param found         Pointer to a record set to use for storing matches
+ * @return The number of providers which we were able to successfully find a
+ *         match for, or -1 if an error occured.
+ */
+int ipmeta_lookup(ipmeta_t *ipmeta, const char *addr_str,
+                  uint32_t providermask, ipmeta_record_set_t *found);
 
 /** Check if the given provider is enabled already
  *

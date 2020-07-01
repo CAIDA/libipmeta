@@ -1,3 +1,17 @@
+libipmeta2 (2.2.0) unstable; urgency=medium
+
+  * Fix bug where ASNs were printed as signed integers
+  * Fix debian package build-time dependency
+  * Fix build instruction in README.md
+  * Fix bug when printing provider name to file
+  * Fix bug where ASNs were printed as signed integers
+  * Fix command line option error handling
+  * Fix returning multiple results from patricia lookup
+  * Fix address count for prefix lookup in patricia
+  * Expose datastructure name-to-id mapping
+
+ -- Alistair King <software@caida.org>  Wed, 01 Jul 2020 16:00:00 -0800
+
 libipmeta2 (2.1.2) unstable; urgency=medium
 
   * Fix bug where ASNs were printed as signed integers

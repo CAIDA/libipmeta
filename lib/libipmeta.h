@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <wandio.h>
+#include <sys/socket.h> // for AF_INET*
 
 /** @file
  *

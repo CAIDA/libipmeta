@@ -204,6 +204,9 @@ typedef struct ipmeta_record {
 
 /** @} */
 
+/** Convert a provider id to a mask */
+#define IPMETA_PROV_TO_MASK(id)  (1<<((id)-1))
+
 /** Initialize a new libipmeta instance
  *
  * @param dstype The type of the data structure to use for storing prefixes.
@@ -280,8 +283,10 @@ ipmeta_provider_t *ipmeta_get_provider_by_name(ipmeta_t *ipmeta,
  * @param addrp         Pointer to a struct in_addr or in6_addr containing the
  *                      address to look up
  * @param pfxlen        The prefix length (0-32 or 0-128)
- * @param provmask	A bitmask indicating which providers should be used.
- *                       Set to '0' to automatically use all active providers.
+ * @param provmask      A bitmask indicating which providers should be used.
+ *                      Calculate this with a bitwise-or of 0 or more
+ *                      IPMETA_PROV_TO_MASK(id).
+ *                      Set to `0` to automatically use all active providers.
  * @param records       Pointer to a record set to use for matches
  * @return              The number of (matched) records in the result set
  */
@@ -294,9 +299,10 @@ int ipmeta_lookup_pfx(ipmeta_t *ipmeta, int family, void *addrp, uint8_t pfxlen,
  * @param family        The address family (AF_INET or AF_INET6)
  * @param addrp         Pointer to a struct in_addr or in6_addr containing the
  *                      address to look up
- * @param providermask  A bitmask describing which providers to perform the
-                         lookup with. Set to '0' to automatically use all
-                         active providers.
+ * @param providermask  A bitmask indicating which providers should be used.
+ *                      Calculate this with a bitwise-or of 0 or more
+ *                      IPMETA_PROV_TO_MASK(id).
+ *                      Set to `0` to automatically use all active providers.
  * @param found         Pointer to a record set to use for storing matches
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.
@@ -309,9 +315,10 @@ int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
  * @param ipmeta        The ipmeta instance to use for the lookup
  * @param addr_str      Pointer to a string representation of the IPv4 or IPv6
  *                      address or prefix to look up
- * @param providermask  A bitmask describing which providers to perform the
-                         lookup with. Set to '0' to automatically use all
-                         active providers.
+ * @param providermask  A bitmask indicating which providers should be used.
+ *                      Calculate this with a bitwise-or of 0 or more
+ *                      IPMETA_PROV_TO_MASK(id).
+ *                      Set to `0` to automatically use all active providers.
  * @param found         Pointer to a record set to use for storing matches
  * @return The number of providers which we were able to successfully find a
  *         match for, or -1 if an error occured.

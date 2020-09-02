@@ -65,15 +65,15 @@ static int lookup(const char *addr_str, iow_t *outfile)
   }
 
   /* look it up using each provider */
-  for (int i = 0; i < IPMETA_PROVIDER_MAX; i++) {
-    if ((providermask & (1 << (i))) == 0) {
+  for (int id = 1; id <= IPMETA_PROVIDER_MAX; id++) {
+    if ((providermask & IPMETA_PROV_TO_MASK(id)) == 0) {
       continue;
     }
 
     snprintf(output_prefix, sizeof(output_prefix), "%s|%s",
-      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, i + 1)),
+      ipmeta_get_provider_name(ipmeta_get_provider_by_id(ipmeta, id)),
       addr_str);
-    ipmeta_write_record_set_by_provider(records, outfile, output_prefix, i + 1);
+    ipmeta_write_record_set_by_provider(records, outfile, output_prefix, id);
   }
 
   return 0;
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "ERROR: Could not enable plugin %s\n", providers[i]);
       goto quit;
     }
-    providermask |= (1 << (ipmeta_get_provider_id(provider) - 1));
+    providermask |= IPMETA_PROV_TO_MASK(ipmeta_get_provider_id(provider));
     enabled_providers[enabled_providers_cnt++] = provider;
   }
 

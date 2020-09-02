@@ -115,7 +115,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
     free(local_args);
   }
 
-  ipmeta->all_provmask |= (1 << (provider->id - 1));
+  ipmeta->all_provmask |= IPMETA_PROV_TO_MASK(provider->id);
   return rc;
 }
 

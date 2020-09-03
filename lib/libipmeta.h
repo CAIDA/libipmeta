@@ -62,6 +62,12 @@ typedef struct ipmeta_record_set ipmeta_record_set_t;
  *
  * @{ */
 
+enum {
+  // negative error codes
+  IPMETA_ERR_INPUT = -127,
+  IPMETA_ERR_INTERNAL = -126,
+};
+
 /** A unique identifier for each metadata provider that libipmeta supports
  *
  * @note Remember to add the provider name to provider_names in
@@ -321,7 +327,8 @@ int ipmeta_lookup_addr(ipmeta_t *ipmeta, int family, void *addrp,
  *                      Set to `0` to automatically use all active providers.
  * @param found         Pointer to a record set to use for storing matches
  * @return The number of providers which we were able to successfully find a
- *         match for, or -1 if an error occured.
+ *         match for; IPMETA_ERR_INPUT for bad input; or IPMETA_ERR_INTERNAL
+ *         if an internal error occured.
  */
 int ipmeta_lookup(ipmeta_t *ipmeta, const char *addr_str,
                   uint32_t providermask, ipmeta_record_set_t *found);

@@ -189,8 +189,7 @@ int main(int argc, char **argv)
       break;
 
     case 'v':
-      fprintf(stderr, "libipmeta version %d.%d.%d\n", LIBIPMETA_MAJOR_VERSION,
-              LIBIPMETA_MID_VERSION, LIBIPMETA_MINOR_VERSION);
+      fprintf(stderr, "libipmeta package version %s\n", PACKAGE_VERSION);
       goto quit;
 
     case '?':

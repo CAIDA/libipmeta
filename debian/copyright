@@ -3,7 +3,7 @@ Upstream-Name: libipmeta
 Source: https://github.com/CAIDA/libipmeta
 
 Files: *
-Copyright: 2013-2018, 2019, 2020 The Regents of the University of California.
+Copyright: 2013-2020 The Regents of the University of California.
 License: GPL-3+
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by

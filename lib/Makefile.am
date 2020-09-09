@@ -4,7 +4,7 @@
 # Alistair King, CAIDA, UC San Diego
 # corsaro-info@caida.org
 #
-# Copyright (C) 2012 The Regents of the University of California.
+# Copyright (C) 2013-2020 The Regents of the University of California.
 #
 # This file is part of libipmeta.
 #
@@ -47,7 +47,7 @@ libipmeta_la_LIBADD = $(top_builddir)/common/libcccommon.la \
 	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la \
 	$(top_builddir)/lib/providers/libipmeta_providers.la
 
-libipmeta_la_LDFLAGS = -version-info @LIBIPMETA_MAJOR_VERSION@:@LIBIPMETA_MID_VERSION@:@LIBIPMETA_MINOR_VERSION@
+libipmeta_la_LDFLAGS = -version-info @LIBIPMETA_LIBTOOL_VERSION@
 
 ACLOCAL_AMFLAGS = -I m4
 

@@ -10,7 +10,7 @@
  * libipmeta_log and timestamp_str functions adapted from scamper:
  *   http://www.wand.net.nz/scamper
  *
- * Copyright (C) 2012 The Regents of the University of California.
+ * Copyright (C) 2013-2020 The Regents of the University of California.
  *
  * This file is part of libipmeta.
  *

@@ -4,7 +4,7 @@
 # Alistair King, CAIDA, UC San Diego
 # corsaro-info@caida.org
 #
-# Copyright (C) 2012 The Regents of the University of California.
+# Copyright (C) 2013-2020 The Regents of the University of California.
 #
 # This file is part of libipmeta.
 #
@@ -24,24 +24,14 @@
 
 AC_PREREQ([2.68])
 
-AC_INIT([libipmeta], [3.0.0], [software@caida.org])
+# Package version should use semantic versioning.
+AC_INIT([libipmeta], [3.1.0], [software@caida.org])
 AM_INIT_AUTOMAKE([foreign])
 
-# The following define the version numbers for the libtool-created library
-# (libipmeta), and not for the overall package. The package version (above)
-# should use semantic versioning, for more info on the library versioning, see
-# https://www.sourceware.org/autobook/autobook/autobook_91.html
-
-LIBIPMETA_MAJOR_VERSION=4
-LIBIPMETA_MID_VERSION=0
-LIBIPMETA_MINOR_VERSION=0
-
-AC_DEFINE_UNQUOTED([LIBIPMETA_MAJOR_VERSION],$LIBIPMETA_MAJOR_VERSION,
-	[libipmeta major version])
-AC_DEFINE_UNQUOTED([LIBIPMETA_MID_VERSION],$LIBIPMETA_MID_VERSION,
-	[libipmeta mid version])
-AC_DEFINE_UNQUOTED([LIBIPMETA_MINOR_VERSION],$LIBIPMETA_MINOR_VERSION,
-	[libipmeta minor version])
+# Version numbers for the libtool-created library (libipmeta) are unrelated
+# to the overall package version.  For details on Library Versioning, see
+# https://www.sourceware.org/autobook/autobook/autobook_61.html
+LIBIPMETA_LIBTOOL_VERSION=5:0:1
 
 LT_INIT
 
@@ -111,11 +101,7 @@ AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h math.h stdlib.h string.h \
 
 AC_HEADER_ASSERT
 
-AC_SUBST([LIBIPMETA_MAJOR_VERSION])
-AC_SUBST([LIBIPMETA_MID_VERSION])
-AC_SUBST([LIBIPMETA_MINOR_VERSION])
-
-AC_HEADER_ASSERT
+AC_SUBST(LIBIPMETA_LIBTOOL_VERSION)
 
 AC_CONFIG_FILES([Makefile
 		common/Makefile

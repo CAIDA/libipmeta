@@ -4,7 +4,7 @@
  * Alistair King, CAIDA, UC San Diego
  * corsaro-info@caida.org
  *
- * Copyright (C) 2012 The Regents of the University of California.
+ * Copyright (C) 2013-2020 The Regents of the University of California.
  *
  * This file is part of libipmeta.
  *
@@ -115,7 +115,7 @@ int ipmeta_enable_provider(ipmeta_t *ipmeta, ipmeta_provider_t *provider,
     free(local_args);
   }
 
-  ipmeta->all_provmask |= (1 << (provider->id - 1));
+  ipmeta->all_provmask |= IPMETA_PROV_TO_MASK(provider->id);
   return rc;
 }
 
@@ -178,14 +178,15 @@ inline int ipmeta_lookup(ipmeta_t *ipmeta, const char *addr_str,
   int rc;
 
   if ((rc = ipvx_pton_pfx(addr_str, &pfx)) < 0) {
-    return rc;
+    return IPMETA_ERR_INPUT;
   }
 
   if (pfx.masklen == ipvx_family_size(pfx.family)) {
-    return ipmeta_lookup_addr(ipmeta, pfx.family, &pfx.addr, providermask, found);
+    rc = ipmeta_lookup_addr(ipmeta, pfx.family, &pfx.addr, providermask, found);
   } else {
-    return ipmeta_lookup_pfx(ipmeta, pfx.family, &pfx.addr, pfx.masklen, providermask, found);
+    rc = ipmeta_lookup_pfx(ipmeta, pfx.family, &pfx.addr, pfx.masklen, providermask, found);
   }
+  return (rc < 0) ? IPMETA_ERR_INTERNAL : rc;
 }
 
 inline int ipmeta_is_provider_enabled(ipmeta_provider_t *provider)

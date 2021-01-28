@@ -141,6 +141,7 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
                                              uint8_t masklen)
 {
   ipmeta_record_t **recfound;
+
   while (*foundsofar != provmask && node != NULL) {
     int i;
     if (node->prefix == NULL) {
@@ -164,7 +165,7 @@ static inline int extract_records_from_pnode(patricia_node_t *node,
       // /64 don't count.
       int maxlen = (node->prefix->family == AF_INET6) ? 64 :
         family_size(node->prefix->family) * 8;
-      uint64_t num_ips = (masklen <= maxlen) ? (1 << (maxlen - masklen)) : 0;
+      uint64_t num_ips = (masklen <= maxlen) ? (1UL << (maxlen - masklen)) : 0;
 
       if (ipmeta_record_set_add_record(found, recfound[i], num_ips) != 0) {
         return -1;
@@ -195,6 +196,11 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
   subpfx.ref_count = 0;
   subpfx.bitlen = pfx.bitlen + 1;
   unsigned size = family_size(pfx.family);
+  unsigned descend_limit = 32;
+
+  if (pfx.family == AF_INET6) {
+    descend_limit = 72;         // don't descend lower than a /72 for v6 prefix
+  }
 
   // try the two CIDR halves
   for (int i = 0; i < 2; i++) {
@@ -219,7 +225,7 @@ static int descend_ptree(ipmeta_ds_t *ds, prefix_t pfx, uint32_t provmask,
     }
 
     // If we don't have answers for subpfx from all providers, try below subpfx
-    if (sub_foundsofar != provmask && subpfx.bitlen < size * 8) {
+    if (sub_foundsofar != provmask && subpfx.bitlen < descend_limit) {
       if (descend_ptree(ds, subpfx, provmask, sub_foundsofar, records) < 0) {
         return -1;
       }
@@ -242,6 +248,12 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
 
   node = patricia_search_best2(trie, &pfx, 1);
 
+  if (pfx.family == AF_INET6) {
+    if (node) {
+       assert(node->prefix->family == AF_INET6);
+    }
+  }
+
   if (node) {
     if (extract_records_from_pnode(node, provmask, &foundsofar, records, 1,
           pfx.bitlen) < 0) {
@@ -250,7 +262,7 @@ static int _patricia_prefix_lookup(ipmeta_ds_t *ds, prefix_t pfx,
     }
   }
 
-  if (foundsofar != provmask && pfx.bitlen < 32) {
+  if (foundsofar != provmask && pfx.bitlen < 32 && pfx.family == AF_INET) {
     // try looking for more specific prefixes for any providers where we
     // have no answer, but don't waste time ascending the tree
     if (descend_ptree(ds, pfx, provmask, foundsofar, records) < 0) {

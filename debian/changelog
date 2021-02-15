@@ -1,3 +1,9 @@
+libipmeta2 (3.1.1) unstable; urgency=medium
+
+  * fix bug with large v6 prefixes reporting wrong number of IPs
+
+ -- Shane Alcock <software@caida.org>  Sun, 14 Feb 2021 07:02:02 -0700
+ 
 libipmeta2 (3.1.0) unstable; urgency=medium
 
   * add PROVMASK, provider mask, for the usage by pyipmeta

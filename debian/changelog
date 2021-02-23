@@ -1,3 +1,9 @@
+libipmeta2 (3.1.1-1) unstable; urgency=medium
+
+  * fix bad version number in previous package release
+
+ -- Shane Alcock <software@caida.org>  Mon, 22 Feb 2021 17:19:16 -0700
+
 libipmeta2 (3.1.1) unstable; urgency=medium
 
   * fix bug with large v6 prefixes reporting wrong number of IPs

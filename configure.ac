@@ -25,13 +25,13 @@
 AC_PREREQ([2.68])
 
 # Package version should use semantic versioning.
-AC_INIT([libipmeta], [3.1.0], [software@caida.org])
+AC_INIT([libipmeta], [3.1.1], [software@caida.org])
 AM_INIT_AUTOMAKE([foreign])
 
 # Version numbers for the libtool-created library (libipmeta) are unrelated
 # to the overall package version.  For details on Library Versioning, see
 # https://www.sourceware.org/autobook/autobook/autobook_61.html
-LIBIPMETA_LIBTOOL_VERSION=5:0:1
+LIBIPMETA_LIBTOOL_VERSION=5:1:1
 
 LT_INIT
 

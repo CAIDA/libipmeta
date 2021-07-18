@@ -1,3 +1,11 @@
+libipmeta2 (3.2.0) unstable; urgency=medium
+
+   * @salcock: Fix bug where v6 prefixes report the wrong number of "IPs".
+     Also cap the maximum descent through a patricia tree to a /72 for IPv6 
+     prefixes to avoid wasting time on hopeless searches.
+
+ -- Mingwei Zhang <software@caida.org>  Sun, 18 Jul 2021 20:00:00 -0700
+
 libipmeta2 (3.1.1-1) unstable; urgency=medium
 
   * fix bad version number in previous package release

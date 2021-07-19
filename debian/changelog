@@ -1,3 +1,9 @@
+libipmeta2 (3.2.0) unstable; urgency=medium
+
+  * Various code tidy-ups, no functionality has changed.
+
+ -- Shane Alcock <software@caida.org>  Mon, 19 Jul 2021 14:29:48 +1200
+
 libipmeta2 (3.1.1-1) unstable; urgency=medium
 
   * fix bad version number in previous package release

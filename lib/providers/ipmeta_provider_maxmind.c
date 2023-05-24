@@ -442,9 +442,27 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     // fall through
   case LOCATION1_COL_LAT:
     /* latitude */
-    rec->latitude = strtod(tok, &end);
-    if (end == tok || *end || rec->latitude < -90 || rec->latitude > 90) {
-      col_invalid(state, "Invalid latitude", tok);
+    if (tok && *tok) {
+        rec->latitude = strtod(tok, &end);
+        if (end == tok || *end || rec->latitude < -90 || rec->latitude > 90) {
+          col_invalid(state, "Invalid latitude", tok);
+        }
+    } else {
+        /*
+         * Sometimes (but rarely) the maxmind data is malformed and contains
+         * a row with a GNID but no other useful values.
+         *
+         * Ignoring it will mean it is left as zero (which is wrong), and
+         * setting any sort of placeholder value will likely break programs
+         * that expect it to be a double in an appropriate range.
+         *
+         * There isn't an easy way to express a missing latitude, so for now
+         * we'll throw the whole row away, even if that means throwing away
+         * a possibly valid GNID.
+         */
+        state->loc_id = 0;
+        free(state->record);
+        state->record = NULL;
     }
     break;
 
@@ -454,9 +472,19 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     // fall through
   case LOCATION1_COL_LONG:
     /* longitude */
-    rec->longitude = strtod(tok, &end);
-    if (end == tok || *end || rec->longitude < -180 || rec->longitude > 180) {
-      col_invalid(state, "Invalid longitude", tok);
+    if (tok && *tok) {
+        rec->longitude = strtod(tok, &end);
+        if (end == tok || *end || rec->longitude < -180 || rec->longitude > 180) {
+          col_invalid(state, "Invalid longitude", tok);
+        }
+    } else {
+        /*
+         * This case has probably already been caught by the latitude being
+         * empty. Drop any row with a GNID but without other useful values.
+         */
+        state->loc_id = 0;
+        free(state->record);
+        state->record = NULL;
     }
     break;
 
@@ -489,6 +517,8 @@ static void parse_maxmind_cell(void *s, size_t i, void *data)
     break; // not used
 
   case BLOCKS2_COL_ACCURACY_RADIUS:
+    if (!rec)
+      break; // ignore this record because it had no GNID or was malformed
     if (tok && *tok) {
       rec->accuracy = strtoul(tok, &end, 10);
       if (end == tok || *end || rec->accuracy > EARTH_CIRCUMFERENCE / 4) {

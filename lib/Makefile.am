@@ -50,7 +50,9 @@ libipmeta_la_SOURCES = 	\
 	ipmeta_ds.h		\
 	ipmeta_log.c		\
 	ipmeta_provider.c	\
-	ipmeta_provider.h
+	ipmeta_provider.h \
+    ipmeta_parsing_helpers.c \
+    ipmeta_parsing_helpers.h
 
 libipmeta_la_LIBADD = $(top_builddir)/common/libcccommon.la \
 	$(top_builddir)/lib/datastructures/libipmeta_datastructures.la \

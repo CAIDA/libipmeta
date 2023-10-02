@@ -55,6 +55,9 @@
 /* netacq edge */
 #include "ipmeta_provider_netacq_edge.h"
 
+/* ipinfo */
+#include "ipmeta_provider_ipinfo.h"
+
 #if 0
 /* netacq legacy */
 #include "ipmeta_provider_netacq.h"
@@ -76,6 +79,7 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   ipmeta_provider_maxmind_alloc,
   ipmeta_provider_netacq_edge_alloc,
   ipmeta_provider_pfx2as_alloc,
+  ipmeta_provider_ipinfo_alloc,
 };
 
 void ipmeta_free_record(ipmeta_record_t *record)

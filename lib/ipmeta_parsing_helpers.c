@@ -292,6 +292,9 @@ const char *country_code_iso2[] = {
   "SS",
   /* Alistair adds AN because Maxmind does not include it, but uses it */
   "AN",
+  /* temporary code for Kosovo -- will change if ISO recognizes Kosovo in the
+   * future. */
+  "XK",
 };
 
 const char *country_continent[] = {
@@ -552,5 +555,7 @@ const char *country_continent[] = {
   "AF",
   /* see above about AN */
   "NA",
+  /* see above about XK */
+  "EU",
 };
 

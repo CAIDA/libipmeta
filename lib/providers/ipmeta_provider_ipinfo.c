@@ -77,6 +77,8 @@
 
 KHASH_INIT(u16u16, uint16_t, uint16_t, 1, kh_int_hash_func, kh_int_hash_equal)
 
+KHASH_SET_INIT_STR(str_set)
+
 // convert uint16_t to char[2]
 #define u16_to_c2(u16, c2)                                                     \
   do {                                                                         \
@@ -92,6 +94,7 @@ static ipmeta_provider_t ipmeta_provider_ipinfo = {
 /** Holds the state for an instance of this provider */
 typedef struct ipmeta_provider_ipinfo_state {
     char *locations_file;
+    uint8_t skip_ipv6;
 
     struct csv_parser parser;
     int current_line;
@@ -107,6 +110,18 @@ typedef struct ipmeta_provider_ipinfo_state {
 
     /** map from country to continent */
     khash_t(u16u16) *country_continent;
+
+    /** set of timezone strings */
+    kh_str_set_t *timezones;
+
+    /** set of region name strings */
+    kh_str_set_t *regions;
+
+    /** set of city name strings */
+    kh_str_set_t *cities;
+
+    /** set of postcode strings */
+    kh_str_set_t *postcodes;
 
 } ipmeta_provider_ipinfo_state_t;
 
@@ -145,7 +160,7 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv) {
     }
 
     optind = 1;
-    while ((opt = getopt(argc, argv, "l:?")) >= 0) {
+    while ((opt = getopt(argc, argv, "4l:?")) >= 0) {
         switch (opt) {
             case 'l':
                 if (state->locations_file) {
@@ -154,6 +169,9 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv) {
                     return -1;
                 }
                 state->locations_file = strdup(optarg);
+                break;
+            case '4':
+                state->skip_ipv6 = 1;
                 break;
             case '?':
             case ':':
@@ -179,6 +197,27 @@ static int parse_args(ipmeta_provider_t *provider, int argc, char **argv) {
     return 0;
 }
 
+static char *insert_name_into_set(char *name, kh_str_set_t **set) {
+    int ret;
+    khiter_t k;
+
+    if (name == NULL) {
+        return NULL;
+    }
+
+    k = kh_get(str_set, *set, name);
+    if (k != kh_end(*set)) {
+        return (char *) kh_key(*set, k);
+    } else {
+        k = kh_put(str_set, *set, name, &ret);
+        if (ret >= 0) {
+            kh_key(*set, k) = strdup(name);
+            return (char *) kh_key(*set, k);
+        }
+    }
+    return NULL;
+}
+
 static void parse_ipinfo_cell(void *s, size_t i, void *data) {
     ipmeta_provider_t *provider = (ipmeta_provider_t *)data;
     ipmeta_provider_ipinfo_state_t *state = STATE(provider);
@@ -192,11 +231,13 @@ static void parse_ipinfo_cell(void *s, size_t i, void *data) {
     switch(state->current_column) {
         case LOCATION_COL_STARTIP:
             rec = malloc_zero(sizeof(ipmeta_record_t));
-            rec->id = state->next_record_id;
-            state->next_record_id ++;
 
             if (strchr(tok, ':')) {
                 /* ipv6 */
+                if (state->skip_ipv6) {
+                    rec->id = 0;
+                    break;
+                }
                 state->block_lower.family = AF_INET6;
                 state->block_lower.masklen = 128;
                 ret = inet_pton(AF_INET6, tok, &(state->block_lower.addr.v6));
@@ -208,10 +249,16 @@ static void parse_ipinfo_cell(void *s, size_t i, void *data) {
             if (ret <= 0) {
                 col_invalid(state, "Invalid start IP", tok);
             }
+            rec->id = state->next_record_id;
+            state->next_record_id ++;
             break;
         case LOCATION_COL_ENDIP:
             if (strchr(tok, ':')) {
                 /* ipv6 */
+                if (state->skip_ipv6) {
+                    rec->id = 0;
+                    break;
+                }
                 state->block_upper.family = AF_INET6;
                 state->block_upper.masklen = 128;
                 ret = inet_pton(AF_INET6, tok, &(state->block_upper.addr.v6));
@@ -236,16 +283,16 @@ static void parse_ipinfo_cell(void *s, size_t i, void *data) {
             }
             break;
         case LOCATION_COL_CITY:
-            coldup(state, col, rec->city, tok);
+            rec->city = insert_name_into_set(tok, &(state->cities));
             break;
         case LOCATION_COL_REGION:
-            coldup(state, col, rec->region, tok);
+            rec->region = insert_name_into_set(tok, &(state->regions));
             break;
         case LOCATION_COL_POSTCODE:
-            coldup(state, col, rec->post_code, tok);
+            rec->post_code = insert_name_into_set(tok, &(state->postcodes));
             break;
         case LOCATION_COL_TZ:
-            coldup(state, col, rec->timezone, tok);
+            rec->timezone = insert_name_into_set(tok, &(state->timezones));
             break;
         case LOCATION_COL_LAT:
             if (tok && *tok) {
@@ -282,9 +329,9 @@ static void parse_ipinfo_row(int c, void *data) {
     khiter_t khiter;
     check_column_count(state, LOCATION_COL_ENDCOL);
 
-    if (state->record == NULL) {
+    if (state->record == NULL || state->record->id == 0) {
         //row_error(state, "%s", "Row did not produce a valid record");
-        return;
+        goto rowdone;
     }
 
     char *cc = state->record->country_code;
@@ -314,6 +361,7 @@ static void parse_ipinfo_row(int c, void *data) {
     }
     ipvx_prefix_list_free(pfx_list);
 
+rowdone:
     state->current_line ++;
     state->current_column = 0;
     state->record = NULL;
@@ -359,6 +407,11 @@ static int read_ipinfo_file(ipmeta_provider_t *provider, const char *filename) {
     state->first_column = -1;
     state->current_line = 0;
     state->parse_row = NULL;
+
+    state->timezones = kh_init(str_set);
+    state->regions = kh_init(str_set);
+    state->postcodes = kh_init(str_set);
+    state->cities = kh_init(str_set);
 
     while (state->first_column < 0) {
         read = wandio_fgets(file, &buffer, BUFFER_LEN, 0);
@@ -433,6 +486,7 @@ int ipmeta_provider_ipinfo_init(ipmeta_provider_t *provider, int argc,
         ipmeta_log(__func__, "could not malloc ipmeta_provider_ipinfo_state_t");
         return -1;
     }
+    state->skip_ipv6 = 0;
     ipmeta_provider_register_state(provider, state);
 
     if (parse_args(provider, argc, argv) != 0) {
@@ -452,11 +506,48 @@ err:
 
 void ipmeta_provider_ipinfo_free(ipmeta_provider_t *provider) {
     ipmeta_provider_ipinfo_state_t *state = STATE(provider);
+    khiter_t k;
 
     if (state != NULL) {
         if (state->locations_file) {
             free(state->locations_file);
             state->locations_file = NULL;
+        }
+
+        if (state->timezones) {
+            for (k = 0; k < kh_end(state->timezones); ++k) {
+                if (kh_exist(state->timezones, k)) {
+                    free((void *)kh_key(state->timezones, k));
+                }
+            }
+            kh_destroy(str_set, state->timezones);
+        }
+
+        if (state->regions) {
+            for (k = 0; k < kh_end(state->regions); ++k) {
+                if (kh_exist(state->regions, k)) {
+                    free((void *)kh_key(state->regions, k));
+                }
+            }
+            kh_destroy(str_set, state->regions);
+        }
+
+        if (state->cities) {
+            for (k = 0; k < kh_end(state->cities); ++k) {
+                if (kh_exist(state->cities, k)) {
+                    free((void *)kh_key(state->cities, k));
+                }
+            }
+            kh_destroy(str_set, state->cities);
+        }
+
+        if (state->postcodes) {
+            for (k = 0; k < kh_end(state->postcodes); ++k) {
+                if (kh_exist(state->postcodes, k)) {
+                    free((void *)kh_key(state->postcodes, k));
+                }
+            }
+            kh_destroy(str_set, state->postcodes);
         }
 
         if (state->country_continent) {

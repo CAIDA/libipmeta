@@ -314,6 +314,12 @@ int ipmeta_provider_lookup_pfx(ipmeta_provider_t *provider, int family,
 int ipmeta_provider_lookup_addr(ipmeta_provider_t *provider, int family,
     void *addrp, ipmeta_record_set_t *found);
 
+/** Deallocate all members of a record, but don't free the record itself.
+ *
+ * @param record   Pointer to the record to reset to its initial state.
+ */
+void ipmeta_clean_record(ipmeta_record_t *record);
+
 /** Dealloacate a record.
  *
  * @param record   Pointer to the record to free.

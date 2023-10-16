@@ -82,32 +82,48 @@ static const provider_alloc_func_t provider_alloc_functions[] = {
   ipmeta_provider_ipinfo_alloc,
 };
 
-void ipmeta_free_record(ipmeta_record_t *record)
+void ipmeta_clean_record(ipmeta_record_t *record)
 {
   if (record == NULL) {
     return;
   }
 
-  free(record->region);
-  record->region = NULL;
+  if (record->region) {
+    free(record->region);
+  }
 
-  free(record->city);
-  record->city = NULL;
+  if (record->city) {
+    free(record->city);
+  }
 
-  free(record->post_code);
-  record->post_code = NULL;
+  if (record->post_code) {
+    free(record->post_code);
+  }
 
-  free(record->conn_speed);
-  record->conn_speed = NULL;
+  if (record->conn_speed) {
+    free(record->conn_speed);
+  }
 
-  free(record->polygon_ids);
-  record->polygon_ids = NULL;
+  if (record->polygon_ids) {
+    free(record->polygon_ids);
+  }
 
-  free(record->asn);
-  record->asn = NULL;
-  record->asn_cnt = 0;
+  if (record->asn) {
+    free(record->asn);
+  }
 
-  free(record);
+  if (record->timezone) {
+    free(record->timezone);
+  }
+
+  memset(record, 0, sizeof(ipmeta_record_t));
+}
+
+void ipmeta_free_record(ipmeta_record_t *record) {
+  if (record) {
+    ipmeta_clean_record(record);
+    free(record);
+  }
   return;
 }
 

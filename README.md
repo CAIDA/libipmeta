@@ -20,7 +20,7 @@ sudo apt install ipmeta
 
 ### From Release Tarball
 
-1. Install [libwandio](https://research.wand.net.nz/software/libwandio.php).
+1. Install [libwandio](https://github.com/LibtraceTeam/wandio).
 2. Download a [release](https://github.com/CAIDA/libipmeta/releases).
 
 Then:

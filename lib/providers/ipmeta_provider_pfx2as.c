@@ -404,3 +404,8 @@ int ipmeta_provider_pfx2as_lookup_addr(ipmeta_provider_t *provider, int family,
   /* just call the lookup helper func in provider manager */
   return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }
+
+void ipmeta_provider_pfx2as_free_record(ipmeta_record_t *record)
+{
+  ipmeta_free_record(record);
+}

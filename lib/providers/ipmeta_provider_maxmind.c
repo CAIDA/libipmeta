@@ -1059,6 +1059,11 @@ int ipmeta_provider_maxmind_lookup_addr(ipmeta_provider_t *provider, int family,
   return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }
 
+void ipmeta_provider_maxmind_free_record(ipmeta_record_t *record)
+{
+  ipmeta_free_record(record);
+}
+
 /* ========== HELPER FUNCTIONS ========== */
 
 int ipmeta_provider_maxmind_get_iso2_list(const char ***countries)

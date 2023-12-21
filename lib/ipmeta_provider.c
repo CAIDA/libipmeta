@@ -202,7 +202,6 @@ void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
 {
   assert(ipmeta != NULL);
   assert(provider != NULL);
-
   /* only free everything if we were enabled */
   if (provider->enabled != 0) {
     /* ask the provider to free it's own state */
@@ -214,7 +213,8 @@ void ipmeta_provider_free(ipmeta_t *ipmeta, ipmeta_provider_t *provider)
     /* free the records hash */
     if (provider->all_records != NULL) {
       /* this is where the records are free'd */
-      kh_free_vals(ipmeta_rechash, provider->all_records, ipmeta_free_record);
+      kh_free_vals(ipmeta_rechash, provider->all_records,
+            provider->free_record);
       kh_destroy(ipmeta_rechash, provider->all_records);
       provider->all_records = NULL;
     }

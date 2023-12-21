@@ -1806,6 +1806,10 @@ int ipmeta_provider_netacq_edge_lookup_addr(ipmeta_provider_t *provider,
   return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }
 
+void ipmeta_provider_netacq_edge_free_record(ipmeta_record_t *record)
+{
+  ipmeta_free_record(record);
+}
 int ipmeta_provider_netacq_edge_get_regions(
   ipmeta_provider_t *provider, ipmeta_provider_netacq_edge_region_t ***regions)
 {

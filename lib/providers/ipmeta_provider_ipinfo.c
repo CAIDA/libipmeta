@@ -574,3 +574,11 @@ int ipmeta_provider_ipinfo_lookup_addr(ipmeta_provider_t *provider, int family,
   return ipmeta_provider_lookup_addr(provider, family, addrp, found);
 }
 
+void ipmeta_provider_ipinfo_free_record(ipmeta_record_t *record)
+{
+    if (record == NULL) {
+        return;
+    }
+    memset(record, 0, sizeof(ipmeta_record_t));
+    free(record);
+}
